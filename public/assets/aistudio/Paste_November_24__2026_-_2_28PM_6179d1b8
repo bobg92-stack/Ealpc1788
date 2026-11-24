@@ -1,0 +1,2497 @@
+                                                                                                                                                            
+┌──(bg9211014🎃kali)-[~]
+└─$ bash << 'EOF'
+set -euo pipefail
+cd ~/lpc1788_workspace/nuttx
+
+echo "=== 1. git status & diff ==="
+git status -s
+git diff
+
+echo "=== 2. Relevant .config options ==="
+grep -E "^CONFIG_(ADS7843E|LPC17_40_SSP|LPC17_40_GPIOIRQ|INPUT|NXWM_TOUCHSCREEN|SCHED_HPWORK|ARCH_LEDS|SYSLOG|ETH0|NETINIT)" .config || true
+
+echo "=== 3. lpc17_40_allocateheap.c (lines 360-500) ==="
+sed -n '360,500p' arch/arm/src/lpc17xx_40xx/lpc17_40_allocateheap.c
+
+echo "=== 4. GPIO_SSP0 definitions ==="
+grep -n "GPIO_SSP0" arch/arm/src/lpc17xx_40xx/hardware/lpc178x_40xx_pinconfig.h
+
+echo "=== 5. lpc17_40_touchscreen.c ==="
+cat boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_touchscreen.c
+
+echo "=== 6. lpc17_40_ssp.c ==="
+cat boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_ssp.c
+EOF
+=== 1. git status & diff ===
+ M arch/arm/src/lpc17xx_40xx/lpc17_40_i2c.c
+ M boards/arm/lpc17xx_40xx/open1788/include/board.h
+ M boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_bringup.c
+ M boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_lcd.c
+ M boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_ssp.c
+ M boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_touchscreen.c
+ M boards/arm/lpc17xx_40xx/open1788/src/open1788.h
+?? boards/arm/lpc17xx_40xx/open1788/configs/ea_gui/
+diff --git a/arch/arm/src/lpc17xx_40xx/lpc17_40_i2c.c b/arch/arm/src/lpc17xx_40xx/lpc17_40_i2c.c
+diff --git a/arch/arm/src/lpc17xx_40xx/lpc17_40_i2c.c b/arch/arm/src/lpc17xx_40xx/lpc17_40_i2c.c
+index 5e948bf179..db6a6fe51e 100644
+--- a/arch/arm/src/lpc17xx_40xx/lpc17_40_i2c.c
++++ b/arch/arm/src/lpc17xx_40xx/lpc17_40_i2c.c
+@@ -542,10 +542,12 @@ struct i2c_master_s *lpc17_40_i2cbus_initialize(int port)
+       regval |= SYSCON_PCONP_PCI2C0;
+       putreg32(regval, LPC17_40_SYSCON_PCONP);
+ 
++#if defined(LPC17_40_SYSCON_PCLKSEL0)
+       regval  = getreg32(LPC17_40_SYSCON_PCLKSEL0);
+       regval &= ~SYSCON_PCLKSEL0_I2C0_MASK;
+       regval |= (SYSCON_PCLKSEL_CCLK << SYSCON_PCLKSEL0_I2C0_SHIFT);
+       putreg32(regval, LPC17_40_SYSCON_PCLKSEL0);
++#endif
+ 
+       /* Pin configuration */
+ 
+diff --git a/boards/arm/lpc17xx_40xx/open1788/include/board.h b/boards/arm/lpc17xx_40xx/open1788/include/board.h
+index 1531503541..f578ef59b8 100644
+--- a/boards/arm/lpc17xx_40xx/open1788/include/board.h
++++ b/boards/arm/lpc17xx_40xx/open1788/include/board.h
+@@ -368,7 +368,7 @@
+ #define GPIO_LCD_VD0                GPIO_LCD_VD0_1
+ #define GPIO_LCD_VD1                GPIO_LCD_VD1_1
+ #define GPIO_LCD_VD2                GPIO_LCD_VD2_2
+-#define GPIO_LCD_VD3                GPIO_LCD_VD3_3
++#define GPIO_LCD_VD3                GPIO_LCD_VD3_2
+ #define GPIO_LCD_VD4                GPIO_LCD_VD4_1
+ #define GPIO_LCD_VD5                GPIO_LCD_VD5_1
+ #define GPIO_LCD_VD6                GPIO_LCD_VD6_2
+@@ -435,5 +435,24 @@
+ #define GPIO_SSP1_MISO   GPIO_SSP1_MISO_3
+ #define GPIO_SSP1_MOSI   GPIO_SSP1_MOSI_2
+ #define GPIO_SSP1_SCK    GPIO_SSP1_SCK_2
++#define GPIO_SSP0_MISO   GPIO_SSP0_MISO_1
++#define GPIO_SSP0_MOSI   GPIO_SSP0_MOSI_1
++#define GPIO_SSP0_SCK    GPIO_SSP0_SCK_1
++#define GPIO_I2C0_SCL    GPIO_I2C0_SCL_1
++#define GPIO_I2C0_SDA    GPIO_I2C0_SDA_1
++
++
++/* EA LPC1788 UART2, UART3, CAN2 Pin Definitions */
++#define GPIO_UART2_TXD   GPIO_UART2_TXD_1
++#define GPIO_UART2_RXD   GPIO_UART2_RXD_1
++#define GPIO_UART3_TXD   GPIO_UART3_TXD_3
++#define GPIO_UART3_RXD   GPIO_UART3_RXD_3
++#define GPIO_CAN2_RD     GPIO_CAN2_RD_1
++#define GPIO_CAN2_TD     GPIO_CAN2_TD_1
++
++
++/* EA LPC1788 LAN8720 PHY Management Pins */
++#define GPIO_ENET_MDC    GPIO_ENET_MDC_1
++#define GPIO_ENET_MDIO   GPIO_ENET_MDIO_1
+ 
+ #endif /* __BOARDS_ARM_LPC17XX_40XX_OPEN1788_INCLUDE_BOARD_H */
+diff --git a/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_bringup.c b/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_bringup.c
+index 5769162933..81dd81c11c 100644
+--- a/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_bringup.c
++++ b/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_bringup.c
+@@ -400,6 +400,9 @@ int open1788_bringup(void)
+     {
+       syslog(LOG_ERR, "ERROR: fb_register() failed: %d\n", ret);
+     }
++
++  extern void ea_lcd_backlight_init(void);
++  ea_lcd_backlight_init();
+ #endif
+ 
+ #ifdef CONFIG_INPUT_ADS7843E
+diff --git a/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_lcd.c b/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_lcd.c
+index 75ca85ff4e..0fce0d0c95 100644
+--- a/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_lcd.c
++++ b/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_lcd.c
+@@ -1,73 +1,42 @@
+-/****************************************************************************
+- * boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_lcd.c
+- *
+- * SPDX-License-Identifier: Apache-2.0
+- *
+- * Licensed to the Apache Software Foundation (ASF) under one or more
+- * contributor license agreements.  See the NOTICE file distributed with
+- * this work for additional information regarding copyright ownership.  The
+- * ASF licenses this file to you under the Apache License, Version 2.0 (the
+- * "License"); you may not use this file except in compliance with the
+- * License.  You may obtain a copy of the License at
+- *
+- *   http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+...skipping...
+
+                   SUMMARY OF LESS COMMANDS
+
+      Commands marked with * may be preceded by a number, N.
+      Notes in parentheses indicate the behavior if N is given.
+      A key preceded by a caret indicates the Ctrl key; thus ^K is ctrl-K.
+
+  h  H                 Display this help.
+  q  :q  Q  :Q  ZZ     Exit.
+ ---------------------------------------------------------------------------
+
+                           MOVING
+
+  e  ^E  j  ^N  CR  *  Forward  one line   (or N lines).
+  y  ^Y  k  ^K  ^P  *  Backward one line   (or N lines).
+  f  ^F  ^V  SPACE  *  Forward  one window (or N lines).
+  b  ^B  ESC-v      *  Backward one window (or N lines).
+  z                 *  Forward  one window (and set window to N).
+  w                 *  Backward one window (and set window to N).
+  ESC-SPACE         *  Forward  one window, but don't stop at end-of-file.
+  d  ^D             *  Forward  one half-window (and set half-window to N).
+  u  ^U             *  Backward one half-window (and set half-window to N).
+  ESC-)  RightArrow *  Right one half screen width (or N positions).
+  ESC-(  LeftArrow  *  Left  one half screen width (or N positions).
+  ESC-}  ^RightArrow   Right to last column displayed.
+  ESC-{  ^LeftArrow    Left  to first column.
+  F                    Forward forever; like "tail -f".
+  ESC-F                Like F but stop when search pattern is found.
+  r  ^R  ^L            Repaint screen.
+  R                    Repaint screen, discarding buffered input.
+        ---------------------------------------------------
+        Default "window" is the screen height.
+        Default "half-window" is half of the screen height.
+ ---------------------------------------------------------------------------
+
+                          SEARCHING
+
+  /pattern          *  Search forward for (N-th) matching line.
+  ?pattern          *  Search backward for (N-th) matching line.
+  n                 *  Repeat previous search (for N-th occurrence).
+  N                 *  Repeat previous search in reverse direction.
+  ESC-n             *  Repeat previous search, spanning files.
+  ESC-N             *  Repeat previous search, reverse dir. & spanning files.
+  ^O^N  ^On         *  Search forward for (N-th) OSC8 hyperlink.
+  ^O^P  ^Op         *  Search backward for (N-th) OSC8 hyperlink.
+  ^O^L  ^Ol            Jump to the currently selected OSC8 hyperlink.
+  ESC-u                Undo (toggle) search highlighting.
+  ESC-U                Clear search highlighting.
+  &pattern          *  Display only matching lines.
+        ---------------------------------------------------
+        A search pattern may begin with one or more of:
+        ^N or !  Search for NON-matching lines.
+        ^E or *  Search multiple files (pass thru END OF FILE).
+        ^F or @  Start search at FIRST file (for /) or last file (for ?).
+        ^K       Highlight matches, but don't move (KEEP position).
+        ^R       Don't use REGULAR EXPRESSIONS.
+        ^S n     Search for match in n-th parenthesized subpattern.
+        ^W       WRAP search if no match found.
+        ^L       Enter next character literally into pattern.
+ ---------------------------------------------------------------------------
+
+                           JUMPING
+
+  g  <  ESC-<       *  Go to first line in file (or line N).
+  G  >  ESC->       *  Go to last line in file (or line N).
+  p  %              *  Go to beginning of file (or N percent into file).
+  t                 *  Go to the (N-th) next tag.
+  T                 *  Go to the (N-th) previous tag.
+  {  (  [           *  Find close bracket } ) ].
+  }  )  ]           *  Find open bracket { ( [.
+  ESC-^F <c1> <c2>  *  Find close bracket <c2>.
+
+  /pattern          *  Search forward for (N-th) matching line.
+  ?pattern          *  Search backward for (N-th) matching line.
+  n                 *  Repeat previous search (for N-th occurrence).
+  N                 *  Repeat previous search in reverse direction.
+  ESC-n             *  Repeat previous search, spanning files.
+  ESC-N             *  Repeat previous search, reverse dir. & spanning files.
+  ^O^N  ^On         *  Search forward for (N-th) OSC8 hyperlink.
+  ^O^P  ^Op         *  Search backward for (N-th) OSC8 hyperlink.
+  ^O^L  ^Ol            Jump to the currently selected OSC8 hyperlink.
+  ESC-u                Undo (toggle) search highlighting.
+  ESC-U                Clear search highlighting.
+  &pattern          *  Display only matching lines.
+        ---------------------------------------------------
+        A search pattern may begin with one or more of:
+        ^N or !  Search for NON-matching lines.
+        ^E or *  Search multiple files (pass thru END OF FILE).
+        ^F or @  Start search at FIRST file (for /) or last file (for ?).
+        ^K       Highlight matches, but don't move (KEEP position).
+        ^R       Don't use REGULAR EXPRESSIONS.
+        ^S n     Search for match in n-th parenthesized subpattern.
+        ^W       WRAP search if no match found.
+        ^L       Enter next character literally into pattern.
+ ---------------------------------------------------------------------------
+
+                           JUMPING
+
+  g  <  ESC-<       *  Go to first line in file (or line N).
+  G  >  ESC->       *  Go to last line in file (or line N).
+  p  %              *  Go to beginning of file (or N percent into file).
+  t                 *  Go to the (N-th) next tag.
+  T                 *  Go to the (N-th) previous tag.
+  {  (  [           *  Find close bracket } ) ].
+  }  )  ]           *  Find open bracket { ( [.
+  ESC-^F <c1> <c2>  *  Find close bracket <c2>.
+...skipping...
+
+  /pattern          *  Search forward for (N-th) matching line.
+  ?pattern          *  Search backward for (N-th) matching line.
+  n                 *  Repeat previous search (for N-th occurrence).
+  N                 *  Repeat previous search in reverse direction.
+  ESC-n             *  Repeat previous search, spanning files.
+  ESC-N             *  Repeat previous search, reverse dir. & spanning files.
+  ^O^N  ^On         *  Search forward for (N-th) OSC8 hyperlink.
+  ^O^P  ^Op         *  Search backward for (N-th) OSC8 hyperlink.
+  ^O^L  ^Ol            Jump to the currently selected OSC8 hyperlink.
+  ESC-u                Undo (toggle) search highlighting.
+  ESC-U                Clear search highlighting.
+  &pattern          *  Display only matching lines.
+        ---------------------------------------------------
+        A search pattern may begin with one or more of:
+        ^N or !  Search for NON-matching lines.
+        ^E or *  Search multiple files (pass thru END OF FILE).
+        ^F or @  Start search at FIRST file (for /) or last file (for ?).
+        ^K       Highlight matches, but don't move (KEEP position).
+        ^R       Don't use REGULAR EXPRESSIONS.
+        ^S n     Search for match in n-th parenthesized subpattern.
+        ^W       WRAP search if no match found.
+        ^L       Enter next character literally into pattern.
+ ---------------------------------------------------------------------------
+
+                           JUMPING
+
+  g  <  ESC-<       *  Go to first line in file (or line N).
+  G  >  ESC->       *  Go to last line in file (or line N).
+  p  %              *  Go to beginning of file (or N percent into file).
+  t                 *  Go to the (N-th) next tag.
+  T                 *  Go to the (N-th) previous tag.
+  {  (  [           *  Find close bracket } ) ].
+  }  )  ]           *  Find open bracket { ( [.
+  ESC-^F <c1> <c2>  *  Find close bracket <c2>.
+  ESC-^B <c1> <c2>  *  Find open bracket <c1>.
+        ---------------------------------------------------
+        Each "find close bracket" command goes forward to the close bracket 
+          matching the (N-th) open bracket in the top line.
+        Each "find open bracket" command goes backward to the open bracket 
+          matching the (N-th) close bracket in the bottom line.
+
+  m<letter>            Mark the current top line with <letter>.
+  M<letter>            Mark the current bottom line with <letter>.
+  '<letter>            Go to a previously marked position.
+  ''                   Go to the previous position.
+  ^X^X                 Same as '.
+  ESC-m<letter>        Clear a mark.
+        ---------------------------------------------------
+        A mark is any upper-case or lower-case letter.
+        Certain marks are predefined:
+             ^  means  beginning of the file
+             $  means  end of the file
+ ---------------------------------------------------------------------------
+
+                        CHANGING FILES
+
+  :e [file]            Examine a new file.
+  ^X^V                 Same as :e.
+  :n                *  Examine the (N-th) next file from the command line.
+  :p                *  Examine the (N-th) previous file from the command line.
+  :x                *  Examine the first (or N-th) file from the command line.
+  ^O^O                 Open the currently selected OSC8 hyperlink.
+  :d                   Delete the current file from the command line list.
+  =  ^G  :f            Print current file name.
+ ---------------------------------------------------------------------------
+
+                    MISCELLANEOUS COMMANDS
+
+  -<flag>              Toggle a command line option [see OPTIONS below].
+  --<name>             Toggle a command line option, by name.
+  _<flag>              Display the setting of a command line option.
+  __<name>             Display the setting of an option, by name.
+  +cmd                 Execute the less cmd each time a new file is examined.
+
+  !command             Execute the shell command with $SHELL.
+  #command             Execute the shell command, expanded like a prompt.
+  |Xcommand            Pipe file between current pos & mark X to shell command.
+  s file               Save input to a file.
+  v                    Edit the current file with $VISUAL or $EDITOR.
+  V                    Print version number of "less".
+ ---------------------------------------------------------------------------
+
+                           OPTIONS
+
+        Most options may be changed either on the command line,
+        or from within less by using the - or -- command.
+        Options may be given in one of two forms: either a single
+        character preceded by a -, or a name preceded by --.
+
+  -?  ........  --help
+                  Display help (from command line).
+  -a  ........  --search-skip-screen
+                  Search skips current screen.
+  -A  ........  --SEARCH-SKIP-SCREEN
+                  Search starts just after target line.
+  -b [N]  ....  --buffers=[N]
+                  Number of buffers.
+  -B  ........  --auto-buffers
+                  Don't automatically allocate buffers for pipes.
+  -c  ........  --clear-screen
+                  Repaint by clearing rather than scrolling.
+  -d  ........  --dumb
+                  Dumb terminal.
+  -D xcolor  .  --color=xcolor
+                  Set screen colors.
+  -e  -E  ....  --quit-at-eof  --QUIT-AT-EOF
+                  Quit at end of file.
+  -f  ........  --force
+                  Force open non-regular files.
+  -F  ........  --quit-if-one-screen
+                  Quit if entire file fits on first screen.
+  -g  ........  --hilite-search
+                  Highlight only last match for searches.
+  -G  ........  --HILITE-SEARCH
+                  Don't highlight any matches for searches.
+  -h [N]  ....  --max-back-scroll=[N]
+                  Backward scroll limit.
+  -i  ........  --ignore-case
+                  Ignore case in searches that do not contain uppercase.
+  -I  ........  --IGNORE-CASE
+                  Ignore case in all searches.
+  -j [N]  ....  --jump-target=[N]
+                  Screen position of target lines.
+  -J  ........  --status-column
+                  Display a status column at left edge of screen.
+  -k file  ...  --lesskey-file=file
+                  Use a compiled lesskey file.
+  -K  ........  --quit-on-intr
+                  Exit less in response to ctrl-C.
+  -L  ........  --no-lessopen
+                  Ignore the LESSOPEN environment variable.
+  -m  -M  ....  --long-prompt  --LONG-PROMPT
+                  Set prompt style.
+  -n .........  --line-numbers
+                  Suppress line numbers in prompts and messages.
+  -N .........  --LINE-NUMBERS
+                  Display line number at start of each line.
+  -o [file] ..  --log-file=[file]
+                  Copy to log file (standard input only).
+  -O [file] ..  --LOG-FILE=[file]
+                  Copy to log file (unconditionally overwrite).
+  -p pattern .  --pattern=[pattern]
+                  Start at pattern (from command line).
+  -P [prompt]   --prompt=[prompt]
+                  Define new prompt.
+  -q  -Q  ....  --quiet  --QUIET  --silent --SILENT
+                  Quiet the terminal bell.
+  -r  -R  ....  --raw-control-chars  --RAW-CONTROL-CHARS
+                  Output "raw" control characters.
+  -s  ........  --squeeze-blank-lines
+                  Squeeze multiple blank lines.
+  -S  ........  --chop-long-lines
+                  Chop (truncate) long lines rather than wrapping.
+  -t tag  ....  --tag=[tag]
+                  Find a tag.
+  -T [tagsfile] --tag-file=[tagsfile]
+                  Use an alternate tags file.
+  -u  -U  ....  --underline-special  --UNDERLINE-SPECIAL
+  -J  ........  --status-column
+                  Display a status column at left edge of screen.
+  -k file  ...  --lesskey-file=file
+                  Use a compiled lesskey file.
+  -K  ........  --quit-on-intr
+                  Exit less in response to ctrl-C.
+  -L  ........  --no-lessopen
+                  Ignore the LESSOPEN environment variable.
+  -m  -M  ....  --long-prompt  --LONG-PROMPT
+                  Set prompt style.
+  -n .........  --line-numbers
+                  Suppress line numbers in prompts and messages.
+  -N .........  --LINE-NUMBERS
+                  Display line number at start of each line.
+  -o [file] ..  --log-file=[file]
+                  Copy to log file (standard input only).
+  -O [file] ..  --LOG-FILE=[file]
+                  Copy to log file (unconditionally overwrite).
+  -p pattern .  --pattern=[pattern]
+                  Start at pattern (from command line).
+  -P [prompt]   --prompt=[prompt]
+                  Define new prompt.
+  -q  -Q  ....  --quiet  --QUIET  --silent --SILENT
+                  Quiet the terminal bell.
+  -r  -R  ....  --raw-control-chars  --RAW-CONTROL-CHARS
+                  Output "raw" control characters.
+  -s  ........  --squeeze-blank-lines
+                  Squeeze multiple blank lines.
+  -S  ........  --chop-long-lines
+                  Chop (truncate) long lines rather than wrapping.
+                  Ignore case in searches that do not contain uppercase.
+  -I  ........  --IGNORE-CASE
+                  Ignore case in all searches.
+  -j [N]  ....  --jump-target=[N]
+                  Screen position of target lines.
+  -J  ........  --status-column
+                  Display a status column at left edge of screen.
+  -k file  ...  --lesskey-file=file
+                  Use a compiled lesskey file.
+  -K  ........  --quit-on-intr
+                  Exit less in response to ctrl-C.
+  -L  ........  --no-lessopen
+                  Ignore the LESSOPEN environment variable.
+  -m  -M  ....  --long-prompt  --LONG-PROMPT
+                  Set prompt style.
+  -n .........  --line-numbers
+                  Suppress line numbers in prompts and messages.
+  -N .........  --LINE-NUMBERS
+                  Display line number at start of each line.
+  -o [file] ..  --log-file=[file]
+                  Copy to log file (standard input only).
+  -O [file] ..  --LOG-FILE=[file]
+                  Copy to log file (unconditionally overwrite).
+  -p pattern .  --pattern=[pattern]
+                  Start at pattern (from command line).
+  -P [prompt]   --prompt=[prompt]
+                  Define new prompt.
+  -q  -Q  ....  --quiet  --QUIET  --silent --SILENT
+                  Quiet the terminal bell.
+  -r  -R  ....  --raw-control-chars  --RAW-CONTROL-CHARS
+                  Output "raw" control characters.
+  -s  ........  --squeeze-blank-lines
+                  Squeeze multiple blank lines.
+  -S  ........  --chop-long-lines
+                  Chop (truncate) long lines rather than wrapping.
+...skipping...
+                  Ignore case in searches that do not contain uppercase.
+  -I  ........  --IGNORE-CASE
+                  Ignore case in all searches.
+  -j [N]  ....  --jump-target=[N]
+                  Screen position of target lines.
+  -J  ........  --status-column
+                  Display a status column at left edge of screen.
+  -k file  ...  --lesskey-file=file
+                  Use a compiled lesskey file.
+  -K  ........  --quit-on-intr
+                  Exit less in response to ctrl-C.
+  -L  ........  --no-lessopen
+                  Ignore the LESSOPEN environment variable.
+  -m  -M  ....  --long-prompt  --LONG-PROMPT
+                  Set prompt style.
+  -n .........  --line-numbers
+                  Suppress line numbers in prompts and messages.
+  -N .........  --LINE-NUMBERS
+                  Display line number at start of each line.
+  -o [file] ..  --log-file=[file]
+                  Copy to log file (standard input only).
+  -O [file] ..  --LOG-FILE=[file]
+                  Copy to log file (unconditionally overwrite).
+  -p pattern .  --pattern=[pattern]
+                  Start at pattern (from command line).
+  -P [prompt]   --prompt=[prompt]
+                  Define new prompt.
+  -q  -Q  ....  --quiet  --QUIET  --silent --SILENT
+                  Quiet the terminal bell.
+  -r  -R  ....  --raw-control-chars  --RAW-CONTROL-CHARS
+                  Output "raw" control characters.
+  -s  ........  --squeeze-blank-lines
+                  Squeeze multiple blank lines.
+  -S  ........  --chop-long-lines
+                  Chop (truncate) long lines rather than wrapping.
+  -t tag  ....  --tag=[tag]
+                  Find a tag.
+  -T [tagsfile] --tag-file=[tagsfile]
+                  Use an alternate tags file.
+  -u  -U  ....  --underline-special  --UNDERLINE-SPECIAL
+                  Change handling of backspaces, tabs and carriage returns.
+  -V  ........  --version
+                  Display the version number of "less".
+  -w  ........  --hilite-unread
+                  Highlight first new line after forward-screen.
+  -W  ........  --HILITE-UNREAD
+                  Highlight first new line after any forward movement.
+  -x [N[,...]]  --tabs=[N[,...]]
+                  Set tab stops.
+  -X  ........  --no-init
+                  Don't use termcap init/deinit strings.
+  -y [N]  ....  --max-forw-scroll=[N]
+                  Forward scroll limit.
+  -z [N]  ....  --window=[N]
+                  Set size of window.
+  -" [c[c]]  .  --quotes=[c[c]]
+                  Set shell quote characters.
+  -~  ........  --tilde
+                  Don't display tildes after end of file.
+  -# [N]  ....  --shift=[N]
+                  Set horizontal scroll amount (0 = one half screen width).
+
+                --exit-follow-on-close
+                  Exit F command on a pipe when writer closes pipe.
+                --file-size
+                  Automatically determine the size of the input file.
+                --follow-name
+                  The F command changes files if the input file is renamed.
+                --header=[L[,C[,N]]]
+                  Use L lines (starting at line N) and C columns as headers.
+                --incsearch
+                  Search file as each pattern character is typed in.
+                --intr=[C]
+                  Use C instead of ^X to interrupt a read.
+                --lesskey-context=text
+                  Use lesskey source file contents.
+                --lesskey-src=file
+                  Use a lesskey source file.
+                --line-num-width=[N]
+                  Set the width of the -N line number field to N characters.
+                --match-shift=[N]
+                  Show at least N characters to the left of a search match.
+                --modelines=[N]
+                  Read N lines from the input file and look for vim modelines.
+                --mouse
+                  Enable mouse input.
+                --no-keypad
+                  Don't send termcap keypad init/deinit strings.
+                --no-histdups
+                  Remove duplicates from command history.
+                --no-number-headers
+                  Don't give line numbers to header lines.
+                --no-search-header-lines
+                  Searches do not include header lines.
+                --no-search-header-columns
+                  Searches do not include header columns.
+                --no-search-headers
+                  Searches do not include header lines or columns.
+                --no-vbell
+                  Disable the terminal's visual bell.
+                --redraw-on-quit
+                  Redraw final screen when quitting.
+                --rscroll=[C]
+                  Set the character used to mark truncated lines.
+                --save-marks
+                  Retain marks across invocations of less.
+                --search-options=[EFKNRW-]
+                  Set default options for every search.
+                --show-preproc-errors
+                  Display a message if preprocessor exits with an error status.
+                --proc-backspace
+                  Process backspaces for bold/underline.
+                --PROC-BACKSPACE
+                  Treat backspaces as control characters.
+                --proc-return
+                  Delete carriage returns before newline.
+                --PROC-RETURN
+                  Treat carriage returns as control characters.
+                --proc-tab
+                  Expand tabs to spaces.
+                --PROC-TAB
+                  Treat tabs as control characters.
+                --status-col-width=[N]
+                  Set the width of the -J status column to N characters.
+                --status-line
+                  Highlight or color the entire line containing a mark.
+...skipping...
+ ctrl-L ................................... Complete filename, list all.
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+
+                   SUMMARY OF LESS COMMANDS
+
+      Commands marked with * may be preceded by a number, N.
+      Notes in parentheses indicate the behavior if N is given.
+      A key preceded by a caret indicates the Ctrl key; thus ^K is ctrl-K.
+
+  h  H                 Display this help.
+  q  :q  Q  :Q  ZZ     Exit.
+ ---------------------------------------------------------------------------
+
+                           MOVING
+
+  e  ^E  j  ^N  CR  *  Forward  one line   (or N lines).
+  y  ^Y  k  ^K  ^P  *  Backward one line   (or N lines).
+  f  ^F  ^V  SPACE  *  Forward  one window (or N lines).
+  b  ^B  ESC-v      *  Backward one window (or N lines).
+  z                 *  Forward  one window (and set window to N).
+  w                 *  Backward one window (and set window to N).
+  ESC-SPACE         *  Forward  one window, but don't stop at end-of-file.
+  d  ^D             *  Forward  one half-window (and set half-window to N).
+  u  ^U             *  Backward one half-window (and set half-window to N).
+  ESC-)  RightArrow *  Right one half screen width (or N positions).
+  ESC-(  LeftArrow  *  Left  one half screen width (or N positions).
+  ESC-}  ^RightArrow   Right to last column displayed.
+  ESC-{  ^LeftArrow    Left  to first column.
+  F                    Forward forever; like "tail -f".
+  ESC-F                Like F but stop when search pattern is found.
+  r  ^R  ^L            Repaint screen.
+  R                    Repaint screen, discarding buffered input.
+        ---------------------------------------------------
+        Default "window" is the screen height.
+        Default "half-window" is half of the screen height.
+ ---------------------------------------------------------------------------
+
+                          SEARCHING
+
+  /pattern          *  Search forward for (N-th) matching line.
+  ?pattern          *  Search backward for (N-th) matching line.
+  n                 *  Repeat previous search (for N-th occurrence).
+  N                 *  Repeat previous search in reverse direction.
+  ESC-n             *  Repeat previous search, spanning files.
+  ESC-N             *  Repeat previous search, reverse dir. & spanning files.
+  ^O^N  ^On         *  Search forward for (N-th) OSC8 hyperlink.
+  ^O^P  ^Op         *  Search backward for (N-th) OSC8 hyperlink.
+  ^O^L  ^Ol            Jump to the currently selected OSC8 hyperlink.
+  ESC-u                Undo (toggle) search highlighting.
+  ESC-U                Clear search highlighting.
+  &pattern          *  Display only matching lines.
+        ---------------------------------------------------
+        A search pattern may begin with one or more of:
+        ^N or !  Search for NON-matching lines.
+        ^E or *  Search multiple files (pass thru END OF FILE).
+        ^F or @  Start search at FIRST file (for /) or last file (for ?).
+        ^K       Highlight matches, but don't move (KEEP position).
+        ^R       Don't use REGULAR EXPRESSIONS.
+        ^S n     Search for match in n-th parenthesized subpattern.
+        ^W       WRAP search if no match found.
+        ^L       Enter next character literally into pattern.
+ ---------------------------------------------------------------------------
+
+                           JUMPING
+
+  g  <  ESC-<       *  Go to first line in file (or line N).
+  G  >  ESC->       *  Go to last line in file (or line N).
+  p  %              *  Go to beginning of file (or N percent into file).
+  t                 *  Go to the (N-th) next tag.
+  T                 *  Go to the (N-th) previous tag.
+  {  (  [           *  Find close bracket } ) ].
+  }  )  ]           *  Find open bracket { ( [.
+  ESC-^F <c1> <c2>  *  Find close bracket <c2>.
+  ESC-^B <c1> <c2>  *  Find open bracket <c1>.
+        ---------------------------------------------------
+        Each "find close bracket" command goes forward to the close bracket 
+          matching the (N-th) open bracket in the top line.
+        Each "find open bracket" command goes backward to the open bracket 
+          matching the (N-th) close bracket in the bottom line.
+
+  m<letter>            Mark the current top line with <letter>.
+  M<letter>            Mark the current bottom line with <letter>.
+  '<letter>            Go to a previously marked position.
+  ''                   Go to the previous position.
+  ^X^X                 Same as '.
+  ESC-m<letter>        Clear a mark.
+        ---------------------------------------------------
+        A mark is any upper-case or lower-case letter.
+        Certain marks are predefined:
+             ^  means  beginning of the file
+             $  means  end of the file
+ ---------------------------------------------------------------------------
+
+                        CHANGING FILES
+
+  :e [file]            Examine a new file.
+  ^X^V                 Same as :e.
+  :n                *  Examine the (N-th) next file from the command line.
+  :p                *  Examine the (N-th) previous file from the command line.
+  :x                *  Examine the first (or N-th) file from the command line.
+  ^O^O                 Open the currently selected OSC8 hyperlink.
+  :d                   Delete the current file from the command line list.
+  =  ^G  :f            Print current file name.
+ ---------------------------------------------------------------------------
+
+                    MISCELLANEOUS COMMANDS
+
+  -<flag>              Toggle a command line option [see OPTIONS below].
+  --<name>             Toggle a command line option, by name.
+  _<flag>              Display the setting of a command line option.
+  __<name>             Display the setting of an option, by name.
+  +cmd                 Execute the less cmd each time a new file is examined.
+
+  !command             Execute the shell command with $SHELL.
+  #command             Execute the shell command, expanded like a prompt.
+  |Xcommand            Pipe file between current pos & mark X to shell command.
+  s file               Save input to a file.
+  v                    Edit the current file with $VISUAL or $EDITOR.
+  V                    Print version number of "less".
+ ---------------------------------------------------------------------------
+
+                           OPTIONS
+
+        Most options may be changed either on the command line,
+        or from within less by using the - or -- command.
+             $  means  end of the file
+ ---------------------------------------------------------------------------
+
+                        CHANGING FILES
+
+  :e [file]            Examine a new file.
+  ^X^V                 Same as :e.
+  :n                *  Examine the (N-th) next file from the command line.
+  :p                *  Examine the (N-th) previous file from the command line.
+  :x                *  Examine the first (or N-th) file from the command line.
+  ^O^O                 Open the currently selected OSC8 hyperlink.
+  :d                   Delete the current file from the command line list.
+  =  ^G  :f            Print current file name.
+ ---------------------------------------------------------------------------
+
+                    MISCELLANEOUS COMMANDS
+
+  -<flag>              Toggle a command line option [see OPTIONS below].
+  --<name>             Toggle a command line option, by name.
+  _<flag>              Display the setting of a command line option.
+  __<name>             Display the setting of an option, by name.
+  +cmd                 Execute the less cmd each time a new file is examined.
+
+  !command             Execute the shell command with $SHELL.
+  #command             Execute the shell command, expanded like a prompt.
+  |Xcommand            Pipe file between current pos & mark X to shell command.
+  s file               Save input to a file.
+  v                    Edit the current file with $VISUAL or $EDITOR.
+  V                    Print version number of "less".
+ ---------------------------------------------------------------------------
+
+                           OPTIONS
+
+        Most options may be changed either on the command line,
+        or from within less by using the - or -- command.
+...skipping...
+             $  means  end of the file
+ ---------------------------------------------------------------------------
+
+                        CHANGING FILES
+
+  :e [file]            Examine a new file.
+  ^X^V                 Same as :e.
+  :n                *  Examine the (N-th) next file from the command line.
+  :p                *  Examine the (N-th) previous file from the command line.
+  :x                *  Examine the first (or N-th) file from the command line.
+  ^O^O                 Open the currently selected OSC8 hyperlink.
+  :d                   Delete the current file from the command line list.
+  =  ^G  :f            Print current file name.
+ ---------------------------------------------------------------------------
+
+                    MISCELLANEOUS COMMANDS
+
+  -<flag>              Toggle a command line option [see OPTIONS below].
+  --<name>             Toggle a command line option, by name.
+  _<flag>              Display the setting of a command line option.
+  __<name>             Display the setting of an option, by name.
+  +cmd                 Execute the less cmd each time a new file is examined.
+
+  !command             Execute the shell command with $SHELL.
+  #command             Execute the shell command, expanded like a prompt.
+  |Xcommand            Pipe file between current pos & mark X to shell command.
+  s file               Save input to a file.
+  v                    Edit the current file with $VISUAL or $EDITOR.
+  V                    Print version number of "less".
+ ---------------------------------------------------------------------------
+
+                           OPTIONS
+
+        Most options may be changed either on the command line,
+        or from within less by using the - or -- command.
+        Options may be given in one of two forms: either a single
+        character preceded by a -, or a name preceded by --.
+
+  -?  ........  --help
+                  Display help (from command line).
+  -a  ........  --search-skip-screen
+                  Search skips current screen.
+  -A  ........  --SEARCH-SKIP-SCREEN
+                  Search starts just after target line.
+  -b [N]  ....  --buffers=[N]
+                  Number of buffers.
+  -B  ........  --auto-buffers
+                  Don't automatically allocate buffers for pipes.
+  -c  ........  --clear-screen
+                  Repaint by clearing rather than scrolling.
+  -d  ........  --dumb
+                  Dumb terminal.
+  -D xcolor  .  --color=xcolor
+                  Set screen colors.
+  -e  -E  ....  --quit-at-eof  --QUIT-AT-EOF
+                  Quit at end of file.
+  -f  ........  --force
+                  Force open non-regular files.
+  -F  ........  --quit-if-one-screen
+                  Quit if entire file fits on first screen.
+  -g  ........  --hilite-search
+                  Highlight only last match for searches.
+  -G  ........  --HILITE-SEARCH
+                  Don't highlight any matches for searches.
+  -h [N]  ....  --max-back-scroll=[N]
+                  Backward scroll limit.
+  -i  ........  --ignore-case
+                  Ignore case in searches that do not contain uppercase.
+  -I  ........  --IGNORE-CASE
+                  Ignore case in all searches.
+  -j [N]  ....  --jump-target=[N]
+                  Screen position of target lines.
+  -J  ........  --status-column
+                  Display a status column at left edge of screen.
+  -k file  ...  --lesskey-file=file
+                  Use a compiled lesskey file.
+  -K  ........  --quit-on-intr
+                  Exit less in response to ctrl-C.
+  -L  ........  --no-lessopen
+                  Ignore the LESSOPEN environment variable.
+  -m  -M  ....  --long-prompt  --LONG-PROMPT
+                  Set prompt style.
+  -n .........  --line-numbers
+                  Suppress line numbers in prompts and messages.
+  -N .........  --LINE-NUMBERS
+                  Display line number at start of each line.
+  -o [file] ..  --log-file=[file]
+                  Copy to log file (standard input only).
+  -O [file] ..  --LOG-FILE=[file]
+                  Copy to log file (unconditionally overwrite).
+  -p pattern .  --pattern=[pattern]
+                  Start at pattern (from command line).
+  -P [prompt]   --prompt=[prompt]
+                  Define new prompt.
+  -q  -Q  ....  --quiet  --QUIET  --silent --SILENT
+                  Quiet the terminal bell.
+  -r  -R  ....  --raw-control-chars  --RAW-CONTROL-CHARS
+                  Output "raw" control characters.
+  -s  ........  --squeeze-blank-lines
+                  Squeeze multiple blank lines.
+  -S  ........  --chop-long-lines
+                  Chop (truncate) long lines rather than wrapping.
+  -t tag  ....  --tag=[tag]
+                  Find a tag.
+  -T [tagsfile] --tag-file=[tagsfile]
+                  Use an alternate tags file.
+  -u  -U  ....  --underline-special  --UNDERLINE-SPECIAL
+                  Change handling of backspaces, tabs and carriage returns.
+  -V  ........  --version
+                  Display the version number of "less".
+  -w  ........  --hilite-unread
+                  Highlight first new line after forward-screen.
+  -W  ........  --HILITE-UNREAD
+                  Highlight first new line after any forward movement.
+  -x [N[,...]]  --tabs=[N[,...]]
+                  Set tab stops.
+  -X  ........  --no-init
+                  Don't use termcap init/deinit strings.
+  -y [N]  ....  --max-forw-scroll=[N]
+                  Forward scroll limit.
+  -z [N]  ....  --window=[N]
+                  Set size of window.
+  -" [c[c]]  .  --quotes=[c[c]]
+                  Set shell quote characters.
+  -~  ........  --tilde
+                  Don't display tildes after end of file.
+  -# [N]  ....  --shift=[N]
+                  Set horizontal scroll amount (0 = one half screen width).
+
+                --exit-follow-on-close
+                  Exit F command on a pipe when writer closes pipe.
+                --file-size
+                  Automatically determine the size of the input file.
+                --follow-name
+                  The F command changes files if the input file is renamed.
+                --header=[L[,C[,N]]]
+                  Use L lines (starting at line N) and C columns as headers.
+                --incsearch
+                  Search file as each pattern character is typed in.
+                --intr=[C]
+                  Use C instead of ^X to interrupt a read.
+                --lesskey-context=text
+                  Use lesskey source file contents.
+                --lesskey-src=file
+                  Use a lesskey source file.
+                --line-num-width=[N]
+                  Set the width of the -N line number field to N characters.
+                --match-shift=[N]
+                  Show at least N characters to the left of a search match.
+                --modelines=[N]
+                  Read N lines from the input file and look for vim modelines.
+                --mouse
+                  Enable mouse input.
+                --no-keypad
+                  Don't send termcap keypad init/deinit strings.
+                --no-histdups
+                  Remove duplicates from command history.
+                --no-number-headers
+                  Don't give line numbers to header lines.
+                --no-search-header-lines
+                  Searches do not include header lines.
+                --no-search-header-columns
+
+                   SUMMARY OF LESS COMMANDS
+
+      Commands marked with * may be preceded by a number, N.
+      Notes in parentheses indicate the behavior if N is given.
+      A key preceded by a caret indicates the Ctrl key; thus ^K is ctrl-K.
+
+  h  H                 Display this help.
+  q  :q  Q  :Q  ZZ     Exit.
+ ---------------------------------------------------------------------------
+
+                           MOVING
+
+  e  ^E  j  ^N  CR  *  Forward  one line   (or N lines).
+  y  ^Y  k  ^K  ^P  *  Backward one line   (or N lines).
+  f  ^F  ^V  SPACE  *  Forward  one window (or N lines).
+  b  ^B  ESC-v      *  Backward one window (or N lines).
+  z                 *  Forward  one window (and set window to N).
+  w                 *  Backward one window (and set window to N).
+  ESC-SPACE         *  Forward  one window, but don't stop at end-of-file.
+  d  ^D             *  Forward  one half-window (and set half-window to N).
+  u  ^U             *  Backward one half-window (and set half-window to N).
+  ESC-)  RightArrow *  Right one half screen width (or N positions).
+  ESC-(  LeftArrow  *  Left  one half screen width (or N positions).
+  ESC-}  ^RightArrow   Right to last column displayed.
+  ESC-{  ^LeftArrow    Left  to first column.
+  F                    Forward forever; like "tail -f".
+  ESC-F                Like F but stop when search pattern is found.
+  r  ^R  ^L            Repaint screen.
+  R                    Repaint screen, discarding buffered input.
+        ---------------------------------------------------
+        Default "window" is the screen height.
+        Default "half-window" is half of the screen height.
+ ---------------------------------------------------------------------------
+
+
+                   SUMMARY OF LESS COMMANDS
+
+      Commands marked with * may be preceded by a number, N.
+      Notes in parentheses indicate the behavior if N is given.
+      A key preceded by a caret indicates the Ctrl key; thus ^K is ctrl-K.
+
+  h  H                 Display this help.
+  q  :q  Q  :Q  ZZ     Exit.
+ ---------------------------------------------------------------------------
+
+                           MOVING
+
+  e  ^E  j  ^N  CR  *  Forward  one line   (or N lines).
+  y  ^Y  k  ^K  ^P  *  Backward one line   (or N lines).
+  f  ^F  ^V  SPACE  *  Forward  one window (or N lines).
+  b  ^B  ESC-v      *  Backward one window (or N lines).
+  z                 *  Forward  one window (and set window to N).
+  w                 *  Backward one window (and set window to N).
+  ESC-SPACE         *  Forward  one window, but don't stop at end-of-file.
+  d  ^D             *  Forward  one half-window (and set half-window to N).
+  u  ^U             *  Backward one half-window (and set half-window to N).
+  ESC-)  RightArrow *  Right one half screen width (or N positions).
+  ESC-(  LeftArrow  *  Left  one half screen width (or N positions).
+  ESC-}  ^RightArrow   Right to last column displayed.
+  ESC-{  ^LeftArrow    Left  to first column.
+  F                    Forward forever; like "tail -f".
+  ESC-F                Like F but stop when search pattern is found.
+  r  ^R  ^L            Repaint screen.
+  R                    Repaint screen, discarding buffered input.
+        ---------------------------------------------------
+        Default "window" is the screen height.
+        Default "half-window" is half of the screen height.
+ ---------------------------------------------------------------------------
+
+...skipping...
+
+                   SUMMARY OF LESS COMMANDS
+
+      Commands marked with * may be preceded by a number, N.
+      Notes in parentheses indicate the behavior if N is given.
+      A key preceded by a caret indicates the Ctrl key; thus ^K is ctrl-K.
+
+  h  H                 Display this help.
+  q  :q  Q  :Q  ZZ     Exit.
+ ---------------------------------------------------------------------------
+
+                           MOVING
+
+  e  ^E  j  ^N  CR  *  Forward  one line   (or N lines).
+  y  ^Y  k  ^K  ^P  *  Backward one line   (or N lines).
+  f  ^F  ^V  SPACE  *  Forward  one window (or N lines).
+  b  ^B  ESC-v      *  Backward one window (or N lines).
+  z                 *  Forward  one window (and set window to N).
+  w                 *  Backward one window (and set window to N).
+  ESC-SPACE         *  Forward  one window, but don't stop at end-of-file.
+  d  ^D             *  Forward  one half-window (and set half-window to N).
+  u  ^U             *  Backward one half-window (and set half-window to N).
+  ESC-)  RightArrow *  Right one half screen width (or N positions).
+  ESC-(  LeftArrow  *  Left  one half screen width (or N positions).
+  ESC-}  ^RightArrow   Right to last column displayed.
+  ESC-{  ^LeftArrow    Left  to first column.
+  F                    Forward forever; like "tail -f".
+  ESC-F                Like F but stop when search pattern is found.
+  r  ^R  ^L            Repaint screen.
+  R                    Repaint screen, discarding buffered input.
+        ---------------------------------------------------
+        Default "window" is the screen height.
+        Default "half-window" is half of the screen height.
+ ---------------------------------------------------------------------------
+
+                          SEARCHING
+...skipping...
+ ctrl-L ................................... Complete filename, list all.
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+...skipping...
+                --status-line
+                  Highlight or color the entire line containing a mark.
+                --use-backslash
+                  Subsequent options use backslash as escape char.
+                --use-color
+                  Enables colored text.
+                --wheel-lines=[N]
+                  Each click of the mouse wheel moves N lines.
+                --wordwrap
+                  Wrap lines at spaces.
+
+
+ ---------------------------------------------------------------------------
+
+                          LINE EDITING
+
+        These keys can be used to edit text being entered 
+        on the "command line" at the bottom of the screen.
+
+ RightArrow ..................... ESC-l ... Move cursor right one character.
+ LeftArrow ...................... ESC-h ... Move cursor left one character.
+ ctrl-RightArrow  ESC-RightArrow  ESC-w ... Move cursor right one word.
+ ctrl-LeftArrow   ESC-LeftArrow   ESC-b ... Move cursor left one word.
+ HOME ........................... ESC-0 ... Move cursor to start of line.
+ END ............................ ESC-$ ... Move cursor to end of line.
+ BACKSPACE ................................ Delete char to left of cursor.
+ DELETE ......................... ESC-x ... Delete char under cursor.
+ ctrl-BACKSPACE   ESC-BACKSPACE ........... Delete word to left of cursor.
+ ctrl-DELETE .... ESC-DELETE .... ESC-X ... Delete word under cursor.
+ ctrl-U ......... ESC (MS-DOS only) ....... Delete entire line.
+ UpArrow ........................ ESC-k ... Retrieve previous command line.
+ DownArrow ...................... ESC-j ... Retrieve next command line.
+ TAB ...................................... Complete filename & cycle.
+ SHIFT-TAB ...................... ESC-TAB   Complete filename & reverse cycle.
+ ctrl-L ................................... Complete filename, list all.
+zsh:1: parse error near `)'
+|LPC17_40_SSP|LPC17_40_GPIOIRQ|INPUT|NXWM_TOUCHSCREEN|SCHED_HPWORK|ARCH_LEDS|SYSLOG|ETH0|NETINIT)" .config || true: No such file or directory  (press RETURN                --status-line
+                  Highlight or color the entire line containing a mark.
+                --use-backslash
+                  Subsequent options use backslash as escape char.
+                --use-color
+                  Enables colored text.
+                --wheel-lines=[N]
+                  Each click of the mouse wheel moves N lines.
+                --wordwrap
+                  Wrap lines at spaces.
+
+
+ ---------------------------------------------------------------------------
+
+                          LINE EDITING
+
+        These keys can be used to edit text being entered 
+        on the "command line" at the bottom of the screen.
+
+ RightArrow ..................... ESC-l ... Move cursor right one character.
+ LeftArrow ...................... ESC-h ... Move cursor left one character.
+ ctrl-RightArrow  ESC-RightArrow  ESC-w ... Move cursor right one word.
+ ctrl-LeftArrow   ESC-LeftArrow   ESC-b ... Move cursor left one word.
+ HOME ........................... ESC-0 ... Move cursor to start of line.
+ END ............................ ESC-$ ... Move cursor to end of line.
+ BACKSPACE ................................ Delete char to left of cursor.
+ DELETE ......................... ESC-x ... Delete char under cursor.
+ ctrl-BACKSPACE   ESC-BACKSPACE ........... Delete word to left of cursor.
+ ctrl-DELETE .... ESC-DELETE .... ESC-X ... Delete word under cursor.
+ ctrl-U ......... ESC (MS-DOS only) ....... Delete entire line.
+ UpArrow ........................ ESC-k ... Retrieve previous command line.
+ DownArrow ...................... ESC-j ... Retrieve next command line.
+ TAB ...................................... Complete filename & cycle.
+ SHIFT-TAB ...................... ESC-TAB   Complete filename & reverse cycle.
+ ctrl-L ................................... Complete filename, list all.
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+
+                   SUMMARY OF LESS COMMANDS
+
+      Commands marked with * may be preceded by a number, N.
+      Notes in parentheses indicate the behavior if N is given.
+      A key preceded by a caret indicates the Ctrl key; thus ^K is ctrl-K.
+
+  h  H                 Display this help.
+  q  :q  Q  :Q  ZZ     Exit.
+ ---------------------------------------------------------------------------
+
+                           MOVING
+
+  e  ^E  j  ^N  CR  *  Forward  one line   (or N lines).
+  y  ^Y  k  ^K  ^P  *  Backward one line   (or N lines).
+  f  ^F  ^V  SPACE  *  Forward  one window (or N lines).
+  b  ^B  ESC-v      *  Backward one window (or N lines).
+  z                 *  Forward  one window (and set window to N).
+  w                 *  Backward one window (and set window to N).
+  ESC-SPACE         *  Forward  one window, but don't stop at end-of-file.
+  d  ^D             *  Forward  one half-window (and set half-window to N).
+  u  ^U             *  Backward one half-window (and set half-window to N).
+  ESC-)  RightArrow *  Right one half screen width (or N positions).
+  ESC-(  LeftArrow  *  Left  one half screen width (or N positions).
+  ESC-}  ^RightArrow   Right to last column displayed.
+  ESC-{  ^LeftArrow    Left  to first column.
+  F                    Forward forever; like "tail -f".
+  ESC-F                Like F but stop when search pattern is found.
+  r  ^R  ^L            Repaint screen.
+  R                    Repaint screen, discarding buffered input.
+        ---------------------------------------------------
+        Default "window" is the screen height.
+        Default "half-window" is half of the screen height.
+ ---------------------------------------------------------------------------
+
+                          SEARCHING
+
+  /pattern          *  Search forward for (N-th) matching line.
+  ?pattern          *  Search backward for (N-th) matching line.
+  n                 *  Repeat previous search (for N-th occurrence).
+  N                 *  Repeat previous search in reverse direction.
+  ESC-n             *  Repeat previous search, spanning files.
+  ESC-N             *  Repeat previous search, reverse dir. & spanning files.
+  ^O^N  ^On         *  Search forward for (N-th) OSC8 hyperlink.
+  ^O^P  ^Op         *  Search backward for (N-th) OSC8 hyperlink.
+  ^O^L  ^Ol            Jump to the currently selected OSC8 hyperlink.
+  ESC-u                Undo (toggle) search highlighting.
+  ESC-U                Clear search highlighting.
+  &pattern          *  Display only matching lines.
+        ---------------------------------------------------
+        A search pattern may begin with one or more of:
+        ^N or !  Search for NON-matching lines.
+        ^E or *  Search multiple files (pass thru END OF FILE).
+        ^F or @  Start search at FIRST file (for /) or last file (for ?).
+        ^K       Highlight matches, but don't move (KEEP position).
+        ^R       Don't use REGULAR EXPRESSIONS.
+        ^S n     Search for match in n-th parenthesized subpattern.
+        ^W       WRAP search if no match found.
+        ^L       Enter next character literally into pattern.
+ ---------------------------------------------------------------------------
+
+                           JUMPING
+
+  g  <  ESC-<       *  Go to first line in file (or line N).
+  G  >  ESC->       *  Go to last line in file (or line N).
+  p  %              *  Go to beginning of file (or N percent into file).
+  t                 *  Go to the (N-th) next tag.
+  T                 *  Go to the (N-th) previous tag.
+  {  (  [           *  Find close bracket } ) ].
+  }  )  ]           *  Find open bracket { ( [.
+  ESC-^F <c1> <c2>  *  Find close bracket <c2>.
+zsh:1: parse error near `)'
+  ESC-^B <c1> <c2>  *  Find open bracket <c1>.
+        ---------------------------------------------------
+        Each "find close bracket" command goes forward to the close bracket 
+          matching the (N-th) open bracket in the top line.
+        Each "find open bracket" command goes backward to the open bracket 
+          matching the (N-th) close bracket in the bottom line.
+
+  m<letter>            Mark the current top line with <letter>.
+  M<letter>            Mark the current bottom line with <letter>.
+  '<letter>            Go to a previously marked position.
+  ''                   Go to the previous position.
+  ^X^X                 Same as '.
+  ESC-m<letter>        Clear a mark.
+        ---------------------------------------------------
+        A mark is any upper-case or lower-case letter.
+        Certain marks are predefined:
+             ^  means  beginning of the file
+             $  means  end of the file
+ ---------------------------------------------------------------------------
+
+                        CHANGING FILES
+
+  :e [file]            Examine a new file.
+  ^X^V                 Same as :e.
+  :n                *  Examine the (N-th) next file from the command line.
+  :p                *  Examine the (N-th) previous file from the command line.
+  :x                *  Examine the first (or N-th) file from the command line.
+  ^O^O                 Open the currently selected OSC8 hyperlink.
+  :d                   Delete the current file from the command line list.
+  =  ^G  :f            Print current file name.
+ ---------------------------------------------------------------------------
+
+                    MISCELLANEOUS COMMANDS
+
+  -<flag>              Toggle a command line option [see OPTIONS below].
+  --<name>             Toggle a command line option, by name.
+  _<flag>              Display the setting of a command line option.
+  __<name>             Display the setting of an option, by name.
+  +cmd                 Execute the less cmd each time a new file is examined.
+
+  !command             Execute the shell command with $SHELL.
+  #command             Execute the shell command, expanded like a prompt.
+  |Xcommand            Pipe file between current pos & mark X to shell command.
+  s file               Save input to a file.
+  v                    Edit the current file with $VISUAL or $EDITOR.
+  V                    Print version number of "less".
+ ---------------------------------------------------------------------------
+
+                           OPTIONS
+
+        Most options may be changed either on the command line,
+        or from within less by using the - or -- command.
+        Options may be given in one of two forms: either a single
+        character preceded by a -, or a name preceded by --.
+
+  -?  ........  --help
+                  Display help (from command line).
+  -a  ........  --search-skip-screen
+                  Search skips current screen.
+  -A  ........  --SEARCH-SKIP-SCREEN
+                  Search starts just after target line.
+  -b [N]  ....  --buffers=[N]
+                  Number of buffers.
+  -B  ........  --auto-buffers
+                  Don't automatically allocate buffers for pipes.
+  -c  ........  --clear-screen
+                  Repaint by clearing rather than scrolling.
+  -d  ........  --dumb
+                  Dumb terminal.
+  -D xcolor  .  --color=xcolor
+                  Set screen colors.
+  -e  -E  ....  --quit-at-eof  --QUIT-AT-EOF
+                  Quit at end of file.
+  -f  ........  --force
+                  Force open non-regular files.
+  -F  ........  --quit-if-one-screen
+...skipping...
+                --status-line
+                  Highlight or color the entire line containing a mark.
+                --use-backslash
+                  Subsequent options use backslash as escape char.
+                --use-color
+                  Enables colored text.
+                --wheel-lines=[N]
+                  Each click of the mouse wheel moves N lines.
+                --wordwrap
+                  Wrap lines at spaces.
+
+
+ ---------------------------------------------------------------------------
+
+                          LINE EDITING
+
+        These keys can be used to edit text being entered 
+        on the "command line" at the bottom of the screen.
+
+ RightArrow ..................... ESC-l ... Move cursor right one character.
+ LeftArrow ...................... ESC-h ... Move cursor left one character.
+ ctrl-RightArrow  ESC-RightArrow  ESC-w ... Move cursor right one word.
+ ctrl-LeftArrow   ESC-LeftArrow   ESC-b ... Move cursor left one word.
+ HOME ........................... ESC-0 ... Move cursor to start of line.
+ END ............................ ESC-$ ... Move cursor to end of line.
+ BACKSPACE ................................ Delete char to left of cursor.
+ DELETE ......................... ESC-x ... Delete char under cursor.
+ ctrl-BACKSPACE   ESC-BACKSPACE ........... Delete word to left of cursor.
+ ctrl-DELETE .... ESC-DELETE .... ESC-X ... Delete word under cursor.
+ ctrl-U ......... ESC (MS-DOS only) ....... Delete entire line.
+ UpArrow ........................ ESC-k ... Retrieve previous command line.
+ DownArrow ...................... ESC-j ... Retrieve next command line.
+ TAB ...................................... Complete filename & cycle.
+ SHIFT-TAB ...................... ESC-TAB   Complete filename & reverse cycle.
+ ctrl-L ................................... Complete filename, list all.
+
+                   SUMMARY OF LESS COMMANDS
+
+      Commands marked with * may be preceded by a number, N.
+      Notes in parentheses indicate the behavior if N is given.
+      A key preceded by a caret indicates the Ctrl key; thus ^K is ctrl-K.
+
+  h  H                 Display this help.
+  q  :q  Q  :Q  ZZ     Exit.
+ ---------------------------------------------------------------------------
+
+                           MOVING
+
+  e  ^E  j  ^N  CR  *  Forward  one line   (or N lines).
+  y  ^Y  k  ^K  ^P  *  Backward one line   (or N lines).
+  f  ^F  ^V  SPACE  *  Forward  one window (or N lines).
+  b  ^B  ESC-v      *  Backward one window (or N lines).
+  z                 *  Forward  one window (and set window to N).
+  w                 *  Backward one window (and set window to N).
+  ESC-SPACE         *  Forward  one window, but don't stop at end-of-file.
+  d  ^D             *  Forward  one half-window (and set half-window to N).
+  u  ^U             *  Backward one half-window (and set half-window to N).
+  ESC-)  RightArrow *  Right one half screen width (or N positions).
+  ESC-(  LeftArrow  *  Left  one half screen width (or N positions).
+  ESC-}  ^RightArrow   Right to last column displayed.
+  ESC-{  ^LeftArrow    Left  to first column.
+  F                    Forward forever; like "tail -f".
+  ESC-F                Like F but stop when search pattern is found.
+  r  ^R  ^L            Repaint screen.
+  R                    Repaint screen, discarding buffered input.
+        ---------------------------------------------------
+        Default "window" is the screen height.
+        Default "half-window" is half of the screen height.
+ ---------------------------------------------------------------------------
+
+                          SEARCHING
+
+  /pattern          *  Search forward for (N-th) matching line.
+  ?pattern          *  Search backward for (N-th) matching line.
+  n                 *  Repeat previous search (for N-th occurrence).
+  N                 *  Repeat previous search in reverse direction.
+  ESC-n             *  Repeat previous search, spanning files.
+  ESC-N             *  Repeat previous search, reverse dir. & spanning files.
+  ^O^N  ^On         *  Search forward for (N-th) OSC8 hyperlink.
+  ^O^P  ^Op         *  Search backward for (N-th) OSC8 hyperlink.
+  ^O^L  ^Ol            Jump to the currently selected OSC8 hyperlink.
+  ESC-u                Undo (toggle) search highlighting.
+  ESC-U                Clear search highlighting.
+  &pattern          *  Display only matching lines.
+        ---------------------------------------------------
+        A search pattern may begin with one or more of:
+        ^N or !  Search for NON-matching lines.
+        ^E or *  Search multiple files (pass thru END OF FILE).
+        ^F or @  Start search at FIRST file (for /) or last file (for ?).
+        ^K       Highlight matches, but don't move (KEEP position).
+        ^R       Don't use REGULAR EXPRESSIONS.
+        ^S n     Search for match in n-th parenthesized subpattern.
+        ^W       WRAP search if no match found.
+        ^L       Enter next character literally into pattern.
+ ---------------------------------------------------------------------------
+
+                           JUMPING
+
+  g  <  ESC-<       *  Go to first line in file (or line N).
+  G  >  ESC->       *  Go to last line in file (or line N).
+  p  %              *  Go to beginning of file (or N percent into file).
+  t                 *  Go to the (N-th) next tag.
+  T                 *  Go to the (N-th) previous tag.
+  {  (  [           *  Find close bracket } ) ].
+  }  )  ]           *  Find open bracket { ( [.
+  ESC-^F <c1> <c2>  *  Find close bracket <c2>.
+  ESC-^B <c1> <c2>  *  Find open bracket <c1>.
+        ---------------------------------------------------
+        Each "find close bracket" command goes forward to the close bracket 
+          matching the (N-th) open bracket in the top line.
+        Each "find open bracket" command goes backward to the open bracket 
+          matching the (N-th) close bracket in the bottom line.
+
+  m<letter>            Mark the current top line with <letter>.
+  M<letter>            Mark the current bottom line with <letter>.
+  '<letter>            Go to a previously marked position.
+  ''                   Go to the previous position.
+  ^X^X                 Same as '.
+  ESC-m<letter>        Clear a mark.
+        ---------------------------------------------------
+        A mark is any upper-case or lower-case letter.
+        Certain marks are predefined:
+             ^  means  beginning of the file
+             $  means  end of the file
+ ---------------------------------------------------------------------------
+
+                        CHANGING FILES
+
+  :e [file]            Examine a new file.
+  ^X^V                 Same as :e.
+  :n                *  Examine the (N-th) next file from the command line.
+  :p                *  Examine the (N-th) previous file from the command line.
+  :x                *  Examine the first (or N-th) file from the command line.
+  ^O^O                 Open the currently selected OSC8 hyperlink.
+  :d                   Delete the current file from the command line list.
+  =  ^G  :f            Print current file name.
+ ---------------------------------------------------------------------------
+
+                    MISCELLANEOUS COMMANDS
+
+  -<flag>              Toggle a command line option [see OPTIONS below].
+  --<name>             Toggle a command line option, by name.
+  _<flag>              Display the setting of a command line option.
+  __<name>             Display the setting of an option, by name.
+  +cmd                 Execute the less cmd each time a new file is examined.
+
+  !command             Execute the shell command with $SHELL.
+  #command             Execute the shell command, expanded like a prompt.
+  |Xcommand            Pipe file between current pos & mark X to shell command.
+  s file               Save input to a file.
+  v                    Edit the current file with $VISUAL or $EDITOR.
+  V                    Print version number of "less".
+ ---------------------------------------------------------------------------
+
+                           OPTIONS
+
+        Most options may be changed either on the command line,
+        or from within less by using the - or -- command.
+        Options may be given in one of two forms: either a single
+
+                   SUMMARY OF LESS COMMANDS
+
+      Commands marked with * may be preceded by a number, N.
+      Notes in parentheses indicate the behavior if N is given.
+      A key preceded by a caret indicates the Ctrl key; thus ^K is ctrl-K.
+
+  h  H                 Display this help.
+  q  :q  Q  :Q  ZZ     Exit.
+ ---------------------------------------------------------------------------
+
+                           MOVING
+
+  e  ^E  j  ^N  CR  *  Forward  one line   (or N lines).
+  y  ^Y  k  ^K  ^P  *  Backward one line   (or N lines).
+  f  ^F  ^V  SPACE  *  Forward  one window (or N lines).
+  b  ^B  ESC-v      *  Backward one window (or N lines).
+  z                 *  Forward  one window (and set window to N).
+  w                 *  Backward one window (and set window to N).
+  ESC-SPACE         *  Forward  one window, but don't stop at end-of-file.
+  d  ^D             *  Forward  one half-window (and set half-window to N).
+  u  ^U             *  Backward one half-window (and set half-window to N).
+  ESC-)  RightArrow *  Right one half screen width (or N positions).
+  ESC-(  LeftArrow  *  Left  one half screen width (or N positions).
+  ESC-}  ^RightArrow   Right to last column displayed.
+  ESC-{  ^LeftArrow    Left  to first column.
+  F                    Forward forever; like "tail -f".
+  ESC-F                Like F but stop when search pattern is found.
+  r  ^R  ^L            Repaint screen.
+  R                    Repaint screen, discarding buffered input.
+        ---------------------------------------------------
+        Default "window" is the screen height.
+        Default "half-window" is half of the screen height.
+ ---------------------------------------------------------------------------
+
+...skipping...
+
+
+                   SUMMARY OF LESS COMMANDS
+
+      Commands marked with * may be preceded by a number, N.
+      Notes in parentheses indicate the behavior if N is given.
+      A key preceded by a caret indicates the Ctrl key; thus ^K is ctrl-K.
+
+  h  H                 Display this help.
+  q  :q  Q  :Q  ZZ     Exit.
+ ---------------------------------------------------------------------------
+
+                           MOVING
+
+  e  ^E  j  ^N  CR  *  Forward  one line   (or N lines).
+  y  ^Y  k  ^K  ^P  *  Backward one line   (or N lines).
+  f  ^F  ^V  SPACE  *  Forward  one window (or N lines).
+  b  ^B  ESC-v      *  Backward one window (or N lines).
+  z                 *  Forward  one window (and set window to N).
+  w                 *  Backward one window (and set window to N).
+  ESC-SPACE         *  Forward  one window, but don't stop at end-of-file.
+  d  ^D             *  Forward  one half-window (and set half-window to N).
+  u  ^U             *  Backward one half-window (and set half-window to N).
+  ESC-)  RightArrow *  Right one half screen width (or N positions).
+  ESC-(  LeftArrow  *  Left  one half screen width (or N positions).
+  ESC-}  ^RightArrow   Right to last column displayed.
+  ESC-{  ^LeftArrow    Left  to first column.
+  F                    Forward forever; like "tail -f".
+  ESC-F                Like F but stop when search pattern is found.
+  r  ^R  ^L            Repaint screen.
+  R                    Repaint screen, discarding buffered input.
+        ---------------------------------------------------
+        Default "window" is the screen height.
+        Default "half-window" is half of the screen height.
+ ---------------------------------------------------------------------------
+
+                          SEARCHING
+
+  /pattern          *  Search forward for (N-th) matching line.
+  ?pattern          *  Search backward for (N-th) matching line.
+  n                 *  Repeat previous search (for N-th occurrence).
+  N                 *  Repeat previous search in reverse direction.
+  ESC-n             *  Repeat previous search, spanning files.
+  ESC-N             *  Repeat previous search, reverse dir. & spanning files.
+  ^O^N  ^On         *  Search forward for (N-th) OSC8 hyperlink.
+  ^O^P  ^Op         *  Search backward for (N-th) OSC8 hyperlink.
+  ^O^L  ^Ol            Jump to the currently selected OSC8 hyperlink.
+  ESC-u                Undo (toggle) search highlighting.
+  ESC-U                Clear search highlighting.
+  &pattern          *  Display only matching lines.
+        ---------------------------------------------------
+        A search pattern may begin with one or more of:
+        ^N or !  Search for NON-matching lines.
+        ^E or *  Search multiple files (pass thru END OF FILE).
+        ^F or @  Start search at FIRST file (for /) or last file (for ?).
+        ^K       Highlight matches, but don't move (KEEP position).
+        ^R       Don't use REGULAR EXPRESSIONS.
+        ^S n     Search for match in n-th parenthesized subpattern.
+        ^W       WRAP search if no match found.
+        ^L       Enter next character literally into pattern.
+ ---------------------------------------------------------------------------
+
+                           JUMPING
+
+  g  <  ESC-<       *  Go to first line in file (or line N).
+  G  >  ESC->       *  Go to last line in file (or line N).
+  p  %              *  Go to beginning of file (or N percent into file).
+  t                 *  Go to the (N-th) next tag.
+  T                 *  Go to the (N-th) previous tag.
+  {  (  [           *  Find close bracket } ) ].
+  }  )  ]           *  Find open bracket { ( [.
+                          SEARCHING
+
+  /pattern          *  Search forward for (N-th) matching line.
+  ?pattern          *  Search backward for (N-th) matching line.
+  n                 *  Repeat previous search (for N-th occurrence).
+  N                 *  Repeat previous search in reverse direction.
+  ESC-n             *  Repeat previous search, spanning files.
+  ESC-N             *  Repeat previous search, reverse dir. & spanning files.
+  ^O^N  ^On         *  Search forward for (N-th) OSC8 hyperlink.
+  ^O^P  ^Op         *  Search backward for (N-th) OSC8 hyperlink.
+  ^O^L  ^Ol            Jump to the currently selected OSC8 hyperlink.
+  ESC-u                Undo (toggle) search highlighting.
+  ESC-U                Clear search highlighting.
+  &pattern          *  Display only matching lines.
+        ---------------------------------------------------
+        A search pattern may begin with one or more of:
+        ^N or !  Search for NON-matching lines.
+        ^E or *  Search multiple files (pass thru END OF FILE).
+        ^F or @  Start search at FIRST file (for /) or last file (for ?).
+        ^K       Highlight matches, but don't move (KEEP position).
+        ^R       Don't use REGULAR EXPRESSIONS.
+        ^S n     Search for match in n-th parenthesized subpattern.
+        ^W       WRAP search if no match found.
+        ^L       Enter next character literally into pattern.
+ ---------------------------------------------------------------------------
+
+                           JUMPING
+
+  g  <  ESC-<       *  Go to first line in file (or line N).
+  G  >  ESC->       *  Go to last line in file (or line N).
+  p  %              *  Go to beginning of file (or N percent into file).
+  t                 *  Go to the (N-th) next tag.
+  T                 *  Go to the (N-th) previous tag.
+  {  (  [           *  Find close bracket } ) ].
+  }  )  ]           *  Find open bracket { ( [.
+...skipping...
+                --status-line
+                  Highlight or color the entire line containing a mark.
+                --use-backslash
+                  Subsequent options use backslash as escape char.
+                --use-color
+                  Enables colored text.
+                --wheel-lines=[N]
+                  Each click of the mouse wheel moves N lines.
+                --wordwrap
+                  Wrap lines at spaces.
+
+
+ ---------------------------------------------------------------------------
+
+                          LINE EDITING
+
+        These keys can be used to edit text being entered 
+        on the "command line" at the bottom of the screen.
+
+ RightArrow ..................... ESC-l ... Move cursor right one character.
+ LeftArrow ...................... ESC-h ... Move cursor left one character.
+ ctrl-RightArrow  ESC-RightArrow  ESC-w ... Move cursor right one word.
+ ctrl-LeftArrow   ESC-LeftArrow   ESC-b ... Move cursor left one word.
+ HOME ........................... ESC-0 ... Move cursor to start of line.
+ END ............................ ESC-$ ... Move cursor to end of line.
+ BACKSPACE ................................ Delete char to left of cursor.
+ DELETE ......................... ESC-x ... Delete char under cursor.
+ ctrl-BACKSPACE   ESC-BACKSPACE ........... Delete word to left of cursor.
+ ctrl-DELETE .... ESC-DELETE .... ESC-X ... Delete word under cursor.
+ ctrl-U ......... ESC (MS-DOS only) ....... Delete entire line.
+ UpArrow ........................ ESC-k ... Retrieve previous command line.
+ DownArrow ...................... ESC-j ... Retrieve next command line.
+ TAB ...................................... Complete filename & cycle.
+ SHIFT-TAB ...................... ESC-TAB   Complete filename & reverse cycle.
+ ctrl-L ................................... Complete filename, list all.
+
+                   SUMMARY OF LESS COMMANDS
+
+      Commands marked with * may be preceded by a number, N.
+      Notes in parentheses indicate the behavior if N is given.
+      A key preceded by a caret indicates the Ctrl key; thus ^K is ctrl-K.
+
+  h  H                 Display this help.
+  q  :q  Q  :Q  ZZ     Exit.
+ ---------------------------------------------------------------------------
+
+                           MOVING
+
+  e  ^E  j  ^N  CR  *  Forward  one line   (or N lines).
+  y  ^Y  k  ^K  ^P  *  Backward one line   (or N lines).
+  f  ^F  ^V  SPACE  *  Forward  one window (or N lines).
+  b  ^B  ESC-v      *  Backward one window (or N lines).
+  z                 *  Forward  one window (and set window to N).
+  w                 *  Backward one window (and set window to N).
+  ESC-SPACE         *  Forward  one window, but don't stop at end-of-file.
+  d  ^D             *  Forward  one half-window (and set half-window to N).
+  u  ^U             *  Backward one half-window (and set half-window to N).
+  ESC-)  RightArrow *  Right one half screen width (or N positions).
+  ESC-(  LeftArrow  *  Left  one half screen width (or N positions).
+  ESC-}  ^RightArrow   Right to last column displayed.
+  ESC-{  ^LeftArrow    Left  to first column.
+  F                    Forward forever; like "tail -f".
+  ESC-F                Like F but stop when search pattern is found.
+  r  ^R  ^L            Repaint screen.
+  R                    Repaint screen, discarding buffered input.
+        ---------------------------------------------------
+        Default "window" is the screen height.
+        Default "half-window" is half of the screen height.
+ ---------------------------------------------------------------------------
+
+                          SEARCHING
+
+  /pattern          *  Search forward for (N-th) matching line.
+  ?pattern          *  Search backward for (N-th) matching line.
+  n                 *  Repeat previous search (for N-th occurrence).
+  N                 *  Repeat previous search in reverse direction.
+  ESC-n             *  Repeat previous search, spanning files.
+  ESC-N             *  Repeat previous search, reverse dir. & spanning files.
+  ^O^N  ^On         *  Search forward for (N-th) OSC8 hyperlink.
+  ^O^P  ^Op         *  Search backward for (N-th) OSC8 hyperlink.
+  ^O^L  ^Ol            Jump to the currently selected OSC8 hyperlink.
+  ESC-u                Undo (toggle) search highlighting.
+  ESC-U                Clear search highlighting.
+  &pattern          *  Display only matching lines.
+        ---------------------------------------------------
+        A search pattern may begin with one or more of:
+        ^N or !  Search for NON-matching lines.
+        ^E or *  Search multiple files (pass thru END OF FILE).
+        ^F or @  Start search at FIRST file (for /) or last file (for ?).
+        ^K       Highlight matches, but don't move (KEEP position).
+        ^R       Don't use REGULAR EXPRESSIONS.
+        ^S n     Search for match in n-th parenthesized subpattern.
+        ^W       WRAP search if no match found.
+        ^L       Enter next character literally into pattern.
+ ---------------------------------------------------------------------------
+
+                           JUMPING
+
+  g  <  ESC-<       *  Go to first line in file (or line N).
+  G  >  ESC->       *  Go to last line in file (or line N).
+  p  %              *  Go to beginning of file (or N percent into file).
+  t                 *  Go to the (N-th) next tag.
+  T                 *  Go to the (N-th) previous tag.
+  {  (  [           *  Find close bracket } ) ].
+  }  )  ]           *  Find open bracket { ( [.
+...skipping...
+                          SEARCHING
+
+  /pattern          *  Search forward for (N-th) matching line.
+  ?pattern          *  Search backward for (N-th) matching line.
+  n                 *  Repeat previous search (for N-th occurrence).
+  N                 *  Repeat previous search in reverse direction.
+  ESC-n             *  Repeat previous search, spanning files.
+  ESC-N             *  Repeat previous search, reverse dir. & spanning files.
+  ^O^N  ^On         *  Search forward for (N-th) OSC8 hyperlink.
+  ^O^P  ^Op         *  Search backward for (N-th) OSC8 hyperlink.
+  ^O^L  ^Ol            Jump to the currently selected OSC8 hyperlink.
+  ESC-u                Undo (toggle) search highlighting.
+  ESC-U                Clear search highlighting.
+  &pattern          *  Display only matching lines.
+        ---------------------------------------------------
+        A search pattern may begin with one or more of:
+        ^N or !  Search for NON-matching lines.
+        ^E or *  Search multiple files (pass thru END OF FILE).
+        ^F or @  Start search at FIRST file (for /) or last file (for ?).
+        ^K       Highlight matches, but don't move (KEEP position).
+        ^R       Don't use REGULAR EXPRESSIONS.
+        ^S n     Search for match in n-th parenthesized subpattern.
+        ^W       WRAP search if no match found.
+        ^L       Enter next character literally into pattern.
+ ---------------------------------------------------------------------------
+
+                           JUMPING
+
+  g  <  ESC-<       *  Go to first line in file (or line N).
+  G  >  ESC->       *  Go to last line in file (or line N).
+  p  %              *  Go to beginning of file (or N percent into file).
+  t                 *  Go to the (N-th) next tag.
+  T                 *  Go to the (N-th) previous tag.
+  {  (  [           *  Find close bracket } ) ].
+  }  )  ]           *  Find open bracket { ( [.
+  ESC-^F <c1> <c2>  *  Find close bracket <c2>.
+  ESC-^B <c1> <c2>  *  Find open bracket <c1>.
+        ---------------------------------------------------
+        Each "find close bracket" command goes forward to the close bracket 
+          matching the (N-th) open bracket in the top line.
+        Each "find open bracket" command goes backward to the open bracket 
+          matching the (N-th) close bracket in the bottom line.
+
+  m<letter>            Mark the current top line with <letter>.
+  M<letter>            Mark the current bottom line with <letter>.
+  '<letter>            Go to a previously marked position.
+  ''                   Go to the previous position.
+  ^X^X                 Same as '.
+  ESC-m<letter>        Clear a mark.
+        ---------------------------------------------------
+        A mark is any upper-case or lower-case letter.
+        Certain marks are predefined:
+             ^  means  beginning of the file
+             $  means  end of the file
+ ---------------------------------------------------------------------------
+
+                        CHANGING FILES
+
+  :e [file]            Examine a new file.
+  ^X^V                 Same as :e.
+...skipping...
+diff --git a/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_bringup.c b/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_bringup.c
+index 5769162933..81dd81c11c 100644
+--- a/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_bringup.c
++++ b/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_bringup.c
+@@ -400,6 +400,9 @@ int open1788_bringup(void)
+     {
+       syslog(LOG_ERR, "ERROR: fb_register() failed: %d\n", ret);
+     }
++
++  extern void ea_lcd_backlight_init(void);
++  ea_lcd_backlight_init();
+ #endif
+ 
+ #ifdef CONFIG_INPUT_ADS7843E
+diff --git a/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_lcd.c b/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_lcd.c
+index 75ca85ff4e..0fce0d0c95 100644
+--- a/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_lcd.c
++++ b/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_lcd.c
+@@ -1,73 +1,42 @@
+-/****************************************************************************
+- * boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_lcd.c
+- *
+- * SPDX-License-Identifier: Apache-2.0
+- *
+- * Licensed to the Apache Software Foundation (ASF) under one or more
+- * contributor license agreements.  See the NOTICE file distributed with
+- * this work for additional information regarding copyright ownership.  The
+- * ASF licenses this file to you under the Apache License, Version 2.0 (the
+- * "License"); you may not use this file except in compliance with the
+- * License.  You may obtain a copy of the License at
+- *
+- *   http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+=== 2. Relevant .config options ===
+CONFIG_LPC17_40_SSP0=y
+CONFIG_LPC17_40_GPIOIRQ=y
+CONFIG_ARCH_LEDS=y
+CONFIG_SCHED_HPWORK=y
+CONFIG_SCHED_HPWORKPRIORITY=192
+CONFIG_SCHED_HPWORKSTACKSIZE=2048
+CONFIG_SCHED_HPWORKSTACKSECTION=""
+CONFIG_INPUT=y
+CONFIG_INPUT_TOUCHSCREEN=y
+CONFIG_INPUT_ADS7843E=y
+CONFIG_ADS7843E_NPOLLWAITERS=4
+CONFIG_ADS7843E_SPIDEV=0
+CONFIG_ADS7843E_DEVMINOR=0
+CONFIG_ADS7843E_SPIMODE=0
+CONFIG_ADS7843E_FREQUENCY=100000
+CONFIG_ADS7843E_THRESHX=12
+CONFIG_ADS7843E_THRESHY=12
+CONFIG_INPUT_DJOYSTICK=y
+CONFIG_INPUT_DJOYSTICK_NPOLLWAITERS=2
+CONFIG_ETH0_PHY_LAN8720=y
+CONFIG_SYSLOG=y
+CONFIG_SYSLOG_DEFAULT_MASK=0xff
+CONFIG_SYSLOG_OPENLOG=y
+CONFIG_SYSLOG_CRLF=y
+CONFIG_SYSLOG_MAX_CHANNELS=1
+CONFIG_SYSLOG_DEVPATH="/dev/ttyS1"
+CONFIG_SYSLOG_RPMSG_BUFFER_SECTION=""
+CONFIG_SYSLOG_DEFAULT=y
+CONFIG_NXWM_TOUCHSCREEN=y
+CONFIG_NXWM_TOUCHSCREEN_DEVNO=0
+CONFIG_NXWM_TOUCHSCREEN_DEVPATH="/dev/input0"
+CONFIG_NXWM_TOUCHSCREEN_SIGNO=32
+CONFIG_NXWM_TOUCHSCREEN_LISTENERPRIO=120
+CONFIG_NXWM_TOUCHSCREEN_LISTENERSTACK=1024
+CONFIG_NETINIT_THREAD=y
+CONFIG_NETINIT_THREAD_STACKSIZE=2048
+CONFIG_NETINIT_THREAD_PRIORITY=80
+CONFIG_NETINIT_RETRY_MOUNTPATH=0
+CONFIG_NETINIT_IPADDR=0x0a000002
+CONFIG_NETINIT_DRIPADDR=0x0a000001
+CONFIG_NETINIT_NETMASK=0xffffff00
+=== 3. lpc17_40_allocateheap.c (lines 360-500) ===
+  /* Yes.. allow user-mode access to the AHB SRAM user heap memory */
+
+#if defined(LPC17_40_BANK0_HEAPBASE) && defined(LPC17_40_BANK0_HEAPSIZE)
+  lpc17_40_mpu_uheap((uintptr_t)LPC17_40_BANK0_HEAPBASE,
+                     LPC17_40_BANK0_HEAPSIZE);
+#endif
+
+#if defined(LPC17_40_BANK1_HEAPBASE) && defined(LPC17_40_BANK1_HEAPSIZE)
+  lpc17_40_mpu_uheap((uintptr_t)LPC17_40_BANK1_HEAPBASE,
+                      LPC17_40_BANK1_HEAPSIZE);
+#endif
+
+#endif /* CONFIG_BUILD_PROTECTED && CONFIG_MM_KERNEL_HEAP */
+
+  /* Add the AHB SRAM user heap region. */
+
+  kumm_addregion((void *)LPC17_40_AHB_HEAPBASE, LPC17_40_AHB_HEAPSIZE);
+#endif
+
+#if CONFIG_MM_REGIONS >= 3
+#if defined(CONFIG_LPC17_40_EXTDRAM) && defined(CONFIG_LPC17_40_EXTDRAMHEAP)
+    {
+      /* Memory may be reserved at the beginning of DRAM for other purposes
+       * (for example for video framebuffers).  Memory can similar be
+       * reserved at the end of DRAM using LPC17_40_EXTDRAMSIZE.  The amount
+       * to be added to the heap will be from DRAM_BASE +
+       * LPC17_40_EXTDRAMHEAP_OFFSET through DRAM_BASE + LPC17_40_EXTDRAMSIZE
+       * where (DRAM_BASE is the base address of CS0).
+       */
+
+      uintptr_t dram_end = LPC17_40_EXTDRAM_CS0 +
+                           CONFIG_LPC17_40_EXTDRAMSIZE;
+      uintptr_t dram_start;
+      uintptr_t heap_size;
+
+      /* Is SDRAM the primary RAM? I.e., do .data, .bss, and the IDLE thread
+       * stack lie in SDRAM?
+       */
+
+      if (g_idle_topstack >= LPC17_40_EXTDRAM_CS0 &&
+          g_idle_topstack < dram_end)
+        {
+          /* Yes, then the SDRAM heap starts in SDRAM after the IDLE stack */
+
+          dram_start = g_idle_topstack;
+        }
+      else
+        {
+          /* Use the entire SDRAM for heap (possible reserving a portion at
+           * the beginning of DRAM).
+           */
+
+          dram_start = LPC17_40_EXTDRAM_CS0 +
+                       CONFIG_LPC17_40_EXTDRAMHEAP_OFFSET;
+        }
+
+      heap_size = dram_end - dram_start;
+
+#if defined(CONFIG_BUILD_PROTECTED) && defined(CONFIG_MM_KERNEL_HEAP)
+      /* Allow user-mode access to the external DRAM heap memory.
+       *
+       * REVISIT:  In PROTECTED mode, it would be necessary to align
+       * dram_start to an address that is easily spanned by an MPU
+       * region if dram_start is not at the beginning of CS0.
+       */
+
+      lpc17_40_mpu_uheap(dram_start, heap_size);
+#endif
+
+      /* Add external DRAM heap memory to the user heap */
+
+      kumm_addregion((void *)dram_start, heap_size);
+    }
+#endif
+
+#if !defined(CONFIG_LPC17_40_EXTDRAMHEAP) || (CONFIG_MM_REGIONS >= 4)
+#if defined(CONFIG_LPC17_40_EXTSRAM0) && defined(CONFIG_LPC17_40_EXTSRAM0HEAP)
+#if defined(CONFIG_BUILD_PROTECTED) && defined(CONFIG_MM_KERNEL_HEAP)
+  /* Allow user-mode access to external SRAM heap memory */
+
+  lpc17_40_mpu_uheap((uintptr_t)LPC17_40_EXTSRAM_CS0,
+                      CONFIG_LPC17_40_EXTSRAM0SIZE);
+
+#endif
+  /* Add external SRAM heap memory to the user heap */
+
+  kumm_addregion((void *)LPC17_40_EXTSRAM_CS0,
+                  CONFIG_LPC17_40_EXTSRAM0SIZE);
+#endif
+#endif
+#endif /* CONFIG_MM_REGIONS >= 3 */
+}
+#endif
+=== 4. GPIO_SSP0 definitions ===
+128:#define GPIO_SSP0_SCK_1    (GPIO_ALT2 | GPIO_PULLUP | GPIO_PORT0 | GPIO_PIN15)
+132:#define GPIO_SSP0_SSEL_1   (GPIO_ALT2 | GPIO_PULLUP | GPIO_PORT0 | GPIO_PIN16)
+136:#define GPIO_SSP0_MISO_1   (GPIO_ALT2 | GPIO_PULLUP | GPIO_PORT0 | GPIO_PIN17)
+140:#define GPIO_SSP0_MOSI_1   (GPIO_ALT2 | GPIO_PULLUP | GPIO_PORT0 | GPIO_PIN18)
+283:#define GPIO_SSP0_SCK_2    (GPIO_ALT5 | GPIO_PULLUP | GPIO_PORT1 | GPIO_PIN20)
+289:#define GPIO_SSP0_SSEL_2   (GPIO_ALT3 | GPIO_PULLUP | GPIO_PORT1 | GPIO_PIN21)
+306:#define GPIO_SSP0_MOSI_2   (GPIO_ALT5 | GPIO_PULLUP | GPIO_PORT1 | GPIO_PIN23)
+314:#define GPIO_SSP0_MOSI_3   (GPIO_ALT5 | GPIO_PULLUP | GPIO_PORT1 | GPIO_PIN24)
+345:#define GPIO_SSP0_SSEL_3   (GPIO_ALT5 | GPIO_PULLUP | GPIO_PORT1 | GPIO_PIN28)
+468:#define GPIO_SSP0_SCK_3    (GPIO_ALT2 | GPIO_PULLUP | GPIO_PORT2 | GPIO_PIN22)
+472:#define GPIO_SSP0_SSEL_4   (GPIO_ALT2 | GPIO_PULLUP | GPIO_PORT2 | GPIO_PIN23)
+479:#define GPIO_SSP0_MISO_2   (GPIO_ALT2 | GPIO_PULLUP | GPIO_PORT2 | GPIO_PIN26)
+483:#define GPIO_SSP0_MOSI_4   (GPIO_ALT2 | GPIO_PULLUP | GPIO_PORT2 | GPIO_PIN27)
+=== 5. lpc17_40_touchscreen.c ===
+/****************************************************************************
+ * boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_touchscreen.c
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ ****************************************************************************/
+
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
+#include <nuttx/config.h>
+
+#include <stdbool.h>
+#include <stdio.h>
+#include <nuttx/debug.h>
+#include <assert.h>
+#include <errno.h>
+
+#include <nuttx/arch.h>
+#include <nuttx/irq.h>
+#include <nuttx/wdog.h>
+#include <nuttx/clock.h>
+#include <nuttx/spi/spi.h>
+#include <nuttx/input/touchscreen.h>
+#include <nuttx/input/ads7843e.h>
+
+#include "arm_internal.h"
+#include "lpc17_40_gpio.h"
+#include "hardware/lpc17_40_gpio.h"
+#include "lpc17_40_ssp.h"
+#include "open1788.h"
+
+#ifdef CONFIG_INPUT_ADS7843E
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+/* Configuration ************************************************************/
+
+#ifndef CONFIG_INPUT
+#  error "Touchscreen support requires CONFIG_INPUT"
+#endif
+
+#ifndef CONFIG_LPC17_40_SSP0
+#  error "Touchscreen support requires CONFIG_LPC17_40_SSP0"
+#endif
+
+#ifndef CONFIG_LPC17_40_GPIOIRQ
+#  error "Touchscreen support requires CONFIG_LPC17_40_GPIOIRQ"
+#endif
+
+#ifndef CONFIG_ADS7843E_FREQUENCY
+#  define CONFIG_ADS7843E_FREQUENCY 500000
+#endif
+
+#ifndef CONFIG_ADS7843E_SPIDEV
+#  define CONFIG_ADS7843E_SPIDEV 0
+#endif
+
+#if CONFIG_ADS7843E_SPIDEV != 0
+#  error "CONFIG_ADS7843E_SPIDEV must be one"
+#endif
+
+#ifndef CONFIG_ADS7843E_DEVMINOR
+#  define CONFIG_ADS7843E_DEVMINOR 0
+#endif
+
+/* REVISIT:  Currently, XPT2046 reports BUSY all of the time.  This is
+ * probably GPIO setting issues.  But there is this cryptic statement in
+ * the XPT2046 spec:  "No DCLK delay required with dedicated serial port."
+ *
+ * The busy state is used by the XPT2046 driver to control the delay
+ * between sending the command, then reading the returned data.
+ */
+
+#define XPT2046_NO_BUSY 1
+
+/****************************************************************************
+ * Private Types
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Function Prototypes
+ ****************************************************************************/
+
+/* IRQ/GPIO access callbacks.  These operations all hidden behind
+ * callbacks to isolate the XPT2046 driver from differences in GPIO
+ * interrupt handling by varying boards and MCUs.  If possible,
+ * interrupts should be configured on both rising and falling edges
+ * so that contact and loss-of-contact events can be detected.
+ *
+ * attach  - Attach the XPT2046 interrupt handler to the GPIO interrupt
+ * enable  - Enable or disable the GPIO interrupt
+ * clear   - Acknowledge/clear any pending GPIO interrupt
+ * pendown - Return the state of the pen down GPIO input
+ */
+
+static int  tsc_attach(struct ads7843e_config_s *state, xcpt_t isr);
+static void tsc_enable(struct ads7843e_config_s *state, bool enable);
+static void tsc_clear(struct ads7843e_config_s *state);
+static bool tsc_busy(struct ads7843e_config_s *state);
+static bool tsc_pendown(struct ads7843e_config_s *state);
+
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+/* A reference to a structure of this type must be passed to the XPT2046
+ * driver.  This structure provides information about the configuration
+ * of the XPT2046 and provides some board-specific hooks.
+ *
+ * Memory for this structure is provided by the caller.  It is not copied
+ * by the driver and is presumed to persist while the driver is active.
+ */
+
+static struct ads7843e_config_s g_tscinfo =
+{
+  .frequency = CONFIG_ADS7843E_FREQUENCY,
+  .attach    = tsc_attach,
+  .enable    = tsc_enable,
+  .clear     = tsc_clear,
+  .busy      = tsc_busy,
+  .pendown   = tsc_pendown,
+};
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+/* IRQ/GPIO access callbacks.  These operations all hidden behind
+ * callbacks to isolate the XPT2046 driver from differences in GPIO
+ * interrupt handling by varying boards and MCUs.  If possible,
+ * interrupts should be configured on both rising and falling edges
+ * so that contact and loss-of-contact events can be detected.
+ *
+ * attach  - Attach the XPT2046 interrupt handler to the GPIO interrupt
+ * enable  - Enable or disable the GPIO interrupt
+ * clear   - Acknowledge/clear any pending GPIO interrupt
+ * pendown - Return the state of the pen down GPIO input
+ */
+
+static xcpt_t g_tsc_upper_isr = NULL;
+static volatile bool g_tsc_irq_fired = false;
+
+static int tsc_isr_wrapper(int irq, void *context, void *arg)
+{
+  g_tsc_irq_fired = true;
+  return g_tsc_upper_isr ? g_tsc_upper_isr(irq, context, arg) : OK;
+}
+
+static int tsc_attach(struct ads7843e_config_s *state, xcpt_t handler)
+{
+  g_tsc_upper_isr = handler;
+  irq_attach(LPC17_40_IRQ_PENIRQ, tsc_isr_wrapper, NULL);
+  return OK;
+}
+
+static void tsc_enable(struct ads7843e_config_s *state, bool enable)
+{
+  iinfo("enable:%d\n", enable);
+  if (enable)
+    {
+      /* Enable PENIRQ interrupts.
+       * NOTE: The pin interrupt is enabled from worker thread
+       * logic after completion of processing of the touchscreen interrupt.
+       */
+
+      g_tsc_irq_fired = false;
+      putreg32((1 << 15), LPC17_40_GPIOINT2_INTCLR);
+      up_enable_irq(LPC17_40_IRQ_PENIRQ);
+    }
+  else
+    {
+      /* Disable PENIRQ interrupts.
+       * NOTE: The PENIRQ interrupt will be disabled from
+       * interrupt handling logic.
+       */
+
+      up_disable_irq(LPC17_40_IRQ_PENIRQ);
+    }
+}
+
+static void tsc_clear(struct ads7843e_config_s *state)
+{
+  putreg32((1 << 15), LPC17_40_GPIOINT2_INTCLR);
+}
+
+static bool tsc_busy(struct ads7843e_config_s *state)
+{
+/* The busy state is used by the XPT2046 driver to control the delay
+ * between sending the command, then reading the returned data.
+ */
+
+#if 1
+/* REVISIT:  Currently, XPT2046 reports BUSY all of the time.  This is
+ * probably GPIO setting issues.  But there is this cryptic statement in
+ * the XPT2046 spec:  "No DCLK delay required with dedicated serial port."
+ */
+
+  return false;
+
+#else /* XPT2046_NO_BUSY */
+
+#if defined(CONFIG_DEBUG_INPUT) && defined(CONFIG_DEBUG_INFO)
+  static bool last = (bool)-1;
+#endif
+
+  /* REVISIT:  This might need to be inverted */
+
+  bool busy = lpc17_40_gpioread(GPIO_TC_BUSY);
+#if defined(CONFIG_DEBUG_INPUT) && defined(CONFIG_DEBUG_INFO)
+  if (busy != last)
+    {
+      iinfo("busy:%d\n", busy);
+      last = busy;
+    }
+#endif
+
+  return busy;
+
+#endif /* XPT2046_NO_BUSY */
+}
+
+static bool tsc_pendown(struct ads7843e_config_s *state)
+{
+  /* XPT2046 uses an an internal pullup resistor. The PENIRQ output goes low
+   * due to the current path through the touch screen to ground, which
+   * initiates an interrupt to the processor via TP_INT.
+   */
+
+  bool pendown = !lpc17_40_gpioread(GPIO_TC_PENIRQ) || g_tsc_irq_fired;
+  g_tsc_irq_fired = false;
+  iinfo("pendown:%d\n", pendown);
+  return pendown;
+}
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: open1788_tsc_setup
+ *
+ * Description:
+ *   This function is called by board-bringup logic to configure the
+ *   touchscreen device.  This function will register the driver as
+ *   /dev/inputN where N is the minor device number.
+ *
+ * Input Parameters:
+ *   minor - The input device minor number
+ *
+ * Returned Value:
+ *   Zero is returned on success.  Otherwise, a negated errno value is
+ *   returned to indicate the nature of the failure.
+ *
+ ****************************************************************************/
+
+int open1788_tsc_setup(int minor)
+{
+  struct spi_dev_s *dev;
+  int ret;
+
+  iinfo("minor:%d\n", minor);
+  DEBUGASSERT(minor == 0);
+
+  /* Configure and enable the XPT2046 PENIRQ pin as an interrupting input. */
+
+  lpc17_40_configgpio(GPIO_TC_PENIRQ);
+  lpc17_40_configgpio(GPIO_TC_CS);
+
+  /* Configure the XPT2046 BUSY pin as a normal input. */
+
+#ifndef XPT2046_NO_BUSY
+  lpc17_40_configgpio(GPIO_TC_BUSY);
+#endif
+
+  /* Get an instance of the SPI interface */
+
+  dev = lpc17_40_sspbus_initialize(CONFIG_ADS7843E_SPIDEV);
+  if (!dev)
+    {
+      ierr("ERROR: Failed to initialize SPI bus %d\n",
+           CONFIG_ADS7843E_SPIDEV);
+      return -ENODEV;
+    }
+
+  /* Initialize and register the SPI touchscreen device */
+
+  ret = ads7843e_register(dev, &g_tscinfo, CONFIG_ADS7843E_DEVMINOR);
+  if (ret < 0)
+    {
+      ierr("ERROR: Failed to register touchscreen device minor=%d\n",
+           CONFIG_ADS7843E_DEVMINOR);
+
+      /* up_spiuninitialize(dev); */
+
+      return -ENODEV;
+    }
+
+  return OK;
+}
+
+#endif /* CONFIG_INPUT_ADS7843E */
+=== 6. lpc17_40_ssp.c ===
+/****************************************************************************
+ * boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_ssp.c
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ ****************************************************************************/
+
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
+#include <nuttx/config.h>
+
+#include <stdint.h>
+#include <stdbool.h>
+#include <nuttx/debug.h>
+
+#include <nuttx/spi/spi.h>
+
+#include <arch/board/board.h>
+
+#include "arm_internal.h"
+#include "chip.h"
+#include "lpc17_40_gpio.h"
+#include "lpc17_40_ssp.h"
+#include "open1788.h"
+
+#if defined(CONFIG_LPC17_40_SSP0) || defined(CONFIG_LPC17_40_SSP1) || \
+    defined(CONFIG_LPC17_40_SSP2)
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+/* Dump GPIO registers */
+
+#ifdef CONFIG_DEBUG_GPIO_INFO
+#  define ssp_dumpgpio(p,m) lpc17_40_dumpgpio(p,m)
+#else
+#  define ssp_dumpgpio(p,m)
+#endif
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: open1788_sspdev_initialize
+ *
+ * Description:
+ *   Called to configure SPI chip select GPIO pins for the LPC1766-STK.
+ *
+ ****************************************************************************/
+
+void weak_function open1788_sspdev_initialize(void)
+{
+  /* Configure the SSP0 chip select GPIOs. */
+
+#ifdef CONFIG_LPC17_40_SSP0
+#endif
+
+  /* Configure SSP1 chip select GPIOs.  This includes the touchscreen on the
+   * the LCD module.
+   */
+
+#ifdef CONFIG_LPC17_40_SSP1
+  ssp_dumpgpio(GPIO_TC_CS, "BEFORE SSP1 Initialization");
+  lpc17_40_configgpio(GPIO_TC_CS);
+  ssp_dumpgpio(GPIO_TC_CS, "AFTER SSP1 Initialization");
+#endif
+
+  /* Configure the SSP2 chip select GPIOs. */
+
+#ifdef CONFIG_LPC17_40_SSP2
+#endif
+}
+
+/****************************************************************************
+ * Name:  lpc17_40_ssp0/1/2select and lpc17_40_ssp0/1/2status
+ *
+ * Description:
+ *   The external functions, lpc17_40_ssp0/1/2select and
+ *   lpc17_40_ssp0/1/2status must be provided by board-specific logic.
+ *   They are implementations of the select and status methods of the SPI
+ *   interface defined by struct spi_ops_s (see include/nuttx/spi/spi.h).
+ *   All other methods (including lpc17_40_sspbus_initialize())
+ *   are provided by common LPC17xx/LPC40xx logic.
+ *   To use this common SPI logic on your board:
+ *
+ *   1. Provide logic in lpc17_40_boardinitialize() to configure SPI/SSP
+ *      chip select pins.
+ *   2. Provide lpc17_40_ssp0/1/2select() and lpc17_40_ssp0/1/2status()
+ *      functions in your board-specific logic.  These functions will perform
+ *      chip selection and status operations using GPIOs in the way your
+ *      board is configured.
+ *   3. Add a calls to lpc17_40_sspbus_initialize() in your low level
+ *      application initialization logic
+ *   4. The handle returned by lpc17_40_sspbus_initialize() may then be used
+ *      to bind the SPI driver to higher level logic (e.g., calling
+ *      mmcsd_spislotinitialize(), for example, will bind the SPI driver to
+ *      the SPI MMC/SD driver).
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_LPC17_40_SSP0
+void  lpc17_40_ssp0select(struct spi_dev_s *dev, uint32_t devid,
+                          bool selected)
+{
+  spiinfo("devid: %d CS: %s\n", (int)devid,
+          selected ? "assert" : "de-assert");
+}
+
+uint8_t lpc17_40_ssp0status(struct spi_dev_s *dev, uint32_t devid)
+{
+  spiinfo("Returning nothing\n");
+  return 0;
+}
+#endif
+
+#ifdef CONFIG_LPC17_40_SSP1
+void  lpc17_40_ssp1select(struct spi_dev_s *dev, uint32_t devid,
+                          bool selected)
+{
+  spiinfo("devid: %d CS: %s\n", (int)devid,
+          selected ? "assert" : "de-assert");
+  if (devid == SPIDEV_TOUCHSCREEN(0))
+    {
+      /* Assert/de-assert the CS pin to the touchscreen */
+
+      ssp_dumpgpio(GPIO_TC_CS, "lpc17_40_ssp1select() Entry");
+      lpc17_40_gpiowrite(GPIO_TC_CS, !selected);
+      ssp_dumpgpio(GPIO_TC_CS, "lpc17_40_ssp1select() Exit");
+    }
+}
+
+uint8_t lpc17_40_ssp1status(struct spi_dev_s *dev, uint32_t devid)
+{
+  spiinfo("Returning nothing\n");
+  return 0;
+}
+#endif
+
+#ifdef CONFIG_LPC17_40_SSP2
+void  lpc17_40_ssp2select(struct spi_dev_s *dev, uint32_t devid,
+                          bool selected)
+{
+  spiinfo("devid: %d CS: %s\n", (int)devid,
+          selected ? "assert" : "de-assert");
+}
+
+uint8_t lpc17_40_ssp2status(struct spi_dev_s *dev, uint32_t devid)
+{
+  spiinfo("Returning nothing\n");
+  return 0;
+}
+#endif
+
+#endif /* CONFIG_LPC17_40_SSP0 || CONFIG_LPC17_40_SSP1  || CONFIG_LPC17_40_SSP2 */
+
+#if defined(CONFIG_LPC17_40_SSP0) && defined(CONFIG_SPI_CALLBACK)
+int lpc17_40_ssp0register(struct spi_dev_s *dev, spi_mediachange_t callback, void *arg)
+{
+  return 0;
+}
+#endif
+                                                                                                                                                            
+┌──(bg9211014🎃kali)-[~]

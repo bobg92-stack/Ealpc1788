@@ -1,6 +1,7 @@
 {
-  "name": "",
-  "description": "",
+  "name": "LPC1788 NuttX Workbench",
+  "description": "Embedded Artists LPC1788 & NuttX RTOS Developer Workbench, GUI Menu Simulator, Flash Tool & Feature Showcase",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
+

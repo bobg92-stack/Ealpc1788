@@ -1,0 +1,1377 @@
+┌──(bg9211014🎃kali)-[~]
+└─$ >....
+_clockconfig.c
+
+echo "=== 3. KEY DRIVER FUNCTIONS ==="
+python3 - << 'PY'
+from pathlib import Path
+import re
+
+def dump_fn(path, patterns, max_lines=100):
+    text = Path(path).read_text(errors="ignore").splitlines()
+    print(f"\n--- {path} ---")
+    for pat in patterns:
+        rx = re.compile(pat)
+        for i, line in enumerate(text):
+            if rx.search(line) and not line.strip().endswith(";"):
+                start = max(0, i - 2)
+                end = min(len(text), i + max_lines)
+                for j in range(start, end):
+                    print(f"{j+1}: {text[j]}")
+                    if j > i + 5 and text[j].startswith("}"):
+                        break
+                print()
+                break
+
+dump_fn("arch/arm/src/lpc17xx_40xx/lpc178x_40xx_gpio.c", [r"^int lpc17_40_configgpio\("], 130)
+dump_fn("arch/arm/src/lpc17xx_40xx/lpc17_40_ssp.c", [r"ssp_setmode\(", r"ssp_setfrequency\(", r"lpc17_40_sspbus_initialize\("], 80)
+dump_fn("arch/arm/src/lpc17xx_40xx/lpc17_40_ethernet.c", [r"lpc17_40_phyread\(", r"lpc17_40_phyautoneg\(", r"lpc17_40_phyinit\(", r"lpc17_40_ifup\("], 115)
+dump_fn("drivers/mmcsd/mmcsd_sdio.c", [r"mmcsd_open\(", r"mmcsd_sdinitialize\(", r"mmcsd_hwinitialize\(", r"mmcsd_slotinitialize\("], 120)
+dump_fn("arch/arm/src/lpc17xx_40xx/lpc17_40_sdcard.c", [r"sdio_initialize\(", r"sdio_widebus\(", r"sdio_clock\("], 90)
+dump_fn("fs/fat/fs_fat32.c", [r"fat_mount\("], 115)
+PY
+
+echo "=== 4. BOARD GIT DIFF ==="
+git diff -- boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_touchscreen.c boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_ssp.c
+EOF
+=== 1. GIT STATUS & .CONFIG FLAGS ===
+ M arch/arm/src/lpc17xx_40xx/lpc17_40_i2c.c
+ M arch/arm/src/lpc17xx_40xx/lpc17_40_lcd.c
+ M boards/arm/lpc17xx_40xx/open1788/include/board.h
+ M boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_bringup.c
+ M boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_lcd.c
+ M boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_sdraminitialize.c
+ M boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_ssp.c
+ M boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_touchscreen.c
+ M boards/arm/lpc17xx_40xx/open1788/src/open1788.h
+?? boards/arm/lpc17xx_40xx/open1788/configs/ea_gui/
+368:CONFIG_LPC17_40_ETHERNET=y
+372:CONFIG_LPC17_40_SDCARD=y
+380:CONFIG_LPC17_40_SSP0=y
+400:CONFIG_LPC17_40_GPDMA=y
+428:CONFIG_LPC17_40_GPIOIRQ=y
+438:CONFIG_LPC17_40_SDCARD_DMA=y
+444:CONFIG_LPC17_40_PHY_AUTONEG=y
+956:CONFIG_INPUT=y
+960:CONFIG_INPUT_TOUCHSCREEN=y
+971:CONFIG_INPUT_ADS7843E=y
+973:CONFIG_ADS7843E_NPOLLWAITERS=4
+974:CONFIG_ADS7843E_SPIDEV=0
+975:CONFIG_ADS7843E_DEVMINOR=0
+976:CONFIG_ADS7843E_SPIMODE=0
+977:CONFIG_ADS7843E_FREQUENCY=100000
+979:CONFIG_ADS7843E_THRESHX=12
+980:CONFIG_ADS7843E_THRESHY=12
+1044:CONFIG_MMCSD=y
+1045:CONFIG_MMCSD_IOCSUPPORT=y
+1046:CONFIG_MMCSD_NSLOTS=1
+1048:CONFIG_MMCSD_MULTIBLOCK_LIMIT=0
+1049:CONFIG_MMCSD_MMCSUPPORT=y
+1050:CONFIG_MMCSD_HAVE_WRITEPROTECT=y
+1051:CONFIG_MMCSD_SPI=y
+1052:CONFIG_MMCSD_SPICLOCK=20000000
+1053:CONFIG_MMCSD_SPIMODE=0
+1054:CONFIG_MMCSD_IDMODE_CLOCK=400000
+1055:CONFIG_MMCSD_SPIRETRY_COUNT=0
+1056:CONFIG_SDIO_DMA=y
+1057:CONFIG_MMCSD_SDIO=y
+1061:CONFIG_MMCSD_BLOCK_WDATADELAY=260
+1121:CONFIG_ETH0_PHY_LAN8720=y
+1457:CONFIG_NET_ETH_PKTSIZE=590
+1465:CONFIG_NET_ETHERNET=y
+1699:CONFIG_FS_FAT=y
+1701:CONFIG_FAT_LCNAMES=y
+1702:CONFIG_FAT_LFN=y
+1703:CONFIG_FAT_MAXFNAME=32
+1706:CONFIG_FAT_LFN_ALIAS_TRAILCHARS=0
+2654:CONFIG_NXWM_CALIBRATION_MARGIN=40
+2659:CONFIG_NXWM_CALIBRATION_SIGNO=32
+2660:CONFIG_NXWM_CALIBRATION_LISTENERPRIO=100
+2661:CONFIG_NXWM_CALIBRATION_LISTENERSTACK=2048
+2797:CONFIG_NETINIT_THREAD=y
+2798:CONFIG_NETINIT_THREAD_STACKSIZE=2048
+2799:CONFIG_NETINIT_THREAD_PRIORITY=80
+2800:CONFIG_NETINIT_RETRY_MOUNTPATH=0
+2810:CONFIG_NETINIT_IPADDR=0x0a000002
+2811:CONFIG_NETINIT_DRIPADDR=0x0a000001
+2812:CONFIG_NETINIT_NETMASK=0xffffff00
+=== 2. BOARD / BRINGUP / PINCONFIG ===
+/****************************************************************************
+ * boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_bringup.c
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ ****************************************************************************/
+
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
+#include <nuttx/config.h>
+
+#include <stdio.h>
+#include <unistd.h>
+#include <syslog.h>
+#include <errno.h>
+#include <assert.h>
+
+#include <nuttx/arch.h>
+#include <nuttx/kthread.h>
+#include <nuttx/board.h>
+#include <arch/board/board.h>
+#include <nuttx/fs/fs.h>
+#include <nuttx/sdio.h>
+#include <nuttx/mmcsd.h>
+#include <nuttx/video/fb.h>
+#include <nuttx/usb/usbhost.h>
+
+#include "lpc17_40_gpio.h"
+#include "lpc17_40_sdcard.h"
+#include "lpc17_40_usbhost.h"
+#include "open1788.h"
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+/* Configuration ************************************************************/
+
+#define NSH_HAVE_MMCSD      1
+#define NSH_HAVE_USBHOST    1
+#define NSH_HAVE_USBHDEV    1
+
+#undef NSH_HAVE_MMCSD_CD
+#undef NSH_HAVE_MMCSD_CDINT
+
+/* MMC/SD support */
+
+#if !defined(CONFIG_LPC17_40_SDCARD) || !defined(CONFIG_MMCSD) && !defined(CONFIG_MMCD_SDIO)
+#  undef NSH_HAVE_MMCSD
+#endif
+
+/* Can't support MMC/SD features if mountpoints are disabled */
+
+#if defined(CONFIG_DISABLE_MOUNTPOINT)
+#  undef NSH_HAVE_MMCSD
+#endif
+
+/* MMC/SD support requires that an SPI support is enabled and an SPI port
+ * is selected
+ */
+
+#ifdef NSH_HAVE_MMCSD
+#  if !defined(CONFIG_NSH_MMCSDSLOTNO)
+#     warning "Assuming slot MMC/SD slot 0"
+#     define CONFIG_NSH_MMCSDSLOTNO 0
+#  endif
+#endif
+
+#ifdef NSH_HAVE_MMCSD
+#  if !defined(CONFIG_NSH_MMCSDMINOR)
+#     warning "Assuming /dev/mmcsd0"
+#     define CONFIG_NSH_MMCSDMINOR 0
+#  endif
+#endif
+
+/* The SD card detect (CD) signal is on P0[13]. This signal is shared.
+ * It is also used for MOSI1 and USB_UP_LED.
+ * The CD pin may be disconnected.
+ * There is a jumper on board that enables the CD pin.
+ */
+
+#ifdef NSH_HAVE_MMCSD
+#  ifdef CONFIG_MMCSD_HAVE_CARDDETECT
+#    define NSH_HAVE_MMCSD_CD 1
+#    ifdef CONFIG_LPC17_40_GPIOIRQ
+#      define NSH_HAVE_MMCSD_CDINT 1
+#    endif
+#  endif
+#endif
+
+#if defined(NSH_HAVE_MMCSD_CD) && \
+    (defined(CONFIG_LPC17_40_SSP1) || defined(CONFIG_LPC17_40_USBDEV))
+#  warning "Use of SD Card Detect pin conflicts with SSP1 and/or USB device"
+#endif
+
+/* USB Host */
+
+#ifndef CONFIG_USBHOST
+#  undef NSH_HAVE_USBHOST
+#endif
+
+#ifndef CONFIG_LPC17_40_USBHOST
+#  undef NSH_HAVE_USBHOST
+#endif
+
+#ifdef NSH_HAVE_USBHOST
+#  ifndef CONFIG_USBHOST_DEFPRIO
+#    define CONFIG_USBHOST_DEFPRIO 50
+#  endif
+#  ifndef CONFIG_USBHOST_STACKSIZE
+#    ifdef CONFIG_USBHOST_HUB
+#      define CONFIG_USBHOST_STACKSIZE 1536
+#    else
+#      define CONFIG_USBHOST_STACKSIZE 1024
+#    endif
+#  endif
+#endif
+
+/* USB Device */
+
+#ifndef CONFIG_USBDEV
+#  undef NSH_HAVE_USBDEV
+#endif
+
+#ifndef CONFIG_LPC17_40_USBDEV
+#  undef NSH_HAVE_USBDEV
+#endif
+
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+#ifdef NSH_HAVE_USBHOST
+static struct usbhost_connection_s *g_usbconn;
+#endif
+#ifdef NSH_HAVE_MMCSD
+static struct sdio_dev_s *g_sdiodev;
+#endif
+#ifdef NSH_HAVE_MMCSD_CD
+static bool g_sd_inserted;
+#endif
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: nsh_waiter
+ *
+ * Description:
+ *   Wait for USB devices to be connected.
+ *
+ ****************************************************************************/
+
+#ifdef NSH_HAVE_USBHOST
+static int nsh_waiter(int argc, char *argv[])
+{
+  struct usbhost_hubport_s *hport;
+
+  syslog(LOG_INFO, "nsh_waiter: Running\n");
+  for (; ; )
+    {
+      /* Wait for the device to change state */
+
+      DEBUGVERIFY(CONN_WAIT(g_usbconn, &hport));
+      syslog(LOG_INFO, "nsh_waiter: %s\n",
+             hport->connected ? "connected" : "disconnected");
+
+      /* Did we just become connected? */
+
+      if (hport->connected)
+        {
+          /* Yes.. enumerate the newly connected device */
+
+          CONN_ENUMERATE(g_usbconn, hport);
+        }
+    }
+
+  /* Keep the compiler from complaining */
+
+  return 0;
+}
+#endif
+
+/****************************************************************************
+ * Name: nsh_cdinterrupt
+ *
+ * Description:
+ *   Card detect interrupt handler.
+ *
+ ****************************************************************************/
+
+#ifdef NSH_HAVE_MMCSD_CDINT
+static int nsh_cdinterrupt(int irq, void *context, void *arg)
+{
+  bool present;
+
+  present = !lpc17_40_gpioread(GPIO_SD_CD);
+  if (present != g_sd_inserted)
+    {
+      sdio_mediachange(g_sdiodev, present);
+      g_sd_inserted = present;
+    }
+
+  return OK;
+}
+#endif
+
+/****************************************************************************
+ * Name: nsh_sdinitialize
+ *
+ * Description:
+ *   Initialize SPI-based microSD.
+ *
+ ****************************************************************************/
+
+#ifdef NSH_HAVE_MMCSD
+static int nsh_sdinitialize(void)
+{
+  int ret;
+
+#ifdef NSH_HAVE_MMCSD_CD
+  /* Configure the SD card detect GPIO */
+
+  lpc17_40_configgpio(GPIO_SD_CD);
+
+#ifdef NSH_HAVE_MMCSD_CDINT
+  /* Attach an interrupt handler to get notifications when a card is
+   * inserted or deleted.
+   */
+
+  irq_attach(LPC17_40_IRQ_P0p13, nsh_cdinterrupt, NULL);
+  up_enable_irq(LPC17_40_IRQ_P0p13);
+
+#endif
+#endif
+
+  /* Configure the SD card power enable pin (MCIPWR on P1.5) */
+
+  lpc17_40_configgpio(GPIO_SD_PWR);
+
+  /* First, get an instance of the SDIO interface */
+
+boards/arm/lpc17xx_40xx/open1788/include/board.h:150:#define ETH_MCFG_CLKSEL_DIV        ETH_MCFG_CLKSEL_DIV56
+boards/arm/lpc17xx_40xx/open1788/include/board.h:349:#define GPIO_SD_DAT0               GPIO_SD_DAT0_2
+boards/arm/lpc17xx_40xx/open1788/include/board.h:350:#define GPIO_SD_DAT1               GPIO_SD_DAT1_1
+boards/arm/lpc17xx_40xx/open1788/include/board.h:351:#define GPIO_SD_DAT2               GPIO_SD_DAT2_1
+boards/arm/lpc17xx_40xx/open1788/include/board.h:352:#define GPIO_SD_DAT3               GPIO_SD_DAT3_1
+boards/arm/lpc17xx_40xx/open1788/include/board.h:353:#define GPIO_SD_CLK                GPIO_SD_CLK_2
+boards/arm/lpc17xx_40xx/open1788/include/board.h:354:#define GPIO_SD_CMD                GPIO_SD_CMD_2
+boards/arm/lpc17xx_40xx/open1788/include/board.h:355:#define GPIO_SD_PWR                GPIO_SD_PWR_2
+boards/arm/lpc17xx_40xx/open1788/include/board.h:423: * Pin 11 PENIRQ\ PENIRQ (pulled high) PORT3 Pin 1  P2.15 PENIRQ
+boards/arm/lpc17xx_40xx/open1788/include/board.h:431: *                                                  (Also RMII_CRS_DV)
+boards/arm/lpc17xx_40xx/open1788/include/board.h:439:#define GPIO_SSP0_MISO   GPIO_SSP0_MISO_1
+boards/arm/lpc17xx_40xx/open1788/include/board.h:440:#define GPIO_SSP0_MOSI   GPIO_SSP0_MOSI_1
+boards/arm/lpc17xx_40xx/open1788/include/board.h:441:#define GPIO_SSP0_SCK    GPIO_SSP0_SCK_1
+boards/arm/lpc17xx_40xx/open1788/src/open1788.h:116:#define GPIO_SD_CD       (GPIO_INTBOTH | GPIO_PULLUP | GPIO_PORT0 | GPIO_PIN13)
+boards/arm/lpc17xx_40xx/open1788/src/open1788.h:130: * Pin 11 PENIRQ\ PENIRQ (pulled high) PORT3 Pin 1  P2.15 PENIRQ
+boards/arm/lpc17xx_40xx/open1788/src/open1788.h:138: *                                                  (Also RMII_CRS_DV)
+boards/arm/lpc17xx_40xx/open1788/src/open1788.h:146:#define GPIO_TC_PENIRQ   (GPIO_INTFE | GPIO_FLOAT | GPIO_PORT2 | GPIO_PIN15)
+boards/arm/lpc17xx_40xx/open1788/src/open1788.h:147:#define GPIO_TC_BUSY     (GPIO_INPUT | GPIO_FLOAT | GPIO_PORT2 | GPIO_PIN14)
+boards/arm/lpc17xx_40xx/open1788/src/open1788.h:148:#define GPIO_TC_CS       (GPIO_OUTPUT | GPIO_VALUE_ONE | GPIO_PORT0 | GPIO_PIN20)
+boards/arm/lpc17xx_40xx/open1788/src/open1788.h:150:#define LPC17_40_IRQ_PENIRQ LPC17_40_IRQ_P2p15
+144:#define GPIO_SD_CLK_1      (GPIO_ALT2 | GPIO_PULLUP | GPIO_PORT0 | GPIO_PIN19)
+149:#define GPIO_SD_CMD_1      (GPIO_ALT2 | GPIO_PULLUP | GPIO_PORT0 | GPIO_PIN20)
+154:#define GPIO_SD_PWR_1      (GPIO_ALT2 | GPIO_PULLUP | GPIO_PORT0 | GPIO_PIN21)
+160:#define GPIO_SD_DAT0_1     (GPIO_ALT2 | GPIO_PULLUP | GPIO_PORT0 | GPIO_PIN22)
+204:#define GPIO_SD_CLK_2      (GPIO_ALT2 | GPIO_PULLUP | GPIO_PORT1 | GPIO_PIN2)
+208:#define GPIO_SD_CMD_2      (GPIO_ALT2 | GPIO_PULLUP | GPIO_PORT1 | GPIO_PIN3)
+216:#define GPIO_SD_PWR_2      (GPIO_ALT2 | GPIO_PULLUP | GPIO_PORT1 | GPIO_PIN5)
+221:#define GPIO_SD_DAT0_2     (GPIO_ALT2 | GPIO_PULLUP | GPIO_PORT1 | GPIO_PIN6)
+226:#define GPIO_SD_DAT1_1     (GPIO_ALT2 | GPIO_PULLUP | GPIO_PORT1 | GPIO_PIN7)
+242:#define GPIO_SD_DAT2_1     (GPIO_ALT2 | GPIO_PULLUP | GPIO_PORT1 | GPIO_PIN11)
+246:#define GPIO_SD_DAT3_1     (GPIO_ALT2 | GPIO_PULLUP | GPIO_PORT1 | GPIO_PIN12)
+432:#define GPIO_SD_DAT1_2     (GPIO_ALT2 | GPIO_PULLUP | GPIO_PORT2 | GPIO_PIN11)
+437:#define GPIO_SD_DAT2_2     (GPIO_ALT2 | GPIO_PULLUP | GPIO_PORT2 | GPIO_PIN12)
+445:#define GPIO_SD_DAT3_2     (GPIO_ALT2 | GPIO_PULLUP | GPIO_PORT2 | GPIO_PIN13)
+arch/arm/src/lpc17xx_40xx/hardware/lpc178x_40xx_syscon.h:94:#define LPC17_40_SYSCON_SCS_OFFSET          0x01a0 /* System Control and Status */
+arch/arm/src/lpc17xx_40xx/hardware/lpc178x_40xx_syscon.h:180:#define LPC17_40_SYSCON_SCS                 (LPC17_40_SYSCON_BASE+LPC17_40_SYSCON_SCS_OFFSET)
+arch/arm/src/lpc17xx_40xx/hardware/lpc178x_40xx_syscon.h:549:#define SYSCON_SCS_EMCSC                    (1 << 0)  /* Bit 0:  EMC shift control */
+arch/arm/src/lpc17xx_40xx/hardware/lpc178x_40xx_syscon.h:550:#define SYSCON_SCS_EMCRD                    (1 << 1)  /* Bit 1:  EMC reset disable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc178x_40xx_syscon.h:551:#define SYSCON_SCS_EMCBC                    (1 << 2)  /* Bit 2:  EMC burst control */
+arch/arm/src/lpc17xx_40xx/hardware/lpc178x_40xx_syscon.h:552:#define SYSCON_SCS_MCIPWRAL                 (1 << 3)  /* Bit 3:  MCI power active level */
+arch/arm/src/lpc17xx_40xx/hardware/lpc178x_40xx_syscon.h:553:#define SYSCON_SCS_OSCRS                    (1 << 4)  /* Bit 4:  Main oscillator range select */
+arch/arm/src/lpc17xx_40xx/hardware/lpc178x_40xx_syscon.h:554:#define SYSCON_SCS_OSCEN                    (1 << 5)  /* Bit 5:  Main oscillator enable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc178x_40xx_syscon.h:555:#define SYSCON_SCS_OSCSTAT                  (1 << 6)  /* Bit 6:  Main oscillator status */
+=== 3. KEY DRIVER FUNCTIONS ===
+
+--- arch/arm/src/lpc17xx_40xx/lpc178x_40xx_gpio.c ---
+796:  ****************************************************************************/
+797:
+798: int lpc17_40_configgpio(lpc17_40_pinset_t cfgset)
+799: {
+800:   unsigned int port;
+801:   unsigned int pin;
+802:
+803:   int ret = -EINVAL;
+804:
+805:   /* Verify that this hardware supports the select GPIO port */
+806:
+807:   port = (cfgset & GPIO_PORT_MASK) >> GPIO_PORT_SHIFT;
+808:   if (port < GPIO_NPORTS)
+809:     {
+810:       /* Get the pin number and select the port configuration register for
+811:        * that pin.
+812:        */
+813:
+814:       pin = (cfgset & GPIO_PIN_MASK) >> GPIO_PIN_SHIFT;
+815:
+816:       /* Handle according to pin function */
+817:
+818:       switch (cfgset & GPIO_FUNC_MASK)
+819:         {
+820:         case GPIO_INPUT:   /* GPIO input pin */
+821:           ret = lpc17_40_configinput(cfgset, port, pin);
+822:           break;
+823:
+824:         case GPIO_INTFE:   /* GPIO interrupt falling edge */
+825:         case GPIO_INTRE:   /* GPIO interrupt rising edge */
+826:         case GPIO_INTBOTH: /* GPIO interrupt both edges */
+827:           ret = lpc17_40_configinterrupt(cfgset, port, pin);
+828:           break;
+829:
+830:         case GPIO_OUTPUT:  /* GPIO output pin */
+831:           ret = lpc17_40_configoutput(cfgset, port, pin);
+832:           break;
+833:
+834:         case GPIO_ALT1:    /* Alternate function 1 */
+835:           ret = lpc17_40_configalternate(cfgset, port, pin, IOCON_FUNC_ALT1);
+836:           break;
+837:
+838:         case GPIO_ALT2:    /* Alternate function 2 */
+839:           ret = lpc17_40_configalternate(cfgset, port, pin, IOCON_FUNC_ALT2);
+840:           break;
+841:
+842:         case GPIO_ALT3:    /* Alternate function 3 */
+843:           ret = lpc17_40_configalternate(cfgset, port, pin, IOCON_FUNC_ALT3);
+844:           break;
+845:
+846:         case GPIO_ALT4:    /* Alternate function 4 */
+847:           ret = lpc17_40_configalternate(cfgset, port, pin, IOCON_FUNC_ALT4);
+848:           break;
+849:
+850:         case GPIO_ALT5:    /* Alternate function 5 */
+851:           ret = lpc17_40_configalternate(cfgset, port, pin, IOCON_FUNC_ALT5);
+852:           break;
+853:
+854:         case GPIO_ALT6:    /* Alternate function 6 */
+855:           ret = lpc17_40_configalternate(cfgset, port, pin, IOCON_FUNC_ALT6);
+856:           break;
+857:
+858:         case GPIO_ALT7:    /* Alternate function 7 */
+859:           ret = lpc17_40_configalternate(cfgset, port, pin, IOCON_FUNC_ALT7);
+860:           break;
+861:
+862:         default:
+863:           break;
+864:         }
+865:     }
+866:
+867:   return ret;
+868: }
+
+
+--- arch/arm/src/lpc17xx_40xx/lpc17_40_ssp.c ---
+473:  ****************************************************************************/
+474:
+475: static void ssp_setmode(struct spi_dev_s *dev, enum spi_mode_e mode)
+476: {
+477:   struct lpc17_40_sspdev_s *priv = (struct lpc17_40_sspdev_s *)dev;
+478:   uint32_t regval;
+479:
+480:   /* Has the mode changed? */
+481:
+482:   if (mode != priv->mode)
+483:     {
+484:       /* Yes... Set CR0 appropriately */
+485:
+486:       regval = ssp_getreg(priv, LPC17_40_SSP_CR0_OFFSET);
+487:       regval &= ~(SSP_CR0_CPOL | SSP_CR0_CPHA);
+488:
+489:       switch (mode)
+490:         {
+491:         case SPIDEV_MODE0: /* CPOL=0; CPHA=0 */
+492:           break;
+493:
+494:         case SPIDEV_MODE1: /* CPOL=0; CPHA=1 */
+495:           regval |= SSP_CR0_CPHA;
+496:           break;
+497:
+498:         case SPIDEV_MODE2: /* CPOL=1; CPHA=0 */
+499:           regval |= SSP_CR0_CPOL;
+500:           break;
+501:
+502:         case SPIDEV_MODE3: /* CPOL=1; CPHA=1 */
+503:           regval |= (SSP_CR0_CPOL | SSP_CR0_CPHA);
+504:           break;
+505:
+506:         default:
+507:           spierr("ERROR: Bad mode: %d\n", mode);
+508:           DEBUGASSERT(FALSE);
+509:           return;
+510:         }
+511:
+512:       ssp_putreg(priv, LPC17_40_SSP_CR0_OFFSET, regval);
+513:
+514:       /* Save the mode so that subsequent re-configurations will be faster */
+515:
+516:       priv->mode = mode;
+517:     }
+518: }
+
+126:
+127: static int      ssp_lock(struct spi_dev_s *dev, bool lock);
+128: static uint32_t ssp_setfrequency(struct spi_dev_s *dev,
+129:                                  uint32_t frequency);
+130: static void     ssp_setmode(struct spi_dev_s *dev, enum spi_mode_e mode);
+131: static void     ssp_setbits(struct spi_dev_s *dev, int nbits);
+132: static uint32_t ssp_send(struct spi_dev_s *dev, uint32_t wd);
+133: static void     ssp_sndblock(struct spi_dev_s *dev,
+134:                              const void *buffer, size_t nwords);
+135: static void     ssp_recvblock(struct spi_dev_s *dev, void *buffer,
+136:                               size_t nwords);
+137:
+138: /* Initialization */
+139:
+140: #ifdef CONFIG_LPC17_40_SSP0
+141: static inline struct lpc17_40_sspdev_s *lpc17_40_ssp0initialize(void);
+142: #endif
+143: #ifdef CONFIG_LPC17_40_SSP1
+144: static inline struct lpc17_40_sspdev_s *lpc17_40_ssp1initialize(void);
+145: #endif
+146: #ifdef CONFIG_LPC17_40_SSP2
+147: static inline struct lpc17_40_sspdev_s *lpc17_40_ssp2initialize(void);
+148: #endif
+149:
+150: /****************************************************************************
+151:  * Private Data
+152:  ****************************************************************************/
+153:
+154: #ifdef CONFIG_LPC17_40_SSP0
+155: static const struct spi_ops_s g_spi0ops =
+156: {
+157:   .lock              = ssp_lock,
+158:   .select            = lpc17_40_ssp0select,   /* Provided externally */
+159:   .setfrequency      = ssp_setfrequency,
+160:   .setmode           = ssp_setmode,
+161:   .setbits           = ssp_setbits,
+162: #ifdef CONFIG_SPI_HWFEATURES
+163:   .hwfeatures        = 0,                  /* Not supported */
+164: #endif
+165:   .status            = lpc17_40_ssp0status,   /* Provided externally */
+166: #ifdef CONFIG_SPI_CMDDATA
+167:   .cmddata           = lpc17_40_ssp0cmddata,  /* Provided externally */
+168: #endif
+169:   .send              = ssp_send,
+170:   .sndblock          = ssp_sndblock,
+171:   .recvblock         = ssp_recvblock,
+172: #ifdef CONFIG_SPI_CALLBACK
+173:   .registercallback  = lpc17_40_ssp0register, /* Provided externally */
+174: #else
+175:   .registercallback  = 0,                  /* Not implemented */
+176: #endif
+177: };
+
+950:  ****************************************************************************/
+951:
+952: struct spi_dev_s *lpc17_40_sspbus_initialize(int port)
+953: {
+954:   struct lpc17_40_sspdev_s *priv;
+955:   uint32_t regval;
+956:   int i;
+957:
+958:   /* Only the SSP0 and SSP1 interfaces are supported */
+959:
+960:   switch (port)
+961:     {
+962: #ifdef CONFIG_LPC17_40_SSP0
+963:     case 0:
+964:       priv = lpc17_40_ssp0initialize();
+965:       break;
+966: #endif
+967: #ifdef CONFIG_LPC17_40_SSP1
+968:     case 1:
+969:       priv = lpc17_40_ssp1initialize();
+970:       break;
+971: #endif
+972: #ifdef CONFIG_LPC17_40_SSP2
+973:     case 2:
+974:       priv = lpc17_40_ssp2initialize();
+975:       break;
+976: #endif
+977:     default:
+978:       return NULL;
+979:     }
+980:
+981:   /* Configure 8-bit SPI mode */
+982:
+983:   ssp_putreg(priv, LPC17_40_SSP_CR0_OFFSET,
+984:              SSP_CR0_DSS_8BIT | SSP_CR0_FRF_SPI);
+985:
+986:   /* Disable the SSP and all interrupts (we'll poll for all data) */
+987:
+988:   ssp_putreg(priv, LPC17_40_SSP_CR1_OFFSET, 0);
+989:   ssp_putreg(priv, LPC17_40_SSP_IMSC_OFFSET, 0);
+990:
+991:   /* Set the initial SSP configuration */
+992:
+993:   priv->frequency = 0;
+994:   priv->nbits     = 8;
+995:   priv->mode      = SPIDEV_MODE0;
+996:
+997:   /* Select a default frequency of approx. 400KHz */
+998:
+999:   ssp_setfrequency((struct spi_dev_s *)priv, 400000);
+1000:
+1001:   /* Enable the SPI */
+1002:
+1003:   regval = ssp_getreg(priv, LPC17_40_SSP_CR1_OFFSET);
+1004:   ssp_putreg(priv, LPC17_40_SSP_CR1_OFFSET, regval | SSP_CR1_SSE);
+1005:   for (i = 0; i < LPC17_40_SSP_FIFOSZ; i++)
+1006:     {
+1007:       ssp_getreg(priv, LPC17_40_SSP_DR_OFFSET);
+1008:     }
+1009:
+1010:   return &priv->spidev;
+1011: }
+
+
+--- arch/arm/src/lpc17xx_40xx/lpc17_40_ethernet.c ---
+2133:
+2134: #ifdef LPC17_40_HAVE_PHY
+2135: static uint16_t lpc17_40_phyread(uint8_t phyaddr, uint8_t regaddr)
+2136: {
+2137:   uint32_t regval;
+2138:
+2139:   lpc17_40_putreg(1, LPC17_40_ETH_MCMD);
+2140:
+2141:   /* Set PHY address and PHY register address */
+2142:
+2143:   regval = ((uint32_t)phyaddr << ETH_MADR_PHYADDR_SHIFT) |
+2144:            ((uint32_t)regaddr << ETH_MADR_REGADDR_SHIFT);
+2145:   lpc17_40_putreg(regval, LPC17_40_ETH_MADR);
+2146:
+2147:   /* Set up to read */
+2148:
+2149:   lpc17_40_putreg(ETH_MCMD_READ, LPC17_40_ETH_MCMD);
+2150:
+2151:   /* Wait for the PHY command to complete */
+2152:
+2153:   while ((lpc17_40_getreg(LPC17_40_ETH_MIND) &
+2154:          (ETH_MIND_BUSY | ETH_MIND_NVALID)) != 0);
+2155:   lpc17_40_putreg(0, LPC17_40_ETH_MCMD);
+2156:
+2157:   /* Return the PHY register data */
+2158:
+2159:   return (uint16_t)(lpc17_40_getreg(LPC17_40_ETH_MRDD) & ETH_MRDD_MASK);
+2160: }
+
+2227:
+2228: #if defined(LPC17_40_HAVE_PHY) && defined(CONFIG_LPC17_40_PHY_AUTONEG)
+2229: static inline int lpc17_40_phyautoneg(uint8_t phyaddr)
+2230: {
+2231:   int32_t timeout;
+2232:   uint16_t phyreg;
+2233:
+2234:   /* Start auto-negotiation */
+2235:
+2236:   lpc17_40_phywrite(phyaddr, MII_MCR, MII_MCR_ANENABLE | MII_MCR_ANRESTART);
+2237:
+2238:   /* Wait for autonegotiation to complete */
+2239:
+2240:   for (timeout = MII_BIG_TIMEOUT; timeout > 0; timeout--)
+2241:     {
+2242:       /* For some motive a large delay is necessary for some PHYs */
+2243:
+2244:       up_udelay(5000);
+2245:
+2246:       /* Check if auto-negotiation has completed */
+2247:
+2248:       phyreg = lpc17_40_phyread(phyaddr, MII_MSR);
+2249:       if ((phyreg & MII_MSR_ANEGCOMPLETE) != 0)
+2250:         {
+2251:           /* Yes.. return success */
+2252:
+2253:           return OK;
+2254:         }
+2255:     }
+2256:
+2257:   nerr("ERROR: Auto-negotiation failed. MSR: %04x\n", phyreg);
+2258:   return -ETIMEDOUT;
+2259: }
+
+2362:
+2363: #ifdef LPC17_40_HAVE_PHY
+2364: static inline int lpc17_40_phyinit(struct lpc17_40_driver_s *priv)
+2365: {
+2366:   unsigned int phyaddr;
+2367:   uint16_t phyreg;
+2368:   uint32_t regval;
+2369:   int ret;
+2370:
+2371:   /* MII configuration: host clocked divided per board.h, no suppress
+2372:    * preamble, no scan increment.
+2373:    */
+2374:
+2375:   lpc17_40_putreg(ETH_MCFG_CLKSEL_DIV, LPC17_40_ETH_MCFG);
+2376:   lpc17_40_putreg(0, LPC17_40_ETH_MCMD);
+2377:
+2378:   /* Enter RMII mode and select 100 MBPS support */
+2379:
+2380:   lpc17_40_putreg(ETH_CMD_RMII, LPC17_40_ETH_CMD);
+2381:   lpc17_40_putreg(ETH_SUPP_SPEED, LPC17_40_ETH_SUPP);
+2382:
+2383:   /* Find PHY Address.  Because the controller has a pull-up and the
+2384:    * PHY has pull-down resistors on RXD lines some times the PHY
+2385:    * latches different at different addresses.
+2386:    */
+2387:
+2388:   for (phyaddr = 0; phyaddr < 32; phyaddr++)
+2389:     {
+2390:       /* Check if we can see the selected device ID at this
+2391:        * PHY address.
+2392:        */
+2393:
+2394:       phyreg = (unsigned int)lpc17_40_phyread(phyaddr, MII_PHYID1);
+2395:       ninfo("Addr: %d PHY ID1: %04x\n", phyaddr, phyreg);
+2396:
+2397:       /* Compare OUI bits 3-18 */
+2398:
+2399:       if (phyreg == LPC17_40_PHYID1)
+2400:         {
+2401:           phyreg = lpc17_40_phyread(phyaddr, MII_PHYID2);
+2402:           ninfo("Addr: %d PHY ID2: %04x\n", phyaddr, phyreg);
+2403:
+2404:           /* Compare OUI bits 19-24 and the 6-bit model number (ignoring the
+2405:            * 4-bit revision number).
+2406:            */
+2407:
+2408:           if ((phyreg & 0xfff0) == (LPC17_40_PHYID2 & 0xfff0))
+2409:             {
+2410:               break;
+2411:             }
+2412:         }
+2413:     }
+2414:
+2415:   /* Check if the PHY device address was found */
+2416:
+2417:   if (phyaddr > 31)
+2418:     {
+2419:       /* Failed to find PHY at any location */
+2420:
+2421:       nerr("ERROR: No PHY detected\n");
+2422:       return -ENODEV;
+2423:     }
+2424:
+2425:   ninfo("phyaddr: %d\n", phyaddr);
+2426:
+2427:   /* Save the discovered PHY device address */
+2428:
+2429:   priv->lp_phyaddr = phyaddr;
+2430:
+2431:   /* Reset the PHY */
+2432:
+2433:   ret = lpc17_40_phyreset(phyaddr);
+2434:   if (ret < 0)
+2435:     {
+2436:       return ret;
+2437:     }
+2438:
+2439:   lpc17_40_showmii(phyaddr, "After reset");
+2440:
+2441:   /* Check for preamble suppression support */
+2442:
+2443:   phyreg = lpc17_40_phyread(phyaddr, MII_MSR);
+2444:   if ((phyreg & MII_MSR_MFRAMESUPPRESS) != 0)
+2445:     {
+2446:       /* The PHY supports preamble suppression */
+2447:
+2448:       regval  = lpc17_40_getreg(LPC17_40_ETH_MCFG);
+2449:       regval |= ETH_MCFG_SUPPRE;
+2450:       lpc17_40_putreg(regval, LPC17_40_ETH_MCFG);
+2451:     }
+2452:
+2453: #if defined(CONFIG_ETH0_PHY_DP83848C)
+2454:   /* Enable the RMII interface for DP83848x PHYs */
+2455:
+2456:   lpc17_40_phywrite(phyaddr, MII_DP83848C_RBR,
+2457:                     MII_RBR_ELAST_2 | MII_RBR_RMIIMODE);
+2458: #endif
+2459:
+2460:   /* Are we configured to do auto-negotiation? */
+2461:
+2462: #ifdef CONFIG_LPC17_40_PHY_AUTONEG
+2463:   /* Enable FD mode, Auto-negotiation and 100Mbps speed */
+2464:
+2465:   lpc17_40_phywrite(phyaddr, MII_MCR,
+2466:                     MII_MCR_FULLDPLX | MII_MCR_ANENABLE | MII_MCR_SPEED100);
+2467:
+2468:   /* Setup the Auto-negotiation advertisement: 100 or 10, and HD or FD */
+2469:
+2470:   lpc17_40_phywrite(phyaddr, MII_ADVERTISE,
+2471:                  (MII_ADVERTISE_100BASETXFULL | MII_ADVERTISE_100BASETXHALF |
+2472:                   MII_ADVERTISE_10BASETXFULL  | MII_ADVERTISE_10BASETXHALF  |
+2473:                   MII_ADVERTISE_CSMA));
+2474:
+2475:   /* Then perform the auto-negotiation */
+2476:
+2477:   ret = lpc17_40_phyautoneg(phyaddr);
+2478:   if (ret < 0)
+
+1375:  ****************************************************************************/
+1376:
+1377: static int lpc17_40_ifup(struct net_driver_s *dev)
+1378: {
+1379:   struct lpc17_40_driver_s *priv =
+1380:     (struct lpc17_40_driver_s *)dev->d_private;
+1381:   uint32_t regval;
+1382:   int ret;
+1383:
+1384:   ninfo("Bringing up: %u.%u.%u.%u\n",
+1385:         ip4_addr1(dev->d_ipaddr), ip4_addr2(dev->d_ipaddr),
+1386:         ip4_addr3(dev->d_ipaddr), ip4_addr4(dev->d_ipaddr));
+1387:
+1388:   /* Reset the Ethernet controller (again) */
+1389:
+1390:   lpc17_40_ethreset(priv);
+1391:
+1392:   /* Initialize the PHY and wait for the link to be established */
+1393:
+1394:   ret = lpc17_40_phyinit(priv);
+1395:   if (ret != 0)
+1396:     {
+1397:       nerr("ERROR: lpc17_40_phyinit failed: %d\n", ret);
+1398:       return ret;
+1399:     }
+1400:
+1401:   /* Configure the MAC station address */
+1402:
+1403:   regval = (uint32_t)priv->lp_dev.d_mac.ether.ether_addr_octet[5] << 8 |
+1404:            (uint32_t)priv->lp_dev.d_mac.ether.ether_addr_octet[4];
+1405:   lpc17_40_putreg(regval, LPC17_40_ETH_SA0);
+1406:
+1407:   regval = (uint32_t)priv->lp_dev.d_mac.ether.ether_addr_octet[3] << 8 |
+1408:            (uint32_t)priv->lp_dev.d_mac.ether.ether_addr_octet[2];
+1409:   lpc17_40_putreg(regval, LPC17_40_ETH_SA1);
+1410:
+1411:   regval = (uint32_t)priv->lp_dev.d_mac.ether.ether_addr_octet[1] << 8 |
+1412:            (uint32_t)priv->lp_dev.d_mac.ether.ether_addr_octet[0];
+1413:   lpc17_40_putreg(regval, LPC17_40_ETH_SA2);
+1414:
+1415:   /* Initialize Ethernet interface for the PHY setup */
+1416:
+1417:   lpc17_40_macmode(priv->lp_mode);
+1418:
+1419:   /* Initialize EMAC DMA memory --
+1420:    * descriptors, status, packet buffers, etc.
+1421:    */
+1422:
+1423:   lpc17_40_txdescinit(priv);
+1424:   lpc17_40_rxdescinit(priv);
+1425:
+1426:   /* Configure to pass all received frames */
+1427:
+1428:   regval = lpc17_40_getreg(LPC17_40_ETH_MAC1);
+1429:   regval |= ETH_MAC1_PARF;
+1430:   lpc17_40_putreg(regval, LPC17_40_ETH_MAC1);
+1431:
+1432:   /* Set up RX filter and configure to accept broadcast addresses, multicast
+1433:    * addresses, and perfect station address matches.  We should also accept
+1434:    * perfect matches and, most likely, broadcast (for example, for ARP
+1435:    * requests).  Other RX filter options will only be enabled if so
+1436:    * selected.  NOTE: There is a selection CONFIG_NET_BROADCAST, but this
+1437:    * enables receipt of UDP broadcast packets inside of the stack.
+1438:    */
+1439:
+1440:   regval = ETH_RXFLCTRL_PERFEN | ETH_RXFLCTRL_BCASTEN;
+1441: #ifdef CONFIG_LPC17_40_MULTICAST
+1442:   regval |= (ETH_RXFLCTRL_MCASTEN | ETH_RXFLCTRL_UCASTEN);
+1443: #endif
+1444: #ifdef CONFIG_LPC17_40_ETH_HASH
+1445:   regval |= (ETH_RXFLCTRL_MCASTHASHEN | ETH_RXFLCTRL_UCASTHASHEN);
+1446: #endif
+1447:   lpc17_40_putreg(regval, LPC17_40_ETH_RXFLCTRL);
+1448:
+1449:   /* Clear any pending interrupts (shouldn't be any) */
+1450:
+1451:   lpc17_40_putreg(0xffffffff, LPC17_40_ETH_INTCLR);
+1452:
+1453:   /* Enable Ethernet interrupts.  The way we do this depends on whether or
+1454:    * not Wakeup on Lan (WoL) has been configured.
+1455:    */
+1456:
+1457: #ifdef CONFIG_LPC17_40_ETH_WOL
+1458:   /* Configure WoL: Clear all receive filter WoLs and enable the perfect
+1459:    * match WoL interrupt.  We will wait until the Wake-up to finish
+1460:    * bringing things up.
+1461:    */
+1462:
+1463:   lpc17_40_putreg(0xffffffff, LPC17_40_ETH_RXFLWOLCLR);
+1464:   lpc17_40_putreg(ETH_RXFLCTRL_RXFILEN, LPC17_40_ETH_RXFLCTRL);
+1465:
+1466:   priv->lp_inten = ETH_INT_WKUP;
+1467:   lpc17_40_putreg(ETH_INT_WKUP, LPC17_40_ETH_INTEN);
+1468: #else
+1469:   /* Otherwise, enable all Rx interrupts.  Tx interrupts, SOFTINT and WoL are
+1470:    * excluded.  Tx interrupts will not be enabled until there is data to be
+1471:    * sent.
+1472:    */
+1473:
+1474:   priv->lp_inten = ETH_RXINTS;
+1475:   lpc17_40_putreg(ETH_RXINTS, LPC17_40_ETH_INTEN);
+1476: #endif
+1477:
+1478:   /* Enable Rx. "Enabling of the receive function is located in two places.
+1479:    * The receive DMA manager needs to be enabled and the receive data path
+1480:    * of the MAC needs to be enabled. To prevent overflow in the receive
+1481:    * DMA engine the receive DMA engine should be enabled by setting the
+1482:    * RxEnable bit in the Command register before enabling the receive data
+1483:    * path in the MAC by setting the RECEIVE ENABLE bit in the MAC1 register."
+1484:    */
+1485:
+1486:   regval  = lpc17_40_getreg(LPC17_40_ETH_CMD);
+1487:   regval |= ETH_CMD_RXEN;
+1488:   lpc17_40_putreg(regval, LPC17_40_ETH_CMD);
+1489:
+1490:   regval  = lpc17_40_getreg(LPC17_40_ETH_MAC1);
+1491:   regval |= ETH_MAC1_RE;
+
+
+--- drivers/mmcsd/mmcsd_sdio.c ---
+2425:  ****************************************************************************/
+2426:
+2427: static int mmcsd_open(FAR struct inode *inode)
+2428: {
+2429:   FAR struct mmcsd_state_s *priv;
+2430:   FAR struct mmcsd_part_s *part;
+2431:   int ret;
+2432:
+2433:   finfo("Entry\n");
+2434:   DEBUGASSERT(inode->i_private);
+2435:   part = inode->i_private;
+2436:   priv = part->priv;
+2437:
+2438:   /* Just increment the reference count on the driver */
+2439:
+2440:   DEBUGASSERT(priv->crefs < MAX_CREFS);
+2441:
+2442:   ret = mmcsd_lock(priv);
+2443:   if (ret < 0)
+2444:     {
+2445:       return ret;
+2446:     }
+2447:
+2448:   priv->crefs++;
+2449:   mmcsd_unlock(priv);
+2450:   return OK;
+2451: }
+
+4025:  ****************************************************************************/
+4026:
+4027: static int mmcsd_sdinitialize(FAR struct mmcsd_state_s *priv)
+4028: {
+4029:   uint32_t cid[4];
+4030:   uint32_t scr[2];
+4031:   int ret;
+4032:
+4033:   /* At this point, clocking has been supplied to the card, both CMD0 and
+4034:    * ACMD41 (with OCR=0) have been sent successfully, the card is no longer
+4035:    * busy and (presumably) in the IDLE state so there is good evidence
+4036:    * that we have an SD card inserted into the slot.
+4037:    *
+4038:    * Send CMD2, ALL_SEND_CID.  The SD CMD2 is similar to the MMC CMD2 except
+4039:    * that the buffer type used to transmit to response of the card (SD Memory
+4040:    * Card: Push-Pull, MMC: Open-Drain). This implementation supports only a
+4041:    * single SD card.  If multiple cards were installed in the slot, each card
+4042:    * would respond to CMD2 by sending its CID (only one card completes the
+4043:    * response at a time).  The driver should send CMD2 and obtain RCAs until
+4044:    * no response to ALL_SEND_CID is received.
+4045:    *
+4046:    * When an SD card receives the CMD2 command it should transition to the
+4047:    * identification state/card-identification mode
+4048:    */
+4049:
+4050:   mmcsd_sendcmdpoll(priv, MMCSD_CMD2, 0);
+4051:   ret = SDIO_RECVR2(priv->dev, MMCSD_CMD2, cid);
+4052:   if (ret != OK)
+4053:     {
+4054:       ferr("ERROR: SDIO_RECVR2 for SD CID failed: %d\n", ret);
+4055:       return ret;
+4056:     }
+4057:
+4058:   mmcsd_decode_cid(priv, cid);
+4059:
+4060:   /* Send CMD3, SEND_RELATIVE_ADDR.  In both protocols, this command is used
+4061:    * to assign a logical address to the card.  For MMC, the host assigns the
+4062:    * address; for SD, the memory card has this responsibility. CMD3 causes
+4063:    * transition to standby state/data-transfer mode
+4064:    *
+4065:    * Send CMD3 with argument 0, SD card publishes its RCA in the response.
+4066:    */
+4067:
+4068:   mmcsd_sendcmdpoll(priv, SD_CMD3, 0);
+4069:   ret = mmcsd_recv_r6(priv, SD_CMD3);
+4070:   if (ret != OK)
+4071:     {
+4072:       ferr("ERROR: mmcsd_recv_r6 for SD RCA failed: %d\n", ret);
+4073:       return ret;
+4074:     }
+4075:
+4076:   finfo("RCA: %04x\n", priv->rca);
+4077:
+4078:   /* This should have caused a transition to standby state. However, this
+4079:    * will not be reflected in the present R1/6 status.  R1/6 contains the
+4080:    * state of the card when the command was received, not when it
+4081:    * completed execution.
+4082:    *
+4083:    * Verify that we are in standby state/data-transfer mode
+4084:    */
+4085:
+4086:   ret = mmcsd_verifystate(priv, MMCSD_R1_STATE_STBY);
+4087:   if (ret != OK)
+4088:     {
+4089:       ferr("ERROR: Failed to enter standby state\n");
+4090:       return ret;
+4091:     }
+4092:
+4093:   /* Send CMD9, SEND_CSD, in standby state/data-transfer mode to obtain the
+4094:    * Card Specific Data (CSD) register.  The argument is the RCA that we
+4095:    * just obtained from CMD3.  The card stays in standby state/data-transfer
+4096:    * mode.
+4097:    */
+4098:
+4099:   mmcsd_sendcmdpoll(priv, MMCSD_CMD9, (uint32_t)priv->rca << 16);
+4100:   ret = SDIO_RECVR2(priv->dev, MMCSD_CMD9, priv->csd);
+4101:   if (ret != OK)
+4102:     {
+4103:       ferr("ERROR: Could not get SD CSD register(%d)\n", ret);
+4104:       return ret;
+4105:     }
+4106:
+4107:   mmcsd_decode_csd(priv, priv->csd);
+4108:
+4109:   /* Send CMD7 with the argument == RCA in order to select the card.
+4110:    * Since we are supporting only a single card, we just leave the
+4111:    * card selected all of the time.
+4112:    */
+4113:
+4114:   mmcsd_sendcmdpoll(priv, MMCSD_CMD7S, (uint32_t)priv->rca << 16);
+4115:   ret = mmcsd_recv_r1(priv, MMCSD_CMD7S);
+4116:   if (ret != OK)
+4117:     {
+4118:       ferr("ERROR: mmcsd_recv_r1 for CMD7 failed: %d\n", ret);
+4119:       return ret;
+4120:     }
+4121:
+4122:   /* Set the Driver Stage Register (DSR) if (1) a CONFIG_MMCSD_DSR has been
+4123:    * provided and (2) the card supports a DSR register.  If no DSR value
+4124:    * the card default value (0x0404) will be used.
+4125:    */
+4126:
+4127:   mmcsd_sendcmd4(priv);
+4128:
+4129:   /* Select high speed SD clocking (which may depend on the DSR setting) */
+4130:
+4131:   SDIO_CLOCK(priv->dev, CLOCK_SD_TRANSFER_1BIT);
+4132:   MMCSD_USLEEP(MMCSD_CLK_DELAY);
+4133:
+4134:   /* If the hardware only supports 4-bit transfer mode then we forced to
+4135:    * attempt to setup the card in this mode before checking the SCR register.
+4136:    */
+4137:
+4138:   if ((priv->caps & SDIO_CAPS_4BIT_ONLY) != 0)
+4139:     {
+4140:       /* Select width (4-bit) bus operation */
+4141:
+4142:       priv->buswidth = MMCSD_SCR_BUSWIDTH_4BIT;
+4143:       ret = mmcsd_widebus(priv);
+4144:
+4145:       if (ret != OK)
+4146:         {
+
+4765:  ****************************************************************************/
+4766:
+4767: static int mmcsd_hwinitialize(FAR struct mmcsd_state_s *priv)
+4768: {
+4769:   int ret;
+4770:
+4771:   ret = mmcsd_lock(priv);
+4772:   if (ret < 0)
+4773:     {
+4774:       return ret;
+4775:     }
+4776:
+4777:   /* Get the capabilities of the SDIO driver */
+4778:
+4779:   priv->caps = SDIO_CAPABILITIES(priv->dev);
+4780:   finfo("DMA supported: %d\n", (priv->caps & SDIO_CAPS_DMASUPPORTED) != 0);
+4781:
+4782:   /* Attach and prepare MMC/SD interrupts */
+4783:
+4784:   if (SDIO_ATTACH(priv->dev))
+4785:     {
+4786:       ferr("ERROR: Unable to attach MMC/SD interrupts\n");
+4787:       mmcsd_unlock(priv);
+4788:       return -EBUSY;
+4789:     }
+4790:
+4791:   finfo("Attached MMC/SD interrupts\n");
+4792:
+4793:   /* Register a callback so that we get informed if media is inserted or
+4794:    * removed from the slot (Initially all callbacks are disabled).
+4795:    */
+4796:
+4797: #if defined(CONFIG_SCHED_WORKQUEUE) && defined(CONFIG_SCHED_HPWORK)
+4798:   SDIO_REGISTERCALLBACK(priv->dev, mmcsd_mediachange, (FAR void *)priv);
+4799: #endif
+4800:
+4801:   /* Is there a card in the slot now? For an MMC/SD card, there are three
+4802:    * possible card detect mechanisms:
+4803:    *
+4804:    *  1. Mechanical insertion that can be detected using the WP switch
+4805:    *     that is closed when a card is inserted into then SD slot (SD
+4806:    *     "hot insertion capable" card connector only)
+4807:    *  2. Electrical insertion that can be sensed using the pull-up resistor
+4808:    *     on CD/DAT3 (both SD/MMC),
+4809:    *  3. Or by periodic attempts to initialize the card from software.
+4810:    *
+4811:    * The behavior of SDIO_PRESENT() is to use whatever information is
+4812:    * available on the particular platform.  If no card insertion information
+4813:    * is available (polling only), then SDIO_PRESENT() will always return
+4814:    * true and we will try to initialize the card.
+4815:    */
+4816:
+4817:   if (SDIO_PRESENT(priv->dev))
+4818:     {
+4819:       /* Yes... probe for a card in the slot */
+4820:
+4821:       ret = mmcsd_probe(priv);
+4822:       if (ret != OK)
+4823:         {
+4824:           ferr("Slot not empty, but initialization failed: %d\n", ret);
+4825:
+4826:           /* NOTE: The failure to initialize a card does not mean that
+4827:            * initialization has failed! A card could be installed in the slot
+4828:            * at a later time. ENODEV is return in this case,
+4829:            * sdio_slotinitialize will use this return value to set up the
+4830:            * card inserted callback event.
+4831:            */
+4832:
+4833:           ret = -ENODEV;
+4834:         }
+4835:     }
+4836:   else
+4837:     {
+4838:       /* ENODEV is returned to indicate that no card is inserted in the slot.
+4839:        * sdio_slotinitialize will use this return value to set up the card
+4840:        * inserted callback event.
+4841:        */
+4842:
+4843:       ret = -ENODEV;
+4844:     }
+4845:
+4846:   /* OK is returned only if the slot initialized correctly AND the card in
+4847:    * the slot was successfully configured.
+4848:    */
+4849:
+4850:   mmcsd_unlock(priv);
+4851:   return ret;
+4852: }
+
+4888:  ****************************************************************************/
+4889:
+4890: int mmcsd_slotinitialize(int minor, FAR struct sdio_dev_s *dev)
+4891: {
+4892:   FAR struct mmcsd_state_s *priv;
+4893:   char devname[16];
+4894:   int ret = -ENOMEM;
+4895:
+4896:   finfo("minor: %d\n", minor);
+4897:
+4898:   /* Sanity check */
+4899:
+4900: #ifdef CONFIG_DEBUG_FEATURES
+4901:   if (minor < 0 || minor > 255 || !dev)
+4902:     {
+4903:       return -EINVAL;
+4904:     }
+4905: #endif
+4906:
+4907:   /* Allocate a MMC/SD state structure */
+4908:
+4909:   priv = (FAR struct mmcsd_state_s *)
+4910:     kmm_malloc(sizeof(struct mmcsd_state_s));
+4911:   if (priv == NULL)
+4912:     {
+4913:       return -ENOMEM;
+4914:     }
+4915:
+4916:   /* Initialize the MMC/SD state structure */
+4917:
+4918:   memset(priv, 0, sizeof(struct mmcsd_state_s));
+4919:   nxmutex_init(&priv->lock);
+4920:
+4921:   /* Bind the MMCSD driver to the MMCSD state structure */
+4922:
+4923:   priv->dev = dev;
+4924:   priv->minor = minor;
+4925:
+4926:   /* Initialize the hardware associated with the slot */
+4927:
+4928:   ret = mmcsd_hwinitialize(priv);
+4929:
+4930:   /* Was the slot initialized successfully? */
+4931:
+4932:   if (ret != OK)
+4933:     {
+4934:       /* No... But the error ENODEV is returned if hardware
+4935:        * initialization succeeded but no card is inserted in the slot.
+4936:        * In this case, the no error occurred, but the driver is still
+4937:        * not ready.
+4938:        */
+4939:
+4940:       if (ret == -ENODEV)
+4941:         {
+4942:           /* No card in the slot (or if there is, we could not recognize
+4943:            * it).. Setup to receive the media inserted event
+4944:            */
+4945:
+4946:           SDIO_CALLBACKENABLE(priv->dev, SDIOMEDIA_INSERTED);
+4947:
+4948:           finfo("MMC/SD slot is empty\n");
+4949:         }
+4950:       else
+4951:         {
+4952:           /* Some other non-recoverable bad thing happened */
+4953:
+4954:           ferr("ERROR: Failed to initialize MMC/SD slot: %d\n", ret);
+4955:           goto errout_with_alloc;
+4956:         }
+4957:     }
+4958:
+4959: #ifdef CONFIG_MMCSD_PROCFS
+4960:   mmcsd_initialize_procfs();
+4961: #endif
+4962:
+4963:   /* Create a MMCSD device name */
+4964:
+4965:   snprintf(devname, sizeof(devname), "/dev/mmcsd%d", minor);
+4966:
+4967:   finfo("MMC: %s %" PRIu64 "KB %s %s mode\n", devname,
+4968:          ((uint64_t)priv->part[0].nblocks << priv->blockshift) >> 10,
+4969:          priv->widebus ? "4-bits" : "1-bit",
+4970:          mmc_get_mode_name(priv->mode));
+4971:
+4972:   return OK;
+4973:
+4974: errout_with_alloc:
+4975:   nxmutex_destroy(&priv->lock);
+4976:   kmm_free(priv);
+4977:   return ret;
+4978: }
+
+
+--- arch/arm/src/lpc17xx_40xx/lpc17_40_sdcard.c ---
+2711:  ****************************************************************************/
+2712:
+2713: struct sdio_dev_s *sdio_initialize(int slotno)
+2714: {
+2715:   uint32_t   regval;
+2716:
+2717:   /* There is only one slot */
+2718:
+2719:   struct lpc17_40_dev_s *priv = &g_scard_dev;
+2720:
+2721:   /* Enable power on SD Interface */
+2722:
+2723:   regval  = getreg32(LPC17_40_SYSCON_PCONP);
+2724:   regval |= SYSCON_PCONP_PCSDC;
+2725:   putreg32(regval, LPC17_40_SYSCON_PCONP);
+2726:
+2727:   /* Initialize the SD card slot structure */
+2728:
+2729: #ifdef CONFIG_LPC17_40_SDCARD_DMA
+2730:   /* Configure the SDCARD DMA request */
+2731:
+2732:   lpc17_40_dmaconfigure(DMA_REQ_SDCARD, DMA_DMASEL_SDCARD);
+2733:
+2734:   /* Allocate a DMA channel for SDCARD DMA */
+2735:
+2736:   priv->dma = lpc17_40_dmachannel();
+2737:   DEBUGASSERT(priv->dma);
+2738: #endif
+2739:
+2740:   /* Configure GPIOs for 4-bit, wide-bus operation.
+2741:    *
+2742:    * If bus is multiplexed then there is a custom bus configuration utility
+2743:    * in the scope of the board support package.
+2744:    */
+2745:
+2746: #ifndef CONFIG_SDIO_MUXBUS
+2747:   lpc17_40_configgpio(GPIO_SD_DAT0);
+2748: #ifndef CONFIG_LPC17_40_SDCARD_WIDTH_D1_ONLY
+2749:   lpc17_40_configgpio(GPIO_SD_DAT1);
+2750:   lpc17_40_configgpio(GPIO_SD_DAT2);
+2751:   lpc17_40_configgpio(GPIO_SD_DAT3);
+2752: #endif
+2753:   lpc17_40_configgpio(GPIO_SD_CLK);
+2754:   lpc17_40_configgpio(GPIO_SD_CMD);
+2755: #endif
+2756:
+2757:   /* Reset the card and assure that it is in the initial, unconfigured
+2758:    * state.
+2759:    */
+2760:
+2761:   lpc17_40_reset(&priv->dev);
+2762:
+2763:   return &g_scard_dev.dev;
+2764: }
+
+
+--- fs/fat/fs_fat32.c ---
+=== 4. BOARD GIT DIFF ===
+diff --git a/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_ssp.c b/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_ssp.c
+index ef58c5a51a..822f06974a 100644
+--- a/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_ssp.c
++++ b/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_ssp.c
+@@ -72,6 +72,9 @@ void weak_function open1788_sspdev_initialize(void)
+   /* Configure the SSP0 chip select GPIOs. */
+
+ #ifdef CONFIG_LPC17_40_SSP0
++  ssp_dumpgpio(GPIO_TC_CS, "BEFORE SSP0 Initialization");
++  lpc17_40_configgpio(GPIO_TC_CS);
++  ssp_dumpgpio(GPIO_TC_CS, "AFTER SSP0 Initialization");
+ #endif
+
+   /* Configure SSP1 chip select GPIOs.  This includes the touchscreen on the
+@@ -123,6 +126,14 @@ void  lpc17_40_ssp0select(struct spi_dev_s *dev, uint32_t devid,
+ {
+   spiinfo("devid: %d CS: %s\n", (int)devid,
+           selected ? "assert" : "de-assert");
++  if (devid == SPIDEV_TOUCHSCREEN(0))
++    {
++      /* Assert/de-assert the CS pin to the touchscreen */
++
++      ssp_dumpgpio(GPIO_TC_CS, "lpc17_40_ssp0select() Entry");
++      lpc17_40_gpiowrite(GPIO_TC_CS, !selected);
++      ssp_dumpgpio(GPIO_TC_CS, "lpc17_40_ssp0select() Exit");
++    }
+ }
+
+ uint8_t lpc17_40_ssp0status(struct spi_dev_s *dev, uint32_t devid)
+@@ -171,3 +182,10 @@ uint8_t lpc17_40_ssp2status(struct spi_dev_s *dev, uint32_t devid)
+ #endif
+
+ #endif /* CONFIG_LPC17_40_SSP0 || CONFIG_LPC17_40_SSP1  || CONFIG_LPC17_40_SSP2 */
++
++#if defined(CONFIG_LPC17_40_SSP0) && defined(CONFIG_SPI_CALLBACK)
++int lpc17_40_ssp0register(struct spi_dev_s *dev, spi_mediachange_t callback, void *arg)
++{
++  return 0;
+:
