@@ -1,0 +1,940 @@
+┌──(bg9211014🎃kali)-[~/Desktop]
+└─$ >....                                                                                                                    
+echo "=== 2. BOARD BRINGUP & SDCARD DIFFS / SOURCE ==="
+git diff -- \
+  boards/arm/lpc17xx_40xx/open1788/src/open1788.h \
+  boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_bringup.c \
+  boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_sdcard.c \
+  arch/arm/src/lpc17xx_40xx/lpc17_40_ethernet.c
+
+echo "=== 3. SDCARD & BRINGUP SD SECTION ==="
+sed -n '1,180p' boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_sdcard.c
+grep -n -C 15 -E "sdio|mmcsd|sdcard|joystick|usb|i2c" boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_bringup.c
+
+echo "=== 4. ETHERNET PHY AUTONEG ==="
+grep -n -C 25 "phyautoneg\|lpc17_40_ifup" arch/arm/src/lpc17xx_40xx/lpc17_40_ethernet.c
+EOF
+=== 1. CURRENT PERIPHERAL & APP CONFIG ===
+376:CONFIG_LPC17_40_EMC=y
+381:CONFIG_LPC17_40_SDCARD=y
+382:CONFIG_LPC17_40_UART0=y
+384:CONFIG_LPC17_40_UART2=y
+385:CONFIG_LPC17_40_UART3=y
+392:CONFIG_LPC17_40_I2C0=y
+404:CONFIG_LPC17_40_RTC=y
+442:CONFIG_LPC17_40_I2C0_FREQUENCY=100000
+447:CONFIG_LPC17_40_SDCARD_DMA=y
+455:CONFIG_LPC17_40_EMACRAM_SIZE=16384
+833:CONFIG_CAN=y
+837:CONFIG_CAN_TXFIFOSIZE=8
+838:CONFIG_CAN_RXFIFOSIZE=8
+839:CONFIG_CAN_NPENDINGRTR=4
+856:CONFIG_I2C=y
+980:CONFIG_INPUT_ADS7843E=y
+1053:CONFIG_MMCSD=y
+1054:CONFIG_MMCSD_IOCSUPPORT=y
+1055:CONFIG_MMCSD_NSLOTS=1
+1057:CONFIG_MMCSD_MULTIBLOCK_LIMIT=0
+1058:CONFIG_MMCSD_MMCSUPPORT=y
+1059:CONFIG_MMCSD_HAVE_WRITEPROTECT=y
+1060:CONFIG_MMCSD_SPI=y
+1061:CONFIG_MMCSD_SPICLOCK=20000000
+1062:CONFIG_MMCSD_SPIMODE=0
+1063:CONFIG_MMCSD_IDMODE_CLOCK=400000
+1064:CONFIG_MMCSD_SPIRETRY_COUNT=0
+1066:CONFIG_MMCSD_SDIO=y
+1070:CONFIG_MMCSD_BLOCK_WDATADELAY=260
+1709:CONFIG_FS_FAT=y
+2647:CONFIG_NXWM_TOUCHSCREEN=y
+2652:CONFIG_NXWM_TOUCHSCREEN_DEVNO=0
+2653:CONFIG_NXWM_TOUCHSCREEN_DEVPATH="/dev/input0"
+2654:CONFIG_NXWM_TOUCHSCREEN_SIGNO=32
+2655:CONFIG_NXWM_TOUCHSCREEN_LISTENERPRIO=120
+2656:CONFIG_NXWM_TOUCHSCREEN_LISTENERSTACK=4096
+2666:CONFIG_NXWM_CALIBRATION_MARGIN=50
+2671:CONFIG_NXWM_CALIBRATION_SIGNO=32
+2672:CONFIG_NXWM_CALIBRATION_LISTENERPRIO=100
+2673:CONFIG_NXWM_CALIBRATION_LISTENERSTACK=2048
+2869:CONFIG_NSH_BUILTIN_APPS=y
+=== 2. BOARD BRINGUP & SDCARD DIFFS / SOURCE ===
+diff --git a/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_bringup.c b/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_bringup.c
+index 5769162933..9b84f906d1 100644
+--- a/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_bringup.c
++++ b/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_bringup.c
+@@ -35,6 +35,7 @@
+ #include <nuttx/arch.h>
+ #include <nuttx/kthread.h>
+ #include <nuttx/board.h>
++#include <arch/board/board.h>
+ #include <nuttx/fs/fs.h>
+ #include <nuttx/sdio.h>
+ #include <nuttx/mmcsd.h>
+@@ -251,6 +252,10 @@ static int nsh_sdinitialize(void)
+ #endif
+ #endif
+ 
++  /* Configure the SD card power enable pin (MCIPWR on P1.5) */
++
++  lpc17_40_configgpio(GPIO_SD_PWR);
++
+   /* First, get an instance of the SDIO interface */
+ 
+   g_sdiodev = sdio_initialize(CONFIG_NSH_MMCSDSLOTNO);
+@@ -393,6 +398,11 @@ int open1788_bringup(void)
+     }
+ 
+ #ifdef CONFIG_VIDEO_FB
++  /* Power LCD rails and DISP_EN via PCA9532 before registering framebuffer */
++
++  extern void ea_lcd_backlight_init(void);
++  ea_lcd_backlight_init();
++
+   /* Initialize and register the framebuffer driver */
+ 
+   ret = fb_register(0, 0);
+diff --git a/boards/arm/lpc17xx_40xx/open1788/src/open1788.h b/boards/arm/lpc17xx_40xx/open1788/src/open1788.h
+index 85906ca8b3..ba130ae013 100644
+--- a/boards/arm/lpc17xx_40xx/open1788/src/open1788.h
++++ b/boards/arm/lpc17xx_40xx/open1788/src/open1788.h
+@@ -119,7 +119,7 @@
+ 
+ /* Backlight enable, P2[1].  Initial state is OFF (zero) */
+ 
+-#define GPIO_LCD_BL      (GPIO_OUTPUT | GPIO_VALUE_ZERO | GPIO_PORT2 | GPIO_PIN1)
++#define GPIO_LCD_BL      0
+ 
+ /* XPT2046 Touchscreen ******************************************************/
+ 
+@@ -143,9 +143,9 @@
+  * the LCD schematic, the are pulled-up on board the LCD module.
+  */
+ 
+-#define GPIO_TC_PENIRQ   (GPIO_INTBOTH | GPIO_FLOAT | GPIO_PORT2 | GPIO_PIN15)
++#define GPIO_TC_PENIRQ   (GPIO_INTFE | GPIO_FLOAT | GPIO_PORT2 | GPIO_PIN15)
+ #define GPIO_TC_BUSY     (GPIO_INPUT | GPIO_FLOAT | GPIO_PORT2 | GPIO_PIN14)
+-#define GPIO_TC_CS       (GPIO_OUTPUT | GPIO_VALUE_ONE | GPIO_PORT1 | GPIO_PIN8)
++#define GPIO_TC_CS       (GPIO_OUTPUT | GPIO_VALUE_ONE | GPIO_PORT0 | GPIO_PIN20)
+ 
+ #define LPC17_40_IRQ_PENIRQ LPC17_40_IRQ_P2p15
+ 
+=== 3. SDCARD & BRINGUP SD SECTION ===
+sed: can't read boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_sdcard.c: No such file or directory
+25- ****************************************************************************/
+26-
+27-#include <nuttx/config.h>
+28-
+29-#include <stdio.h>
+30-#include <unistd.h>
+31-#include <syslog.h>
+32-#include <errno.h>
+33-#include <assert.h>
+34-
+35-#include <nuttx/arch.h>
+36-#include <nuttx/kthread.h>
+37-#include <nuttx/board.h>
+38-#include <arch/board/board.h>
+39-#include <nuttx/fs/fs.h>
+40:#include <nuttx/sdio.h>
+41:#include <nuttx/mmcsd.h>
+42-#include <nuttx/video/fb.h>
+43:#include <nuttx/usb/usbhost.h>
+44-
+45-#include "lpc17_40_gpio.h"
+46:#include "lpc17_40_sdcard.h"
+47:#include "lpc17_40_usbhost.h"
+48-#include "open1788.h"
+49-
+50-/****************************************************************************
+51- * Pre-processor Definitions
+52- ****************************************************************************/
+53-
+54-/* Configuration ************************************************************/
+55-
+56-#define NSH_HAVE_MMCSD      1
+57-#define NSH_HAVE_USBHOST    1
+58-#define NSH_HAVE_USBHDEV    1
+59-
+60-#undef NSH_HAVE_MMCSD_CD
+61-#undef NSH_HAVE_MMCSD_CDINT
+62-
+--
+73-#endif
+74-
+75-/* MMC/SD support requires that an SPI support is enabled and an SPI port
+76- * is selected
+77- */
+78-
+79-#ifdef NSH_HAVE_MMCSD
+80-#  if !defined(CONFIG_NSH_MMCSDSLOTNO)
+81-#     warning "Assuming slot MMC/SD slot 0"
+82-#     define CONFIG_NSH_MMCSDSLOTNO 0
+83-#  endif
+84-#endif
+85-
+86-#ifdef NSH_HAVE_MMCSD
+87-#  if !defined(CONFIG_NSH_MMCSDMINOR)
+88:#     warning "Assuming /dev/mmcsd0"
+89-#     define CONFIG_NSH_MMCSDMINOR 0
+90-#  endif
+91-#endif
+92-
+93-/* The SD card detect (CD) signal is on P0[13]. This signal is shared.
+94- * It is also used for MOSI1 and USB_UP_LED.
+95- * The CD pin may be disconnected.
+96- * There is a jumper on board that enables the CD pin.
+97- */
+98-
+99-#ifdef NSH_HAVE_MMCSD
+100-#  ifdef CONFIG_MMCSD_HAVE_CARDDETECT
+101-#    define NSH_HAVE_MMCSD_CD 1
+102-#    ifdef CONFIG_LPC17_40_GPIOIRQ
+103-#      define NSH_HAVE_MMCSD_CDINT 1
+--
+136-/* USB Device */
+137-
+138-#ifndef CONFIG_USBDEV
+139-#  undef NSH_HAVE_USBDEV
+140-#endif
+141-
+142-#ifndef CONFIG_LPC17_40_USBDEV
+143-#  undef NSH_HAVE_USBDEV
+144-#endif
+145-
+146-/****************************************************************************
+147- * Private Data
+148- ****************************************************************************/
+149-
+150-#ifdef NSH_HAVE_USBHOST
+151:static struct usbhost_connection_s *g_usbconn;
+152-#endif
+153-#ifdef NSH_HAVE_MMCSD
+154:static struct sdio_dev_s *g_sdiodev;
+155-#endif
+156-#ifdef NSH_HAVE_MMCSD_CD
+157-static bool g_sd_inserted;
+158-#endif
+159-
+160-/****************************************************************************
+161- * Private Functions
+162- ****************************************************************************/
+163-
+164-/****************************************************************************
+165- * Name: nsh_waiter
+166- *
+167- * Description:
+168- *   Wait for USB devices to be connected.
+169- *
+170- ****************************************************************************/
+171-
+172-#ifdef NSH_HAVE_USBHOST
+173-static int nsh_waiter(int argc, char *argv[])
+174-{
+175:  struct usbhost_hubport_s *hport;
+176-
+177-  syslog(LOG_INFO, "nsh_waiter: Running\n");
+178-  for (; ; )
+179-    {
+180-      /* Wait for the device to change state */
+181-
+182:      DEBUGVERIFY(CONN_WAIT(g_usbconn, &hport));
+183-      syslog(LOG_INFO, "nsh_waiter: %s\n",
+184-             hport->connected ? "connected" : "disconnected");
+185-
+186-      /* Did we just become connected? */
+187-
+188-      if (hport->connected)
+189-        {
+190-          /* Yes.. enumerate the newly connected device */
+191-
+192:          CONN_ENUMERATE(g_usbconn, hport);
+193-        }
+194-    }
+195-
+196-  /* Keep the compiler from complaining */
+197-
+198-  return 0;
+199-}
+200-#endif
+201-
+202-/****************************************************************************
+203- * Name: nsh_cdinterrupt
+204- *
+205- * Description:
+206- *   Card detect interrupt handler.
+207- *
+208- ****************************************************************************/
+209-
+210-#ifdef NSH_HAVE_MMCSD_CDINT
+211-static int nsh_cdinterrupt(int irq, void *context, void *arg)
+212-{
+213-  bool present;
+214-
+215-  present = !lpc17_40_gpioread(GPIO_SD_CD);
+216-  if (present != g_sd_inserted)
+217-    {
+218:      sdio_mediachange(g_sdiodev, present);
+219-      g_sd_inserted = present;
+220-    }
+221-
+222-  return OK;
+223-}
+224-#endif
+225-
+226-/****************************************************************************
+227- * Name: nsh_sdinitialize
+228- *
+229- * Description:
+230- *   Initialize SPI-based microSD.
+231- *
+232- ****************************************************************************/
+233-
+--
+246-   * inserted or deleted.
+247-   */
+248-
+249-  irq_attach(LPC17_40_IRQ_P0p13, nsh_cdinterrupt, NULL);
+250-  up_enable_irq(LPC17_40_IRQ_P0p13);
+251-
+252-#endif
+253-#endif
+254-
+255-  /* Configure the SD card power enable pin (MCIPWR on P1.5) */
+256-
+257-  lpc17_40_configgpio(GPIO_SD_PWR);
+258-
+259-  /* First, get an instance of the SDIO interface */
+260-
+261:  g_sdiodev = sdio_initialize(CONFIG_NSH_MMCSDSLOTNO);
+262:  if (!g_sdiodev)
+263-    {
+264-      syslog(LOG_ERR, "ERROR: Failed to initialize SDIO slot %d\n",
+265-             CONFIG_NSH_MMCSDSLOTNO);
+266-      return -ENODEV;
+267-    }
+268-
+269-  /* Now bind the SDIO interface to the MMC/SD driver */
+270-
+271:  ret = mmcsd_slotinitialize(CONFIG_NSH_MMCSDMINOR, g_sdiodev);
+272-  if (ret != OK)
+273-    {
+274-      syslog(LOG_ERR,
+275-             "ERROR: Failed to bind SDIO to the MMC/SD driver: %d\n",
+276-             ret);
+277-      return ret;
+278-    }
+279-
+280-  /* Check if there is a card in the slot and inform the SDCARD driver.  If
+281-   * we do not support the card  detect, then let's assume that there is
+282-   * one.
+283-   */
+284-
+285-#ifdef NSH_HAVE_MMCSD_CD
+286-  g_sd_inserted = !lpc17_40_gpioread(GPIO_SD_CD);
+287:  sdio_mediachange(g_sdiodev, g_sd_inserted);
+288-#else
+289:  sdio_mediachange(g_sdiodev, true);
+290-#endif
+291-  return OK;
+292-}
+293-#else
+294-#  define nsh_sdinitialize() (OK)
+295-#endif
+296-
+297-/****************************************************************************
+298: * Name: nsh_usbhostinitialize
+299- *
+300- * Description:
+301- *   Initialize SPI-based microSD.
+302- *
+303- ****************************************************************************/
+304-
+305-#ifdef NSH_HAVE_USBHOST
+306:static int nsh_usbhostinitialize(void)
+307-{
+308-  int ret;
+309-
+310-  /* First, register all of the class drivers needed to support the drivers
+311-   * that we care about:
+312-   */
+313-
+314-  syslog(LOG_INFO, "Register class drivers\n");
+315-
+316-#ifdef CONFIG_USBHOST_MSC
+317-  /* Register the USB host Mass Storage Class */
+318-
+319:  ret = usbhost_msc_initialize();
+320-  if (ret != OK)
+321-    {
+322-      syslog(LOG_ERR,
+323-             "ERROR: Failed to register the mass storage class: %d\n", ret);
+324-    }
+325-#endif
+326-
+327-#ifdef CONFIG_USBHOST_CDCACM
+328-  /* Register the CDC/ACM serial class */
+329-
+330:  ret = usbhost_cdcacm_initialize();
+331-  if (ret != OK)
+332-    {
+333-      syslog(LOG_ERR,
+334-             "ERROR: Failed to register the CDC/ACM serial class: %d\n",
+335-             ret);
+336-    }
+337-#endif
+338-
+339-  /* Then get an instance of the USB host interface */
+340-
+341-  syslog(LOG_INFO, "Initialize USB host\n");
+342:  g_usbconn = lpc17_40_usbhost_initialize(0);
+343:  if (g_usbconn)
+344-    {
+345-      /* Start a thread to handle device connection. */
+346-
+347-      syslog(LOG_INFO, "Start nsh_waiter\n");
+348-
+349:      ret = kthread_create("usbhost", CONFIG_USBHOST_DEFPRIO,
+350-                           CONFIG_USBHOST_STACKSIZE,
+351-                           nsh_waiter, NULL);
+352-      return ret < 0 ? -ENOEXEC : OK;
+353-    }
+354-
+355-  return -ENODEV;
+356-}
+357-#else
+358:#  define nsh_usbhostinitialize() (OK)
+359-#endif
+360-
+361-/****************************************************************************
+362- * Public Functions
+363- ****************************************************************************/
+364-
+365-/****************************************************************************
+366- * Name: open1788_bringup
+367- *
+368- * Description:
+369- *   Perform architecture-specific initialization
+370- *
+371- *   CONFIG_BOARD_LATE_INITIALIZE=y :
+372- *     Called from board_late_initialize().
+373- *
+--
+382-
+383-  ret = nx_mount(NULL, "/proc", "procfs", 0, NULL);
+384-  if (ret < 0)
+385-    {
+386-      syslog(LOG_ERR, "ERROR: Failed to mount procfs: %d\n", ret);
+387-    }
+388-#endif
+389-
+390-  /* Initialize SPI-based microSD */
+391-
+392-  ret = nsh_sdinitialize();
+393-  if (ret == OK)
+394-    {
+395-      /* Initialize USB host */
+396-
+397:      ret = nsh_usbhostinitialize();
+398-    }
+399-
+400-#ifdef CONFIG_VIDEO_FB
+401-  /* Power LCD rails and DISP_EN via PCA9532 before registering framebuffer */
+402-
+403-  extern void ea_lcd_backlight_init(void);
+404-  ea_lcd_backlight_init();
+405-
+406-  /* Initialize and register the framebuffer driver */
+407-
+408-  ret = fb_register(0, 0);
+409-  if (ret < 0)
+410-    {
+411-      syslog(LOG_ERR, "ERROR: fb_register() failed: %d\n", ret);
+412-    }
+413-#endif
+414-
+415-#ifdef CONFIG_INPUT_ADS7843E
+416-  /* Initialize the touchscreen */
+417-
+418-  ret = open1788_tsc_setup(0);
+419-  if (ret < 0)
+420-    {
+421-      syslog(LOG_ERR, "ERROR: open1788_tsc_setup failed: %d\n", ret);
+422-    }
+423-#endif
+424-
+425-#ifdef CONFIG_OPEN1788_DJOYSTICK
+426:  /* Initialize and register the joystick driver */
+427-
+428-  ret = lpc17_40_djoy_initialization();
+429-  if (ret != OK)
+430-    {
+431-      syslog(LOG_ERR,
+432:             "ERROR: Failed to register the joystick driver: %d\n", ret);
+433-      return ret;
+434-    }
+435-#endif
+436-
+437-  return ret;
+438-}
+=== 4. ETHERNET PHY AUTONEG ===
+346-#  define lpc17_40_getreg(addr)     getreg32(addr)
+347-#  define lpc17_40_putreg(val,addr) putreg32(val,addr)
+348-#endif
+349-
+350-/* Common TX logic */
+351-
+352-static int  lpc17_40_txdesc(struct lpc17_40_driver_s *priv);
+353-static int  lpc17_40_transmit(struct lpc17_40_driver_s *priv);
+354-static int  lpc17_40_txpoll(struct net_driver_s *dev);
+355-
+356-/* Interrupt handling */
+357-
+358-static void lpc17_40_response(struct lpc17_40_driver_s *priv);
+359-
+360-static void lpc17_40_txdone_work(void *arg);
+361-static void lpc17_40_rxdone_work(void *arg);
+362-static int  lpc17_40_interrupt(int irq, void *context, void *arg);
+363-
+364-/* Watchdog timer expirations */
+365-
+366-static void lpc17_40_txtimeout_work(void *arg);
+367-static void lpc17_40_txtimeout_expiry(wdparm_t arg);
+368-
+369-/* NuttX callback functions */
+370-
+371:static int lpc17_40_ifup(struct net_driver_s *dev);
+372-static int lpc17_40_ifdown(struct net_driver_s *dev);
+373-
+374-static void lpc17_40_txavail_work(void *arg);
+375-static int lpc17_40_txavail(struct net_driver_s *dev);
+376-
+377-#if defined(CONFIG_NET_MCASTGROUP) || defined(CONFIG_NET_ICMPv6)
+378-static uint32_t lpc17_40_calcethcrc(const uint8_t *data, size_t length);
+379-static int lpc17_40_addmac(struct net_driver_s *dev, const uint8_t *mac);
+380-#endif
+381-#ifdef CONFIG_NET_MCASTGROUP
+382-static int lpc17_40_rmmac(struct net_driver_s *dev, const uint8_t *mac);
+383-#endif
+384-
+385-#ifdef CONFIG_NETDEV_IOCTL
+386-static int  lpc17_40_eth_ioctl(struct net_driver_s *dev, int cmd,
+387-              unsigned long arg);
+388-#endif
+389-
+390-/* Initialization functions */
+391-
+392-#if defined(CONFIG_LPC17_40_NET_REGDEBUG) && defined(CONFIG_DEBUG_GPIO_INFO)
+393-static void lpc17_40_showpins(void);
+394-#else
+395-#  define lpc17_40_showpins()
+396-#endif
+397-
+398-/* PHY initialization functions */
+399-
+400-#ifdef LPC17_40_HAVE_PHY
+401-#  ifdef CONFIG_LPC17_40_NET_REGDEBUG
+402-static void lpc17_40_showmii(uint8_t phyaddr, const char *msg);
+403-#  else
+404-#    define lpc17_40_showmii(phyaddr,msg)
+405-#  endif
+406-
+407-#if defined(CONFIG_NETDEV_PHY_IOCTL) && defined(CONFIG_ARCH_PHY_INTERRUPT)
+408-static int  lpc17_40_phyintenable(struct lpc17_40_driver_s *priv);
+409-#endif
+410-static void lpc17_40_phywrite(uint8_t phyaddr, uint8_t regaddr,
+411-                           uint16_t phydata);
+412-static uint16_t lpc17_40_phyread(uint8_t phyaddr, uint8_t regaddr);
+413-static inline int lpc17_40_phyreset(uint8_t phyaddr);
+414-#  ifdef CONFIG_LPC17_40_PHY_AUTONEG
+415:static inline int lpc17_40_phyautoneg(uint8_t phyaddr);
+416-#  endif
+417-static int lpc17_40_phymode(uint8_t phyaddr, uint8_t mode);
+418-#endif
+419-static inline int lpc17_40_phyinit(struct lpc17_40_driver_s *priv);
+420-
+421-/* EMAC Initialization functions */
+422-
+423-static inline void lpc17_40_txdescinit(struct lpc17_40_driver_s *priv);
+424-static inline void lpc17_40_rxdescinit(struct lpc17_40_driver_s *priv);
+425-static inline void lpc17_40_macmode(uint8_t mode);
+426-static void lpc17_40_ethreset(struct lpc17_40_driver_s *priv);
+427-
+428-/****************************************************************************
+429- * Private Functions
+430- ****************************************************************************/
+431-
+432-/****************************************************************************
+433- * Name: lpc17_40_printreg
+434- *
+435- * Description:
+436- *   Print the contents of an LPC17xx/LPC40xx register operation
+437- *
+438- ****************************************************************************/
+439-
+440-#ifdef CONFIG_LPC17_40_NET_REGDEBUG
+--
+1123-       * interrupt should be resolved by a Rx soft-reset. The bit is not
+1124-       * set when there is a nonfatal overrun error.
+1125-       *
+1126-       * TX UNDERRUN -- Interrupt set on a fatal underrun error in the
+1127-       * transmit queue. The fatal interrupt should be resolved by a Tx
+1128-       * soft-reset. The bit is not set when there is a nonfatal underrun
+1129-       * error.
+1130-       */
+1131-
+1132-      if ((status & (ETH_INT_RXOVR | ETH_INT_TXUNR)) != 0)
+1133-        {
+1134-          if ((status & ETH_INT_RXOVR) != 0)
+1135-            {
+1136-              nerr("ERROR: RX Overrun. status: %08" PRIx32 "\n", status);
+1137-              NETDEV_RXERRORS(&priv->lp_dev);
+1138-            }
+1139-
+1140-          if ((status & ETH_INT_TXUNR) != 0)
+1141-            {
+1142-              nerr("ERROR: TX Underrun. status: %08" PRIx32 "\n", status);
+1143-              NETDEV_TXERRORS(&priv->lp_dev);
+1144-            }
+1145-
+1146-          /* ifup() will reset the EMAC and bring it back up */
+1147-
+1148:           lpc17_40_ifup(&priv->lp_dev);
+1149-        }
+1150-      else
+1151-        {
+1152-          /* Check for receive events ***************************************/
+1153-
+1154-          /* RX ERROR -- Triggered on receive errors: AlignmentError,
+1155-           * RangeError, LengthError, SymbolError, CRCError or NoDescriptor
+1156-           * or Overrun.  NOTE:  (1) We will still need to call
+1157-           * lpc17_40_rxdone_process on RX errors to bump the considx over
+1158-           * the bad packet.  (2) The DMA engine reports bogus length
+1159-           * errors, making this a pretty useless (as well as annoying)
+1160-           * check anyway.
+1161-           */
+1162-
+1163-          if ((status & ETH_INT_RXERR) != 0)
+1164-            {
+1165-              nerr("ERROR: RX ERROR: status: %08" PRIx32 "\n", status);
+1166-              NETDEV_RXERRORS(&priv->lp_dev);
+1167-            }
+1168-
+1169-          /* RX FINISHED -- Triggered when all receive descriptors have
+1170-           * been processed i.e. on the transition to the situation
+1171-           * where ProduceIndex == ConsumeIndex.
+1172-           *
+1173-           * Treated as INT_RX_DONE if ProduceIndex != ConsumeIndex so the
+--
+1283- * Input Parameters:
+1284- *   arg - The argument passed when work_queue() as called.
+1285- *
+1286- * Returned Value:
+1287- *   OK on success
+1288- *
+1289- * Assumptions:
+1290- *   Ethernet interrupts are disabled
+1291- *
+1292- ****************************************************************************/
+1293-
+1294-static void lpc17_40_txtimeout_work(void *arg)
+1295-{
+1296-  struct lpc17_40_driver_s *priv = (struct lpc17_40_driver_s *)arg;
+1297-
+1298-  /* Increment statistics and dump debug info */
+1299-
+1300-  net_lock();
+1301-  NETDEV_TXTIMEOUTS(&priv->lp_dev);
+1302-  if (priv->lp_ifup)
+1303-    {
+1304-      /* Then reset the hardware. ifup() will reset the interface, then bring
+1305-       * it back up.
+1306-       */
+1307-
+1308:      lpc17_40_ifup(&priv->lp_dev);
+1309-
+1310-      /* Then poll the network layer for new XMIT data */
+1311-
+1312-      devif_poll(&priv->lp_dev, lpc17_40_txpoll);
+1313-    }
+1314-
+1315-  net_unlock();
+1316-}
+1317-
+1318-/****************************************************************************
+1319- * Function: lpc17_40_txtimeout_expiry
+1320- *
+1321- * Description:
+1322- *   Our TX watchdog timed out.  Called from the timer interrupt handler.
+1323- *   The last TX never completed.  Reset the hardware and start again.
+1324- *
+1325- * Input Parameters:
+1326- *   arg  - The argument
+1327- *
+1328- * Returned Value:
+1329- *   None
+1330- *
+1331- * Assumptions:
+1332- *   Global interrupts are disabled by the watchdog logic.
+1333- *
+--
+1336-static void lpc17_40_txtimeout_expiry(wdparm_t arg)
+1337-{
+1338-  struct lpc17_40_driver_s *priv = (struct lpc17_40_driver_s *)arg;
+1339-
+1340-  /* Disable further Tx interrupts.  Tx interrupts may be re-enabled again
+1341-   * depending upon the actions of lpc17_40_poll_process()
+1342-   */
+1343-
+1344-  priv->lp_inten &= ~ETH_TXINTS;
+1345-  lpc17_40_putreg(priv->lp_inten, LPC17_40_ETH_INTEN);
+1346-
+1347-  /* Is the single TX work structure available?  If not, then there is
+1348-   * pending TX work to be done this must be a false alarm TX timeout.
+1349-   */
+1350-
+1351-  if (work_available(&priv->lp_txwork))
+1352-    {
+1353-      /* Schedule to perform the interrupt processing on the worker thread. */
+1354-
+1355-      work_queue(ETHWORK, &priv->lp_txwork, lpc17_40_txtimeout_work,
+1356-                 priv, 0);
+1357-    }
+1358-}
+1359-
+1360-/****************************************************************************
+1361: * Function: lpc17_40_ifup
+1362- *
+1363- * Description:
+1364- *   NuttX Callback: Bring up the Ethernet interface when an IP address is
+1365- *   provided
+1366- *
+1367- * Input Parameters:
+1368- *   dev  - Reference to the NuttX driver state structure
+1369- *
+1370- * Returned Value:
+1371- *   None
+1372- *
+1373- * Assumptions:
+1374- *
+1375- ****************************************************************************/
+1376-
+1377:static int lpc17_40_ifup(struct net_driver_s *dev)
+1378-{
+1379-  struct lpc17_40_driver_s *priv =
+1380-    (struct lpc17_40_driver_s *)dev->d_private;
+1381-  uint32_t regval;
+1382-  int ret;
+1383-
+1384-  ninfo("Bringing up: %u.%u.%u.%u\n",
+1385-        ip4_addr1(dev->d_ipaddr), ip4_addr2(dev->d_ipaddr),
+1386-        ip4_addr3(dev->d_ipaddr), ip4_addr4(dev->d_ipaddr));
+1387-
+1388-  /* Reset the Ethernet controller (again) */
+1389-
+1390-  lpc17_40_ethreset(priv);
+1391-
+1392-  /* Initialize the PHY and wait for the link to be established */
+1393-
+1394-  ret = lpc17_40_phyinit(priv);
+1395-  if (ret != 0)
+1396-    {
+1397-      nerr("ERROR: lpc17_40_phyinit failed: %d\n", ret);
+1398-      return ret;
+1399-    }
+1400-
+1401-  /* Configure the MAC station address */
+1402-
+--
+2187-  lpc17_40_phywrite(phyaddr, MII_MCR, MII_MCR_RESET);
+2188-
+2189-  /* Wait for a minimum of 50uS no matter what */
+2190-
+2191-  up_udelay(50);
+2192-
+2193-  /* The MCR reset bit is self-clearing.  Wait for it to be clear indicating
+2194-   * that the reset is complete.
+2195-   */
+2196-
+2197-  for (timeout = MII_BIG_TIMEOUT; timeout > 0; timeout--)
+2198-    {
+2199-      phyreg = lpc17_40_phyread(phyaddr, MII_MCR);
+2200-      if ((phyreg & MII_MCR_RESET) == 0)
+2201-        {
+2202-          return OK;
+2203-        }
+2204-    }
+2205-
+2206-  nerr("ERROR: Reset failed. MCR: %04x\n", phyreg);
+2207-  return -ETIMEDOUT;
+2208-}
+2209-#endif
+2210-
+2211-/****************************************************************************
+2212: * Function: lpc17_40_phyautoneg
+2213- *
+2214- * Description:
+2215- *   Enable auto-negotiation.
+2216- *
+2217- * Input Parameters:
+2218- *   phyaddr - The device address where the PHY was discovered
+2219- *
+2220- * Returned Value:
+2221- *   None
+2222- *
+2223- * Assumptions:
+2224- *   The adverisement register has already been configured.
+2225- *
+2226- ****************************************************************************/
+2227-
+2228-#if defined(LPC17_40_HAVE_PHY) && defined(CONFIG_LPC17_40_PHY_AUTONEG)
+2229:static inline int lpc17_40_phyautoneg(uint8_t phyaddr)
+2230-{
+2231-  int32_t timeout;
+2232-  uint16_t phyreg;
+2233-
+2234-  /* Start auto-negotiation */
+2235-
+2236-  lpc17_40_phywrite(phyaddr, MII_MCR, MII_MCR_ANENABLE | MII_MCR_ANRESTART);
+2237-
+2238-  /* Wait for autonegotiation to complete */
+2239-
+2240-  for (timeout = MII_BIG_TIMEOUT; timeout > 0; timeout--)
+2241-    {
+2242-      /* For some motive a large delay is necessary for some PHYs */
+2243-
+2244-      up_udelay(5000);
+2245-
+2246-      /* Check if auto-negotiation has completed */
+2247-
+2248-      phyreg = lpc17_40_phyread(phyaddr, MII_MSR);
+2249-      if ((phyreg & MII_MSR_ANEGCOMPLETE) != 0)
+2250-        {
+2251-          /* Yes.. return success */
+2252-
+2253-          return OK;
+2254-        }
+--
+2452-
+2453-#if defined(CONFIG_ETH0_PHY_DP83848C)
+2454-  /* Enable the RMII interface for DP83848x PHYs */
+2455-
+2456-  lpc17_40_phywrite(phyaddr, MII_DP83848C_RBR,
+2457-                    MII_RBR_ELAST_2 | MII_RBR_RMIIMODE);
+2458-#endif
+2459-
+2460-  /* Are we configured to do auto-negotiation? */
+2461-
+2462-#ifdef CONFIG_LPC17_40_PHY_AUTONEG
+2463-  /* Enable FD mode, Auto-negotiation and 100Mbps speed */
+2464-
+2465-  lpc17_40_phywrite(phyaddr, MII_MCR,
+2466-                    MII_MCR_FULLDPLX | MII_MCR_ANENABLE | MII_MCR_SPEED100);
+2467-
+2468-  /* Setup the Auto-negotiation advertisement: 100 or 10, and HD or FD */
+2469-
+2470-  lpc17_40_phywrite(phyaddr, MII_ADVERTISE,
+2471-                 (MII_ADVERTISE_100BASETXFULL | MII_ADVERTISE_100BASETXHALF |
+2472-                  MII_ADVERTISE_10BASETXFULL  | MII_ADVERTISE_10BASETXHALF  |
+2473-                  MII_ADVERTISE_CSMA));
+2474-
+2475-  /* Then perform the auto-negotiation */
+2476-
+2477:  ret = lpc17_40_phyautoneg(phyaddr);
+2478-  if (ret < 0)
+2479-    {
+2480-      return ret;
+2481-    }
+2482-#else
+2483-  /* Set up the fixed PHY configuration */
+2484-
+2485-  ret = lpc17_40_phymode(phyaddr, LPC17_40_MODE_DEFLT);
+2486-  if (ret < 0)
+2487-    {
+2488-      return ret;
+2489-    }
+2490-#endif
+2491-
+2492-#if defined(CONFIG_ETH0_PHY_DP83848C)
+2493-  /* Wait until the link is established */
+2494-
+2495-  while ((lpc17_40_phyread(phyaddr, MII_DP83848C_STS) & 0x0001) == 0)
+2496-    {
+2497-      nxsched_usleep(40000);
+2498-    }
+2499-#endif
+2500-
+2501-  /* The link is established */
+2502-
+--
+3005-  int ret;
+3006-  int i;
+3007-
+3008-  DEBUGASSERT(intf < CONFIG_LPC17_40_NINTERFACES);
+3009-  priv = &g_ethdrvr[intf];
+3010-
+3011-  /* Turn on the ethernet MAC clock */
+3012-
+3013-  regval  = lpc17_40_getreg(LPC17_40_SYSCON_PCONP);
+3014-  regval |= SYSCON_PCONP_PCENET;
+3015-  lpc17_40_putreg(regval, LPC17_40_SYSCON_PCONP);
+3016-
+3017-  /* Configure all GPIO pins needed by ENET */
+3018-
+3019-  for (i = 0; i < GPIO_NENET_PINS; i++)
+3020-    {
+3021-      lpc17_40_configgpio(g_enetpins[i]);
+3022-    }
+3023-
+3024-  lpc17_40_showpins();
+3025-
+3026-  /* Initialize the driver structure */
+3027-
+3028-  memset(priv, 0, sizeof(struct lpc17_40_driver_s));
+3029-  priv->lp_dev.d_buf     = g_pktbuf[intf];     /* Single packet buffer */
+3030:  priv->lp_dev.d_ifup    = lpc17_40_ifup;      /* I/F down callback */
+3031-  priv->lp_dev.d_ifdown  = lpc17_40_ifdown;    /* I/F up (new IP address) callback */
+3032-  priv->lp_dev.d_txavail = lpc17_40_txavail;   /* New TX data callback */
+3033-#ifdef CONFIG_NET_MCASTGROUP
+3034-  priv->lp_dev.d_addmac  = lpc17_40_addmac;    /* Add multicast MAC address */
+3035-  priv->lp_dev.d_rmmac   = lpc17_40_rmmac;     /* Remove multicast MAC address */
+3036-#endif
+3037-#ifdef CONFIG_NETDEV_IOCTL
+3038-  priv->lp_dev.d_ioctl   = lpc17_40_eth_ioctl; /* Handle network IOCTL commands */
+3039-#endif
+3040-  priv->lp_dev.d_private = priv;               /* Used to recover private state from dev */
+3041-
+3042-#if CONFIG_LPC17_40_NINTERFACES > 1
+3043-# error "A mechanism to associate base address an IRQ with an interface is needed"
+3044-  priv->lp_base          = ??;                 /* Ethernet controller base address */
+3045-  priv->lp_irq           = ??;                 /* Ethernet controller IRQ number */
+3046-#endif
+3047-
+3048-  /* Reset the Ethernet controller and leave in the ifdown statue.  The
+3049-   * Ethernet controller will be properly re-initialized each time
+3050:   * lpc17_40_ifup() is called.
+3051-   */
+3052-
+3053-  lpc17_40_ifdown(&priv->lp_dev);
+3054-
+3055-  /* Attach the IRQ to the driver */
+3056-
+3057-#if CONFIG_LPC17_40_NINTERFACES > 1
+3058-  ret = irq_attach(priv->irq, lpc17_40_interrupt, NULL);
+3059-#else
+3060-  ret = irq_attach(LPC17_40_IRQ_ETH, lpc17_40_interrupt, NULL);
+3061-#endif
+3062-  if (ret != 0)
+3063-    {
+3064-      /* We could not attach the ISR to the interrupt */
+3065-
+3066-      return -EAGAIN;
+3067-    }
+3068-
+3069-  /* Register the device with the OS so that socket IOCTLs can be performed */
+3070-
+3071-  netdev_register(&priv->lp_dev, NET_LL_ETHERNET);
+3072-  return OK;
+3073-}
+3074-
+3075-/****************************************************************************
+                                                                                                                             
+┌──(bg9211014🎃kali)-[~/Desktop]

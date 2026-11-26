@@ -1,0 +1,934 @@
+└─$ bash << 'EOF'
+export GIT_PAGER=cat
+cd ~/lpc1788_workspace/nuttx || exit 1
+
+echo "=== 1. TOUCH & CALIBRATION .CONFIG ==="
+grep -nE "^CONFIG_(ADS7843E|NXWM_CALIBRATION|NXWM_TOUCHSCREEN|EXAMPLES_TOUCHSCREEN|ARM_TOOLCHAIN_BUILDROOT_OABI)" .config
+
+echo "=== 2. ADS7843E DIFF ==="
+git diff -- include/nuttx/input/ads7843e.h drivers/input/ads7843e.h drivers/input/ads7843e.c
+
+echo "=== 3. BOARD TOUCHSCREEN DIFF ==="
+git diff -- \
+  boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_touchscreen.c \
+  boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_bringup.c \
+  boards/arm/lpc17xx_40xx/open1788/src/open1788.h \
+  boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_ssp.c
+
+echo "=== 4. APPS/NXWM DIFF ==="
+if [ -d ../apps/.git ]; then
+  git -C ../apps diff -- graphics/nxwm/ include/graphics/nxwm/
+elif [ -d apps/.git ]; then
+  git -C apps diff -- graphics/nxwm/ include/graphics/nxwm/
+fi
+EOF
+=== 1. TOUCH & CALIBRATION .CONFIG ===
+180:CONFIG_ARM_TOOLCHAIN_BUILDROOT_OABI=y
+982:CONFIG_ADS7843E_NPOLLWAITERS=4
+983:CONFIG_ADS7843E_SPIDEV=0
+984:CONFIG_ADS7843E_DEVMINOR=0
+985:CONFIG_ADS7843E_SPIMODE=0
+986:CONFIG_ADS7843E_FREQUENCY=100000
+988:CONFIG_ADS7843E_THRESHX=3
+989:CONFIG_ADS7843E_THRESHY=3
+2647:CONFIG_NXWM_TOUCHSCREEN=y
+2652:CONFIG_NXWM_TOUCHSCREEN_DEVNO=0
+2653:CONFIG_NXWM_TOUCHSCREEN_DEVPATH="/dev/input0"
+2654:CONFIG_NXWM_TOUCHSCREEN_SIGNO=32
+2655:CONFIG_NXWM_TOUCHSCREEN_LISTENERPRIO=120
+2656:CONFIG_NXWM_TOUCHSCREEN_LISTENERSTACK=4096
+2666:CONFIG_NXWM_CALIBRATION_MARGIN=25
+2671:CONFIG_NXWM_CALIBRATION_SIGNO=32
+2672:CONFIG_NXWM_CALIBRATION_LISTENERPRIO=100
+2673:CONFIG_NXWM_CALIBRATION_LISTENERSTACK=2048
+=== 2. ADS7843E DIFF ===
+diff --git a/drivers/input/ads7843e.c b/drivers/input/ads7843e.c
+index 5c0ecebec5..f445a62cc8 100644
+--- a/drivers/input/ads7843e.c
++++ b/drivers/input/ads7843e.c
+@@ -40,6 +40,7 @@
+ #include <sys/types.h>
+
+ #include <stdbool.h>
++#include <stdint.h>
+ #include <stdio.h>
+ #include <unistd.h>
+ #include <string.h>
+@@ -262,18 +263,79 @@ static uint16_t ads7843e_sendcmd(FAR struct ads7843e_dev_s *priv,
+
+   up_udelay(3); /* 3 microseconds */
+
+-  /* Read the 12-bit data (LS 4 bits will be padded with zero) */
++  /* The 12-bit result follows a leading null bit in the 16-bit response. */
+
+   SPI_RECVBLOCK(priv->spi, buffer, 2);
+   SPI_SELECT(priv->spi, SPIDEV_TOUCHSCREEN(0), false);
+
+   result = ((uint16_t)buffer[0] << 8) | (uint16_t)buffer[1];
+-  result = result >> 4;
++  result = result >> 3;
+
+   iinfo("cmd:%02x response:%04x\n", cmd, result);
+   return result;
+ }
+
++/****************************************************************************
++ * Name: ads7843e_filtered_value
++ ****************************************************************************/
++
++static uint16_t ads7843e_filtered_value(FAR struct ads7843e_dev_s *priv,
++                                        uint8_t cmd)
++{
++  uint16_t values[7];
++  uint16_t value;
++  int      i;
++  int      j;
++
++  for (i = 0; i < 7; i++)
++    {
++      values[i] = ads7843e_sendcmd(priv, cmd);
++    }
++
++  for (i = 1; i < 7; i++)
++    {
++      value = values[i];
++      for (j = i; j > 0 && values[j - 1] > value; j--)
++        {
++          values[j] = values[j - 1];
++        }
++
++      values[j] = value;
++    }
++
++  return ((uint32_t)values[2] + values[3] + values[4]) / 3;
++}
++
++/****************************************************************************
++ * Name: ads7843e_touch_resistance
++ ****************************************************************************/
++
++static bool ads7843e_touch_resistance(uint16_t x, uint16_t z1, uint16_t z2,
++                                      uint16_t xplate_resistance,
++                                      uint16_t *resistance)
++{
++  uint64_t numerator;
++  uint64_t denominator;
++  uint64_t result;
++
++  if (xplate_resistance == 0 || z1 == 0 || z2 < z1)
++    {
++      return false;
++    }
++
++  numerator   = (uint64_t)x * xplate_resistance * (z2 - z1);
++  denominator = (uint64_t)4096 * z1;
++  result      = numerator / denominator;
++
++  if (result > UINT16_MAX)
++    {
++      return false;
++    }
++
++  *resistance = (uint16_t)result;
++  return true;
++}
++
+ /****************************************************************************
+  * Name: ads7843e_notify
+  ****************************************************************************/
+@@ -487,6 +549,10 @@ static void ads7843e_worker(FAR void *arg)
+   FAR struct ads7843e_config_s *config;
+   uint16_t                      x;
+   uint16_t                      y;
++  uint16_t                      rawx;
++  uint16_t                      rawy;
++  uint16_t                      z1;
++  uint16_t                      z2;
+   uint16_t                      xdiff;
+   uint16_t                      ydiff;
+   bool                          pendown;
+@@ -526,6 +592,8 @@ static void ads7843e_worker(FAR void *arg)
+
+       priv->threshx = INVALID_THRESHOLD;
+       priv->threshy = INVALID_THRESHOLD;
++      priv->sample.pressure_valid = false;
++      priv->sample.pressure       = 0;
+
+       /* Ignore the interrupt if the pen was already up (CONTACT_NONE ==
+        * pen up and already reported; CONTACT_UP == pen up, but not
+@@ -569,13 +637,41 @@ static void ads7843e_worker(FAR void *arg)
+        * that these commands have the side-effect of disabling the PENIRQ.
+        */
+
++      priv->sample.pressure_valid = false;
++      priv->sample.pressure       = 0;
++
++      if (config->xplate_resistance != 0)
++        {
++          rawx = ads7843e_filtered_value(priv, ADS7843_CMD_XPOSITION);
++          rawy = ads7843e_filtered_value(priv, ADS7843_CMD_YPOSITION);
++          z1   = ads7843e_filtered_value(priv, ADS7843_CMD_Z1POSITION);
++          z2   = ads7843e_filtered_value(priv, ADS7843_CMD_Z2POSITION);
++
++          if (ads7843e_touch_resistance(rawx, z1, z2,
++                                        config->xplate_resistance,
++                                        &priv->sample.pressure))
++            {
++              priv->sample.pressure_valid = true;
++            }
++
+ #ifdef CONFIG_ADS7843E_SWAPXY
+-      x = ads7843e_sendcmd(priv, ADS7843_CMD_YPOSITION);
+-      y = ads7843e_sendcmd(priv, ADS7843_CMD_XPOSITION);
++          x = rawy;
++          y = rawx;
+ #else
+-      x = ads7843e_sendcmd(priv, ADS7843_CMD_XPOSITION);
+-      y = ads7843e_sendcmd(priv, ADS7843_CMD_YPOSITION);
++          x = rawx;
++          y = rawy;
+ #endif
++        }
++      else
++        {
++#ifdef CONFIG_ADS7843E_SWAPXY
++          x = ads7843e_sendcmd(priv, ADS7843_CMD_YPOSITION);
++          y = ads7843e_sendcmd(priv, ADS7843_CMD_XPOSITION);
++#else
++          x = ads7843e_sendcmd(priv, ADS7843_CMD_XPOSITION);
++          y = ads7843e_sendcmd(priv, ADS7843_CMD_YPOSITION);
++#endif
++        }
+
+       add_ui_randomness((x << 16) | y);
+
+@@ -878,6 +974,7 @@ static ssize_t ads7843e_read(FAR struct file *filep, FAR char *buffer,
+   report->point[0].id        = sample.id;
+   report->point[0].x         = sample.x;
+   report->point[0].y         = sample.y;
++  report->point[0].pressure  = sample.pressure;
+
+   /* Report the appropriate flags */
+
+@@ -904,6 +1001,10 @@ static ssize_t ads7843e_read(FAR struct file *filep, FAR char *buffer,
+
+       report->point[0].flags  = TOUCH_DOWN | TOUCH_ID_VALID |
+                                 TOUCH_POS_VALID;
++      if (sample.pressure_valid)
++        {
++          report->point[0].flags |= TOUCH_PRESSURE_VALID;
++        }
+     }
+   else /* if (sample->contact == CONTACT_MOVE) */
+     {
+@@ -911,6 +1012,10 @@ static ssize_t ads7843e_read(FAR struct file *filep, FAR char *buffer,
+
+       report->point[0].flags  = TOUCH_MOVE | TOUCH_ID_VALID |
+                                 TOUCH_POS_VALID;
++      if (sample.pressure_valid)
++        {
++          report->point[0].flags |= TOUCH_PRESSURE_VALID;
++        }
+     }
+
+   iinfo("  id:      %d\n", report->point[0].id);
+diff --git a/drivers/input/ads7843e.h b/drivers/input/ads7843e.h
+index 6cb0fe9b7d..22964155d1 100644
+--- a/drivers/input/ads7843e.h
++++ b/drivers/input/ads7843e.h
+@@ -81,6 +81,10 @@
+   ((1 << ADS7843E_CMD_CHAN_SHIFT)| ADS7843E_CMD_START | ADS7843E_CMD_PD0 | ADS7843E_CMD_PD1)
+ #define ADS7843_CMD_XPOSITION \
+   ((5 << ADS7843E_CMD_CHAN_SHIFT)| ADS7843E_CMD_START | ADS7843E_CMD_PD0 | ADS7843E_CMD_PD1)
++#define ADS7843_CMD_Z1POSITION \
++  ((3 << ADS7843E_CMD_CHAN_SHIFT)| ADS7843E_CMD_START | ADS7843E_CMD_PD0 | ADS7843E_CMD_PD1)
++#define ADS7843_CMD_Z2POSITION \
++  ((4 << ADS7843E_CMD_CHAN_SHIFT)| ADS7843E_CMD_START | ADS7843E_CMD_PD0 | ADS7843E_CMD_PD1)
+ #define ADS7843_CMD_ENABPENIRQ \
+   ((1 << ADS7843E_CMD_CHAN_SHIFT)| ADS7843E_CMD_START)
+
+@@ -93,9 +97,9 @@
+ #define DEV_FORMAT   "/dev/input%d"
+ #define DEV_NAMELEN  16
+
+-/* Poll the pen position while the pen is down at this rate (50MS): */
++/* Poll the pen position while the pen is down at this rate (30MS): */
+
+-#define ADS7843E_WDOG_DELAY       MSEC2TICK(50)
++#define ADS7843E_WDOG_DELAY       MSEC2TICK(30)
+
+ /****************************************************************************
+  * Public Types
+@@ -118,8 +122,10 @@ struct ads7843e_sample_s
+   uint8_t  id;                          /* Sampled touch point ID */
+   uint8_t  contact;                     /* Contact state (see enum ads7843e_contact_e) */
+   bool     valid;                       /* True: x,y contain valid, sampled data */
++  bool     pressure_valid;              /* True: pressure contains valid data */
+   uint16_t x;                           /* Measured X position */
+   uint16_t y;                           /* Measured Y position */
++  uint16_t pressure;                    /* Estimated touch resistance in ohms */
+ };
+
+ /* This structure describes the state of one ADS7843E driver instance */
+diff --git a/include/nuttx/input/ads7843e.h b/include/nuttx/input/ads7843e.h
+index 78bbcc0ccc..e1b05f5429 100644
+--- a/include/nuttx/input/ads7843e.h
++++ b/include/nuttx/input/ads7843e.h
+@@ -97,6 +97,8 @@ struct ads7843e_config_s
+   /* Device characterization */
+
+   uint32_t frequency;  /* SPI frequency */
++  uint16_t xplate_resistance; /* X-plate resistance in ohms */
++                               /* Zero disables pressure sampling */
+
+   /* If multiple ADS7843E devices are supported, then an IRQ number must
+    * be provided for each so that their interrupts can be distinguished.
+=== 3. BOARD TOUCHSCREEN DIFF ===
+diff --git a/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_bringup.c b/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_bringup.c
+index 5769162933..9b84f906d1 100644
+--- a/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_bringup.c
++++ b/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_bringup.c
+@@ -35,6 +35,7 @@
+ #include <nuttx/arch.h>
+ #include <nuttx/kthread.h>
+ #include <nuttx/board.h>
++#include <arch/board/board.h>
+ #include <nuttx/fs/fs.h>
+ #include <nuttx/sdio.h>
+ #include <nuttx/mmcsd.h>
+@@ -251,6 +252,10 @@ static int nsh_sdinitialize(void)
+ #endif
+ #endif
+
++  /* Configure the SD card power enable pin (MCIPWR on P1.5) */
++
++  lpc17_40_configgpio(GPIO_SD_PWR);
++
+   /* First, get an instance of the SDIO interface */
+
+   g_sdiodev = sdio_initialize(CONFIG_NSH_MMCSDSLOTNO);
+@@ -393,6 +398,11 @@ int open1788_bringup(void)
+     }
+
+ #ifdef CONFIG_VIDEO_FB
++  /* Power LCD rails and DISP_EN via PCA9532 before registering framebuffer */
++
++  extern void ea_lcd_backlight_init(void);
++  ea_lcd_backlight_init();
++
+   /* Initialize and register the framebuffer driver */
+
+   ret = fb_register(0, 0);
+diff --git a/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_ssp.c b/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_ssp.c
+index ef58c5a51a..822f06974a 100644
+--- a/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_ssp.c
++++ b/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_ssp.c
+@@ -72,6 +72,9 @@ void weak_function open1788_sspdev_initialize(void)
+   /* Configure the SSP0 chip select GPIOs. */
+
+ #ifdef CONFIG_LPC17_40_SSP0
++  ssp_dumpgpio(GPIO_TC_CS, "BEFORE SSP0 Initialization");
++  lpc17_40_configgpio(GPIO_TC_CS);
++  ssp_dumpgpio(GPIO_TC_CS, "AFTER SSP0 Initialization");
+ #endif
+
+   /* Configure SSP1 chip select GPIOs.  This includes the touchscreen on the
+@@ -123,6 +126,14 @@ void  lpc17_40_ssp0select(struct spi_dev_s *dev, uint32_t devid,
+ {
+   spiinfo("devid: %d CS: %s\n", (int)devid,
+           selected ? "assert" : "de-assert");
++  if (devid == SPIDEV_TOUCHSCREEN(0))
++    {
++      /* Assert/de-assert the CS pin to the touchscreen */
++
++      ssp_dumpgpio(GPIO_TC_CS, "lpc17_40_ssp0select() Entry");
++      lpc17_40_gpiowrite(GPIO_TC_CS, !selected);
++      ssp_dumpgpio(GPIO_TC_CS, "lpc17_40_ssp0select() Exit");
++    }
+ }
+
+ uint8_t lpc17_40_ssp0status(struct spi_dev_s *dev, uint32_t devid)
+@@ -171,3 +182,10 @@ uint8_t lpc17_40_ssp2status(struct spi_dev_s *dev, uint32_t devid)
+ #endif
+
+ #endif /* CONFIG_LPC17_40_SSP0 || CONFIG_LPC17_40_SSP1  || CONFIG_LPC17_40_SSP2 */
++
++#if defined(CONFIG_LPC17_40_SSP0) && defined(CONFIG_SPI_CALLBACK)
++int lpc17_40_ssp0register(struct spi_dev_s *dev, spi_mediachange_t callback, void *arg)
++{
++  return 0;
++}
++#endif
+diff --git a/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_touchscreen.c b/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_touchscreen.c
+index 2b3447638a..5a3c9239b6 100644
+--- a/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_touchscreen.c
++++ b/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_touchscreen.c
+@@ -34,11 +34,15 @@
+
+ #include <nuttx/arch.h>
+ #include <nuttx/irq.h>
++#include <nuttx/wdog.h>
++#include <nuttx/clock.h>
+ #include <nuttx/spi/spi.h>
+ #include <nuttx/input/touchscreen.h>
+ #include <nuttx/input/ads7843e.h>
+
++#include "arm_internal.h"
+ #include "lpc17_40_gpio.h"
++#include "hardware/lpc17_40_gpio.h"
+ #include "lpc17_40_ssp.h"
+ #include "open1788.h"
+
+@@ -54,8 +58,8 @@
+ #  error "Touchscreen support requires CONFIG_INPUT"
+ #endif
+
+-#ifndef CONFIG_LPC17_40_SSP1
+-#  error "Touchscreen support requires CONFIG_LPC17_40_SSP1"
++#ifndef CONFIG_LPC17_40_SSP0
++#  error "Touchscreen support requires CONFIG_LPC17_40_SSP0"
+ #endif
+
+ #ifndef CONFIG_LPC17_40_GPIOIRQ
+@@ -67,10 +71,10 @@
+ #endif
+
+ #ifndef CONFIG_ADS7843E_SPIDEV
+-#  define CONFIG_ADS7843E_SPIDEV 1
++#  define CONFIG_ADS7843E_SPIDEV 0
+ #endif
+
+-#if CONFIG_ADS7843E_SPIDEV != 1
++#if CONFIG_ADS7843E_SPIDEV != 0
+ #  error "CONFIG_ADS7843E_SPIDEV must be one"
+ #endif
+
+@@ -128,12 +132,13 @@ static bool tsc_pendown(struct ads7843e_config_s *state);
+
+ static struct ads7843e_config_s g_tscinfo =
+ {
+-  .frequency = CONFIG_ADS7843E_FREQUENCY,
+-  .attach    = tsc_attach,
+-  .enable    = tsc_enable,
+-  .clear     = tsc_clear,
+-  .busy      = tsc_busy,
+-  .pendown   = tsc_pendown,
++  .frequency         = CONFIG_ADS7843E_FREQUENCY,
++  .xplate_resistance = 630,
++  .attach            = tsc_attach,
++  .enable            = tsc_enable,
++  .clear             = tsc_clear,
++  .busy              = tsc_busy,
++  .pendown           = tsc_pendown,
+ };
+
+ /****************************************************************************
+@@ -152,11 +157,19 @@ static struct ads7843e_config_s g_tscinfo =
+  * pendown - Return the state of the pen down GPIO input
+  */
+
+-static int tsc_attach(struct ads7843e_config_s *state, xcpt_t handler)
++static xcpt_t g_tsc_upper_isr = NULL;
++static volatile bool g_tsc_irq_fired = false;
++
++static int tsc_isr_wrapper(int irq, void *context, void *arg)
+ {
+-  /* Attach then enable the touchscreen interrupt handler */
++  g_tsc_irq_fired = true;
++  return g_tsc_upper_isr ? g_tsc_upper_isr(irq, context, arg) : OK;
++}
+
+-  irq_attach(LPC17_40_IRQ_PENIRQ, handler, NULL);
++static int tsc_attach(struct ads7843e_config_s *state, xcpt_t handler)
++{
++  g_tsc_upper_isr = handler;
++  irq_attach(LPC17_40_IRQ_PENIRQ, tsc_isr_wrapper, NULL);
+   return OK;
+ }
+
+@@ -170,6 +183,8 @@ static void tsc_enable(struct ads7843e_config_s *state, bool enable)
+        * logic after completion of processing of the touchscreen interrupt.
+        */
+
++      g_tsc_irq_fired = false;
++      putreg32((1 << 15), LPC17_40_GPIOINT2_INTCLR);
+       up_enable_irq(LPC17_40_IRQ_PENIRQ);
+     }
+   else
+@@ -185,9 +200,7 @@ static void tsc_enable(struct ads7843e_config_s *state, bool enable)
+
+ static void tsc_clear(struct ads7843e_config_s *state)
+ {
+-  /* Does nothing.  The interrupt is cleared automatically in the GPIO
+-   * logic for the LPC17xx/LPC40xx family.
+-   */
++  putreg32((1 << 15), LPC17_40_GPIOINT2_INTCLR);
+ }
+
+ static bool tsc_busy(struct ads7843e_config_s *state)
+@@ -196,7 +209,7 @@ static bool tsc_busy(struct ads7843e_config_s *state)
+  * between sending the command, then reading the returned data.
+  */
+
+-#ifdef XPT2046_NO_BUSY
++#if 1
+ /* REVISIT:  Currently, XPT2046 reports BUSY all of the time.  This is
+  * probably GPIO setting issues.  But there is this cryptic statement in
+  * the XPT2046 spec:  "No DCLK delay required with dedicated serial port."
+@@ -233,7 +246,8 @@ static bool tsc_pendown(struct ads7843e_config_s *state)
+    * initiates an interrupt to the processor via TP_INT.
+    */
+
+-  bool pendown = !lpc17_40_gpioread(GPIO_TC_PENIRQ);
++  bool pendown = !lpc17_40_gpioread(GPIO_TC_PENIRQ) || g_tsc_irq_fired;
++  g_tsc_irq_fired = false;
+   iinfo("pendown:%d\n", pendown);
+   return pendown;
+ }
+@@ -270,6 +284,7 @@ int open1788_tsc_setup(int minor)
+   /* Configure and enable the XPT2046 PENIRQ pin as an interrupting input. */
+
+   lpc17_40_configgpio(GPIO_TC_PENIRQ);
++  lpc17_40_configgpio(GPIO_TC_CS);
+
+   /* Configure the XPT2046 BUSY pin as a normal input. */
+
+diff --git a/boards/arm/lpc17xx_40xx/open1788/src/open1788.h b/boards/arm/lpc17xx_40xx/open1788/src/open1788.h
+index 85906ca8b3..ba130ae013 100644
+--- a/boards/arm/lpc17xx_40xx/open1788/src/open1788.h
++++ b/boards/arm/lpc17xx_40xx/open1788/src/open1788.h
+@@ -119,7 +119,7 @@
+
+ /* Backlight enable, P2[1].  Initial state is OFF (zero) */
+
+-#define GPIO_LCD_BL      (GPIO_OUTPUT | GPIO_VALUE_ZERO | GPIO_PORT2 | GPIO_PIN1)
++#define GPIO_LCD_BL      0
+
+ /* XPT2046 Touchscreen ******************************************************/
+
+@@ -143,9 +143,9 @@
+  * the LCD schematic, the are pulled-up on board the LCD module.
+  */
+
+-#define GPIO_TC_PENIRQ   (GPIO_INTBOTH | GPIO_FLOAT | GPIO_PORT2 | GPIO_PIN15)
++#define GPIO_TC_PENIRQ   (GPIO_INTFE | GPIO_FLOAT | GPIO_PORT2 | GPIO_PIN15)
+ #define GPIO_TC_BUSY     (GPIO_INPUT | GPIO_FLOAT | GPIO_PORT2 | GPIO_PIN14)
+-#define GPIO_TC_CS       (GPIO_OUTPUT | GPIO_VALUE_ONE | GPIO_PORT1 | GPIO_PIN8)
++#define GPIO_TC_CS       (GPIO_OUTPUT | GPIO_VALUE_ONE | GPIO_PORT0 | GPIO_PIN20)
+
+ #define LPC17_40_IRQ_PENIRQ LPC17_40_IRQ_P2p15
+
+=== 4. APPS/NXWM DIFF ===
+diff --git a/graphics/nxwm/src/capplicationwindow.cxx b/graphics/nxwm/src/capplicationwindow.cxx
+index 659db97ad..023907a20 100644
+--- a/graphics/nxwm/src/capplicationwindow.cxx
++++ b/graphics/nxwm/src/capplicationwindow.cxx
+@@ -183,7 +183,11 @@ bool CApplicationWindow::open(void)
+   struct nxgl_point_s iconPos;
+   struct nxgl_size_s  iconSize;
+
+-  iconPos.x = windowSize.w;
++  const nxgl_coord_t buttonWidth      = 40;
++  const nxgl_coord_t buttonGap        = 4;
++  const nxgl_coord_t buttonRightInset = 12;
++
++  iconPos.x = windowSize.w - buttonRightInset;
+
+   // Create the STOP icon only if this is a non-persistent application
+
+@@ -197,33 +201,12 @@ bool CApplicationWindow::open(void)
+           return false;
+         }
+
+-      // Create the STOP application icon at the right of the toolbar
+-      // Get the height and width of the stop bitmap
+-
+-      iconSize.w = m_stopBitmap->getWidth();
+-      iconSize.h = m_stopBitmap->getHeight();
+-
+-      // The default CImage has borders enabled with thickness of the border
+-      // width.  Add twice the thickness of the border to the width and height.
+-      // (We could let CImage do this for us by calling
+-      // CImage::getPreferredDimensions())
+-
+-      iconSize.w += 2 * 1;
+-      iconSize.h += 2 * 1;
+-
+-      // Pick an X/Y position such that the image will position at the right of
+-      // the toolbar and centered vertically.
++      // Give the stop control a larger hit area and inset it from the edge.
+
++      iconSize.w = buttonWidth;
++      iconSize.h = windowSize.h;
+       iconPos.x -= iconSize.w;
+-
+-      if (iconSize.h >= windowSize.h)
+-        {
+-          iconPos.y = 0;
+-        }
+-      else
+-        {
+-          iconPos.y = (windowSize.h - iconSize.h) >> 1;
+-        }
++      iconPos.y = 0;
+
+       // Now we have enough information to create the image
+
+@@ -237,7 +220,11 @@ bool CApplicationWindow::open(void)
+       // Configure 'this' to receive mouse click inputs from the image
+
+       m_stopImage->setBorderless(true);
++      m_stopImage->alignHorizontalCenter();
++      m_stopImage->alignVerticalCenter();
+       m_stopImage->addWidgetEventHandler(this);
++
++      iconPos.x -= buttonGap;
+     }
+
+ #ifndef CONFIG_NXWM_DISABLE_MINIMIZE
+@@ -249,32 +236,12 @@ bool CApplicationWindow::open(void)
+       return false;
+     }
+
+-  // Get the height and width of the stop bitmap
+-
+-  iconSize.w = m_minimizeBitmap->getWidth();
+-  iconSize.h = m_minimizeBitmap->getHeight();
+-
+-  // The default CImage has borders enabled with thickness of the border
+-  // width.  Add twice the thickness of the border to the width and height.
+-  // (We could let CImage do this for us by calling
+-  // CImage::getPreferredDimensions())
+-
+-  iconSize.w += 2 * 1;
+-  iconSize.h += 2 * 1;
+-
+-  // Pick an X/Y position such that the image will position at the right of
+-  // the toolbar and centered vertically.
++  // Give the minimize control a larger hit area.
+
++  iconSize.w = buttonWidth;
++  iconSize.h = windowSize.h;
+   iconPos.x -= iconSize.w;
+-
+-  if (iconSize.h >= windowSize.h)
+-    {
+-      iconPos.y = 0;
+-    }
+-  else
+-    {
+-      iconPos.y = (windowSize.h - iconSize.h) >> 1;
+-    }
++  iconPos.y = 0;
+
+   // Now we have enough information to create the image
+
+@@ -288,6 +255,8 @@ bool CApplicationWindow::open(void)
+   // Configure 'this' to receive mouse click inputs from the image
+
+   m_minimizeImage->setBorderless(true);
++  m_minimizeImage->alignHorizontalCenter();
++  m_minimizeImage->alignVerticalCenter();
+   m_minimizeImage->addWidgetEventHandler(this);
+ #endif
+
+diff --git a/graphics/nxwm/src/ccalibration.cxx b/graphics/nxwm/src/ccalibration.cxx
+index 262a9d567..001cc3713 100644
+--- a/graphics/nxwm/src/ccalibration.cxx
++++ b/graphics/nxwm/src/ccalibration.cxx
+@@ -581,10 +581,14 @@ FAR void *CCalibration::calibration(FAR void *arg)
+       gerr("ERROR: failed to create widgets\n");
+       return (FAR void *)0;
+     }
++#endif
+
++#ifdef CONFIG_NXWM_CALIBRATION_AVERAGE
+   // No samples have yet been collected
+
++#ifdef CONFIG_NXWM_CALIBRATION_AVERAGE
+   This->m_nsamples = 0;
++#endif
+ #endif
+
+   // The calibration thread is now running
+diff --git a/graphics/nxwm/src/cstartwindow.cxx b/graphics/nxwm/src/cstartwindow.cxx
+index 8ee409e27..b52187436 100644
+--- a/graphics/nxwm/src/cstartwindow.cxx
++++ b/graphics/nxwm/src/cstartwindow.cxx
+@@ -43,6 +43,8 @@
+  * Pre-Processor Definitions
+  ********************************************************************************************/
+
++#define STARTWINDOW_MIN_SPACING 12
++
+ /********************************************************************************************
+  * Global Data
+  ********************************************************************************************/
+@@ -237,8 +239,21 @@ void CStartWindow::redraw(void)
+   // Begin adding icons in the upper left corner
+
+   struct nxgl_point_s iconPos;
+-  iconPos.x = CONFIG_NXWM_STARTWINDOW_HSPACING;
+-  iconPos.y = CONFIG_NXWM_STARTWINDOW_VSPACING;
++  nxgl_coord_t horizontalSpacing = CONFIG_NXWM_STARTWINDOW_HSPACING;
++  nxgl_coord_t verticalSpacing = CONFIG_NXWM_STARTWINDOW_VSPACING;
++
++  if (horizontalSpacing < STARTWINDOW_MIN_SPACING)
++    {
++      horizontalSpacing = STARTWINDOW_MIN_SPACING;
++    }
++
++  if (verticalSpacing < STARTWINDOW_MIN_SPACING)
++    {
++      verticalSpacing = STARTWINDOW_MIN_SPACING;
++    }
++
++  iconPos.x = horizontalSpacing;
++  iconPos.y = verticalSpacing;
+
+   // Add each icon in the list of applications
+
+@@ -286,19 +301,19 @@ void CStartWindow::redraw(void)
+
+       // Advance the next icon position to the left
+
+-      iconPos.x +=  m_iconSize.w + CONFIG_NXWM_TASKBAR_HSPACING;
++      iconPos.x +=  m_iconSize.w + horizontalSpacing;
+
+       // If there is insufficient space on on this row for the next
+       // max-sized icon, then advance to the next row
+
+       if (iconPos.x + m_iconSize.w >= windowSize.w)
+         {
+-          iconPos.x  = CONFIG_NXWM_STARTWINDOW_HSPACING;
+-          iconPos.y += m_iconSize.h + CONFIG_NXWM_TASKBAR_VSPACING;
++          iconPos.x  = horizontalSpacing;
++          iconPos.y += m_iconSize.h + verticalSpacing;
+
+           // Don't try drawing past the bottom of the window
+
+-          if (iconPos.y >= windowSize.w)
++          if (iconPos.y + m_iconSize.h > windowSize.h)
+             {
+               break;
+             }
+diff --git a/graphics/nxwm/src/ctouchscreen.cxx b/graphics/nxwm/src/ctouchscreen.cxx
+index b7807c710..22ea0a1ff 100644
+--- a/graphics/nxwm/src/ctouchscreen.cxx
++++ b/graphics/nxwm/src/ctouchscreen.cxx
+@@ -78,6 +78,9 @@ CTouchscreen::CTouchscreen(NXWidgets::CNxServer *server, struct nxgl_size_s *win
+   // Use the default touch data buffer
+
+   m_touch       = &m_sample;
++  m_lastX       = 0;
++  m_lastY       = 0;
++  m_haveLastPosition = false;
+
+   // Initialize the m_waitSem semaphore so that any waits for data will block
+
+@@ -188,7 +191,25 @@ void CTouchscreen::setCalibrationData(const struct SCalibrationData &caldata)
+   // Wake up the listener thread so that it will use our buffer
+   // to receive data
+
+-  pthread_kill(m_thread, CONFIG_NXWM_TOUCHSCREEN_SIGNO);
++  wakeListener();
++}
++
++void CTouchscreen::setEnabled(bool enable)
++{
++  m_enabled = enable;
++  wakeListener();
++}
++
++void CTouchscreen::wakeListener(void)
++{
++  if (m_state == LISTENER_RUNNING)
++    {
++      int ret = pthread_kill(m_thread, CONFIG_NXWM_TOUCHSCREEN_SIGNO);
++      if (ret != 0)
++        {
++          gerr("ERROR: Failed to wake touchscreen listener: %d\n", ret);
++        }
++    }
+ }
+
+ /**
+@@ -356,7 +377,7 @@ FAR void *CTouchscreen::listener(FAR void *arg)
+
+ void CTouchscreen::handleMouseInput(struct touch_sample_s *sample)
+ {
+-  _info("Touch id: %d flags: %02x x: %d y: %d h: %d w: %d pressure: %d\n",
++  _info("Touch id: %d flags: %02x x: %d y: %d h: %d w: %d Rtouch: %d ohms\n",
+        sample->point[0].id, sample->point[0].flags, sample->point[0].x,
+        sample->point[0].y,  sample->point[0].h,     sample->point[0].w,
+        sample->point[0].pressure);
+@@ -383,6 +404,7 @@ void CTouchscreen::handleMouseInput(struct touch_sample_s *sample)
+
+       m_touch   = &m_sample;
+       m_capture = false;
++      m_haveLastPosition = false;
+       sem_post(&m_waitSem);
+       return;
+     }
+@@ -430,12 +452,7 @@ void CTouchscreen::handleMouseInput(struct touch_sample_s *sample)
+   nxgl_coord_t x;
+   nxgl_coord_t y;
+
+-  if ((sample->point[0].flags & TOUCH_POS_VALID) == 0)
+-    {
+-       x = 0;
+-       y = 0;
+-    }
+-  else
++  if ((sample->point[0].flags & TOUCH_POS_VALID) != 0)
+     {
+ #ifdef CONFIG_NXWM_CALIBRATION_ANISOTROPIC
+       // We have valid coordinates.  Get the raw touch
+@@ -547,10 +564,36 @@ void CTouchscreen::handleMouseInput(struct touch_sample_s *sample)
+       _info("raw: (%" PRId32 ", %" PRId32 ") scaled: (%d, %d)\n",
+             rawX, rawY, x, y);
+ #endif
++
++      m_lastX = x;
++      m_lastY = y;
++      m_haveLastPosition = true;
++    }
++  else if ((sample->point[0].flags & TOUCH_UP) != 0 &&
++           m_haveLastPosition)
++    {
++      // Some controllers do not include coordinates in the release sample.
++      // Release at the last valid position so widgets can complete the click.
++
++      x = m_lastX;
++      y = m_lastY;
++    }
++  else
++    {
++      return;
+     }
+
+   // Get the server handle and "inject the mouse data
+
+   NXHANDLE handle = m_server->getServer();
+-  nx_mousein(handle, x, y, buttons);
++  int ret = nx_mousein(handle, x, y, buttons);
++  if (ret < 0)
++    {
++      gerr("ERROR: nx_mousein failed: %d\n", ret);
++    }
++
++  if (buttons == NX_MOUSE_NOBUTTONS)
++    {
++      m_haveLastPosition = false;
++    }
+ }
+diff --git a/graphics/nxwm/src/nxwm_main.cxx b/graphics/nxwm/src/nxwm_main.cxx
+index 6b6a3ca1d..8c20cf3e6 100644
+--- a/graphics/nxwm/src/nxwm_main.cxx
++++ b/graphics/nxwm/src/nxwm_main.cxx
+@@ -78,6 +78,7 @@ struct SNxWmTest
+ /////////////////////////////////////////////////////////////////////////////
+
+ static struct SNxWmTest g_nxwmtest;
++static volatile bool g_nxwmStarted;
+
+ /////////////////////////////////////////////////////////////////////////////
+ // Public Function Prototypes
+@@ -119,6 +120,8 @@ static void testCleanUpAndExit(int exitCode)
+       delete g_nxwmtest.startwindow;
+     }
+
++  g_nxwmStarted = false;
++
+   // And exit
+
+   exit(exitCode);
+@@ -220,10 +223,11 @@ static bool createStartWindow(void)
+       return false;
+     }
+
+-  // Add the CStartWindow application to the task bar (minimized)
++  // Keep the start window available as the fallback once startup
++  // calibration completes.
+
+   printf("createStartWindow: Start the start window application\n");
+-  if (!g_nxwmtest.taskbar->startApplication(g_nxwmtest.startwindow, true))
++  if (!g_nxwmtest.taskbar->startApplication(g_nxwmtest.startwindow, false))
+     {
+       printf("createStartWindow: ERROR: Failed to start the start window application\n");
+       return false;
+@@ -485,6 +489,14 @@ static bool createMediaPlayer(void)
+
+ int main(int argc, char *argv[])
+ {
++  if (g_nxwmStarted)
++    {
++      printf("nxwm_main: Already running; ignoring duplicate launch\n");
++      return EXIT_SUCCESS;
++    }
++
++  g_nxwmStarted = true;
++
+ #ifdef CONFIG_NXWM_NXTERM
+   // Initialize the NSH library
+
+@@ -492,6 +504,7 @@ int main(int argc, char *argv[])
+   if (!NxWM::nshlibInitialize())
+     {
+       printf("nxwm_main: ERROR: Failed to initialize the NSH library\n");
++      g_nxwmStarted = false;
+       return EXIT_FAILURE;
+     }
+ #endif
+@@ -628,6 +641,9 @@ int main(int argc, char *argv[])
+         }
+     }
+ #endif
+-
+-  return EXIT_SUCCESS;
++  printf("nxwm_main: Window manager active\n");
++  for (;;)
++    {
++      sleep(1);
++    }
+ }
+diff --git a/include/graphics/nxwm/ctouchscreen.hxx b/include/graphics/nxwm/ctouchscreen.hxx
+index 7808f21ba..dce99c180 100644
+--- a/include/graphics/nxwm/ctouchscreen.hxx
++++ b/include/graphics/nxwm/ctouchscreen.hxx
+@@ -85,6 +85,9 @@ namespace NxWM
+     struct SCalibrationData      m_calibData;  /**< Calibration data */
+     struct touch_sample_s        m_sample;     /**< In normal mode, touch data is collected here */
+     struct touch_sample_s       *m_touch;      /**< Points to the current touch data buffer */
++    nxgl_coord_t                 m_lastX;      /**< Last valid pointer position */
++    nxgl_coord_t                 m_lastY;      /**< Last valid pointer position */
++    bool                         m_haveLastPosition;
+
+     /**
+      * The touchscreen listener thread.  This is the entry point of a thread that
+@@ -105,6 +108,8 @@ namespace NxWM
+
+     void handleMouseInput(struct touch_sample_s *sample);
+
++    void wakeListener(void);
++
+   public:
+
+     /**
+@@ -145,13 +150,7 @@ namespace NxWM
+      * @param capture.  True enables capture mode; false disables.
+      */
+
+-    inline void setEnabled(bool enable)
+-    {
+-      // Set the capture flag.  m_calibrated must also be set to get to normal
+-      // mode where touchscreen data is forwarded to NX.
+-
+-      m_enabled = enable;
+-    }
++    void setEnabled(bool enable);
+
+     /**
+      * Is the touchscreen calibrated?
+
+┌──(bg9211014🎃kali)-[~]
