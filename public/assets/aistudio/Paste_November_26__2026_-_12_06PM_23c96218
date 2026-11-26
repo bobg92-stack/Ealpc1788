@@ -1,0 +1,2258 @@
+──(bg9211014🎃kali)-[~/lpc1788_workspace/nuttx]
+└─$ bash << 'EOF'
+export GIT_PAGER=cat
+cd ~/lpc1788_workspace/nuttx || exit 1
+
+echo "=== 1. NUTTX GIT STATUS & DIFF ==="
+git status -s
+git diff
+
+echo "=== 2. APPS GIT STATUS & DIFF ==="
+APPS_DIR="../apps"
+[ -d apps/.git ] && APPS_DIR="apps"
+git -C "$APPS_DIR" status -s
+git -C "$APPS_DIR" diff
+
+echo "=== 3. RELEVANT .CONFIG FLAGS ==="
+grep -nE "^CONFIG_(LPC17_40_SDCARD|LPC17_40_GPDMA|LPC17_40_SSP|LPC17_40_GPIOIRQ|LPC17_40_TIMER|LPC17_40_TMR|TIMER|MMCSD|SDIO|NSH_MMCSD|INPUT_ADS7843E|ADS7843E|NXWM|SCHED_HPWORK|DEBUG_MEMCARD|DEBUG_INPUT|DEBUG_GPIO|DEBUG_DMA)" .config
+EOF
+=== 1. NUTTX GIT STATUS & DIFF ===
+ M arch/arm/src/lpc17xx_40xx/lpc17_40_adc.c
+ M arch/arm/src/lpc17xx_40xx/lpc17_40_can.c
+ M arch/arm/src/lpc17xx_40xx/lpc17_40_dac.c
+ M arch/arm/src/lpc17xx_40xx/lpc17_40_ethernet.c
+ M arch/arm/src/lpc17xx_40xx/lpc17_40_i2c.c
+ M arch/arm/src/lpc17xx_40xx/lpc17_40_lcd.c
+ M arch/arm/src/lpc17xx_40xx/lpc17_40_sdcard.c
+ M arch/arm/src/lpc17xx_40xx/lpc17_40_timer.c
+ M boards/arm/lpc17xx_40xx/open1788/include/board.h
+ M boards/arm/lpc17xx_40xx/open1788/scripts/Make.defs
+ M boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_bringup.c
+ M boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_buttons.c
+ M boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_djoystick.c
+ M boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_lcd.c
+ M boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_sdraminitialize.c
+ M boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_ssp.c
+ M boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_touchscreen.c
+ M boards/arm/lpc17xx_40xx/open1788/src/open1788.h
+ M drivers/input/ads7843e.c
+ M drivers/input/ads7843e.h
+ M include/nuttx/input/ads7843e.h
+?? add_advanced_features.sh
+?? boards/arm/lpc17xx_40xx/open1788/configs/ea_gui/
+?? finish_production_build.sh
+?? fix_lua_math_and_build.sh
+?? full_production_rebuild.sh
+diff --git a/arch/arm/src/lpc17xx_40xx/lpc17_40_adc.c b/arch/arm/src/lpc17xx_40xx/lpc17_40_adc.c
+index 3f3485df6b..0e2e511d8d 100644
+--- a/arch/arm/src/lpc17xx_40xx/lpc17_40_adc.c
++++ b/arch/arm/src/lpc17xx_40xx/lpc17_40_adc.c
+@@ -175,6 +175,7 @@ static int adc_bind(struct adc_dev_s *dev,
+                     const struct adc_callback_s *callback)
+ {
+   struct up_dev_s *priv = (struct up_dev_s *)dev->ad_priv;
++  (void)priv;
+ 
+   DEBUGASSERT(priv != NULL);
+   priv->cb = callback;
+@@ -193,6 +194,7 @@ static int adc_bind(struct adc_dev_s *dev,
+ static void adc_reset(struct adc_dev_s *dev)
+ {
+   struct up_dev_s *priv = (struct up_dev_s *)dev->ad_priv;
++  (void)priv;
+   irqstate_t flags;
+   uint32_t clkdiv;
+   uint32_t regval;
+@@ -308,6 +310,7 @@ static void adc_reset(struct adc_dev_s *dev)
+ static int adc_setup(struct adc_dev_s *dev)
+ {
+   struct up_dev_s *priv = (struct up_dev_s *)dev->ad_priv;
++  (void)priv;
+   int i;
+ 
+   int ret = irq_attach(priv->irq, adc_interrupt, NULL);
+@@ -337,6 +340,7 @@ static int adc_setup(struct adc_dev_s *dev)
+ static void adc_shutdown(struct adc_dev_s *dev)
+ {
+   struct up_dev_s *priv = (struct up_dev_s *)dev->ad_priv;
++  (void)priv;
+ 
+   /* Disable ADC interrupts, both at the level of the ADC device and at the
+    * level of the NVIC.
+@@ -361,6 +365,7 @@ static void adc_shutdown(struct adc_dev_s *dev)
+ static void adc_rxint(struct adc_dev_s *dev, bool enable)
+ {
+   struct up_dev_s *priv = (struct up_dev_s *)dev->ad_priv;
++  (void)priv;
+ 
+   if (enable)
+     {
+diff --git a/arch/arm/src/lpc17xx_40xx/lpc17_40_can.c b/arch/arm/src/lpc17xx_40xx/lpc17_40_can.c
+index f02c9c028e..ec5fd3c6c0 100644
+--- a/arch/arm/src/lpc17xx_40xx/lpc17_40_can.c
++++ b/arch/arm/src/lpc17xx_40xx/lpc17_40_can.c
+@@ -1891,9 +1891,9 @@ struct lpc17_40_can_s *lpc17_40_caninitialize(int port)
+ 
+ #ifdef LPC178x_40xx
+       regval  = can_getcommon(LPC17_40_SYSCON_PCLKSEL);
+-      regval &= SYSCON_PCLKSEL_PCLKDIV_MASK
++      regval &= SYSCON_PCLKSEL_PCLKDIV_MASK;
+       regval >>= SYSCON_PCLKSEL_PCLKDIV_SHIFT;
+-      g_can1pri.divisor = regval;
++      g_can1priv.divisor = regval;
+ #else
+       regval  = can_getcommon(LPC17_40_SYSCON_PCLKSEL0);
+       regval &= ~SYSCON_PCLKSEL0_CAN1_MASK;
+diff --git a/arch/arm/src/lpc17xx_40xx/lpc17_40_dac.c b/arch/arm/src/lpc17xx_40xx/lpc17_40_dac.c
+index e1df730992..3f0e18beeb 100644
+--- a/arch/arm/src/lpc17xx_40xx/lpc17_40_dac.c
++++ b/arch/arm/src/lpc17xx_40xx/lpc17_40_dac.c
+@@ -114,10 +114,14 @@ static void dac_reset(struct dac_dev_s *dev)
+ 
+   flags = enter_critical_section();
+ 
++#ifdef LPC17_40_SYSCON_PCLKSEL0
+   regval  = getreg32(LPC17_40_SYSCON_PCLKSEL0);
+   regval &= ~SYSCON_PCLKSEL0_DAC_MASK;
+   regval |= (SYSCON_PCLKSEL_CCLK8 << SYSCON_PCLKSEL0_DAC_SHIFT);
+   putreg32(regval, LPC17_40_SYSCON_PCLKSEL0);
++#else
++  (void)regval;
++#endif
+ 
+   /* putreg32(DAC_CTRL_DBLBUFEN, LPC17_40_DAC_CTRL); ? */
+ 
+diff --git a/arch/arm/src/lpc17xx_40xx/lpc17_40_ethernet.c b/arch/arm/src/lpc17xx_40xx/lpc17_40_ethernet.c
+index 3fd96c7c60..b83705d38e 100644
+--- a/arch/arm/src/lpc17xx_40xx/lpc17_40_ethernet.c
++++ b/arch/arm/src/lpc17xx_40xx/lpc17_40_ethernet.c
+@@ -201,7 +201,7 @@
+ #  undef LPC17_40_HAVE_PHY
+ #endif
+ 
+-#define MII_BIG_TIMEOUT      666666
++#define MII_BIG_TIMEOUT      200
+ 
+ /* These definitions are used to remember the speed/duplex settings */
+ 
+@@ -2201,6 +2201,8 @@ static inline int lpc17_40_phyreset(uint8_t phyaddr)
+         {
+           return OK;
+         }
++
++      nxsched_usleep(10000);
+     }
+ 
+   nerr("ERROR: Reset failed. MCR: %04x\n", phyreg);
+@@ -2314,6 +2316,7 @@ static int lpc17_40_phymode(uint8_t phyaddr, uint8_t mode)
+ 
+   for (timeout = MII_BIG_TIMEOUT; timeout > 0; timeout--)
+     {
++      nxsched_usleep(10000);
+       /* REVISIT:  This should not depend explicit y on the board
+        * configuration.  Rather, there should be some additional
+        * configuration option to suppress this DP83848C-specific behavior.
+diff --git a/arch/arm/src/lpc17xx_40xx/lpc17_40_i2c.c b/arch/arm/src/lpc17xx_40xx/lpc17_40_i2c.c
+index 5e948bf179..db6a6fe51e 100644
+--- a/arch/arm/src/lpc17xx_40xx/lpc17_40_i2c.c
++++ b/arch/arm/src/lpc17xx_40xx/lpc17_40_i2c.c
+@@ -542,10 +542,12 @@ struct i2c_master_s *lpc17_40_i2cbus_initialize(int port)
+       regval |= SYSCON_PCONP_PCI2C0;
+       putreg32(regval, LPC17_40_SYSCON_PCONP);
+ 
++#if defined(LPC17_40_SYSCON_PCLKSEL0)
+       regval  = getreg32(LPC17_40_SYSCON_PCLKSEL0);
+       regval &= ~SYSCON_PCLKSEL0_I2C0_MASK;
+       regval |= (SYSCON_PCLKSEL_CCLK << SYSCON_PCLKSEL0_I2C0_SHIFT);
+       putreg32(regval, LPC17_40_SYSCON_PCLKSEL0);
++#endif
+ 
+       /* Pin configuration */
+ 
+diff --git a/arch/arm/src/lpc17xx_40xx/lpc17_40_lcd.c b/arch/arm/src/lpc17xx_40xx/lpc17_40_lcd.c
+index dca7eeff04..c7b5f82157 100644
+--- a/arch/arm/src/lpc17xx_40xx/lpc17_40_lcd.c
++++ b/arch/arm/src/lpc17xx_40xx/lpc17_40_lcd.c
+@@ -485,17 +485,23 @@ int up_fbinitialize(int display)
+ 
+   lcdinfo("Configuring pins\n");
+ 
++#if LPC17_40_BPP > 16
+   lpc17_40_configgpio(GPIO_LCD_VD0);
+   lpc17_40_configgpio(GPIO_LCD_VD1);
+   lpc17_40_configgpio(GPIO_LCD_VD2);
++#endif
++#if LPC17_40_BPP > 16 || defined(CONFIG_LPC17_40_LCD_BPP16_565)
+   lpc17_40_configgpio(GPIO_LCD_VD3);
++#endif
+   lpc17_40_configgpio(GPIO_LCD_VD4);
+   lpc17_40_configgpio(GPIO_LCD_VD5);
+   lpc17_40_configgpio(GPIO_LCD_VD6);
+   lpc17_40_configgpio(GPIO_LCD_VD7);
+ 
++#if LPC17_40_BPP > 16
+   lpc17_40_configgpio(GPIO_LCD_VD8);
+   lpc17_40_configgpio(GPIO_LCD_VD9);
++#endif
+   lpc17_40_configgpio(GPIO_LCD_VD10);
+   lpc17_40_configgpio(GPIO_LCD_VD11);
+   lpc17_40_configgpio(GPIO_LCD_VD12);
+@@ -507,6 +513,8 @@ int up_fbinitialize(int display)
+   lpc17_40_configgpio(GPIO_LCD_VD16);
+   lpc17_40_configgpio(GPIO_LCD_VD17);
+   lpc17_40_configgpio(GPIO_LCD_VD18);
++#endif
++#if LPC17_40_BPP > 16 || defined(CONFIG_LPC17_40_LCD_BPP16_565)
+   lpc17_40_configgpio(GPIO_LCD_VD19);
+   lpc17_40_configgpio(GPIO_LCD_VD20);
+   lpc17_40_configgpio(GPIO_LCD_VD21);
+diff --git a/arch/arm/src/lpc17xx_40xx/lpc17_40_sdcard.c b/arch/arm/src/lpc17xx_40xx/lpc17_40_sdcard.c
+index 75ff5e9868..85b7c575b5 100644
+--- a/arch/arm/src/lpc17xx_40xx/lpc17_40_sdcard.c
++++ b/arch/arm/src/lpc17xx_40xx/lpc17_40_sdcard.c
+@@ -931,7 +931,7 @@ static void lpc17_40_sendfifo(struct lpc17_40_dev_s *priv)
+            * padding with zero as necessary to extend to a full word.
+            */
+ 
+-          uint8_t *ptr = (uint8_t *)priv->remaining;
++          uint8_t *ptr = (uint8_t *)priv->buffer;
+           int i;
+ 
+           data.w = 0;
+@@ -1561,7 +1561,7 @@ static void lpc17_40_clock(struct sdio_dev_s *dev,
+       default:
+       case CLOCK_SDIO_DISABLED:
+         clkcr = LPC17_40_CLCKCR_INIT;
+-        return;
++        break;
+ 
+       /* Enable in initial ID mode clocking (<400KHz) */
+ 
+@@ -1573,7 +1573,7 @@ static void lpc17_40_clock(struct sdio_dev_s *dev,
+ 
+       case CLOCK_MMC_TRANSFER:
+         clkcr = (SDCARD_CLOCK_MMCXFR | SDCARD_CLOCK_CLKEN);
+-        lpc17_40_setpwrctrl(SDCARD_PWR_OPENDRAIN);
++        lpc17_40_setpwrctrl(SDCARD_PWR_CTRL_ON | SDCARD_PWR_OPENDRAIN);
+         break;
+ 
+       /* SD normal operation clocking (wide 4-bit mode) */
+@@ -2498,6 +2498,10 @@ static int lpc17_40_dmarecvsetup(struct sdio_dev_s *dev,
+           lpc17_40_sample(priv, SAMPLENDX_AFTER_SETUP);
+         }
+     }
++  else
++    {
++      ret = lpc17_40_recvsetup(dev, buffer, buflen);
++    }
+ 
+   return ret;
+ }
+@@ -2581,6 +2585,10 @@ static int lpc17_40_dmasendsetup(struct sdio_dev_s *dev,
+           lpc17_40_configxfrints(priv, SDCARD_DMASEND_MASK);
+         }
+     }
++  else
++    {
++      ret = lpc17_40_sendsetup(dev, buffer, buflen);
++    }
+ 
+   return ret;
+ }
+diff --git a/arch/arm/src/lpc17xx_40xx/lpc17_40_timer.c b/arch/arm/src/lpc17xx_40xx/lpc17_40_timer.c
+index d731583345..52063cd802 100644
+--- a/arch/arm/src/lpc17xx_40xx/lpc17_40_timer.c
++++ b/arch/arm/src/lpc17xx_40xx/lpc17_40_timer.c
+@@ -374,13 +374,21 @@ static int timer_setup(struct pwm_lowerhalf_s *dev)
+ 
+   /* Select clock for the timer peripheral */
+ 
++  #ifdef LPC17_40_SYSCON_PCLKSEL0
+   regval  = getreg32(LPC17_40_SYSCON_PCLKSEL0);
++#else
++  regval  = 0;
++#endif
+   regval &= ~(0x3 << 2);
+   regval |= (0x1 << 2);                   /* PCLK_MC peripheral clk=CCLK=12.5 MHz */
+   regval &= ~(0x3 << 4);
+   regval |= (0x1 << 4);                   /* PCLK_MC peripheral clk=CCLK=12.5 MHz */
+   putreg32(regval, LPC17_40_SYSCON_PCLKSEL0);
++  #ifdef LPC17_40_SYSCON_PCLKSEL1
+   regval  = getreg32(LPC17_40_SYSCON_PCLKSEL1);
++#else
++  regval  = 0;
++#endif
+   regval &= ~(0x3 << 12);
+   regval |= (0x1 << 12);                  /* PCLK_MC peripheral clk=CCLK=12.5 MHz */
+   regval &= ~(0x3 << 14);
+diff --git a/boards/arm/lpc17xx_40xx/open1788/include/board.h b/boards/arm/lpc17xx_40xx/open1788/include/board.h
+index 1531503541..a8c8206eac 100644
+--- a/boards/arm/lpc17xx_40xx/open1788/include/board.h
++++ b/boards/arm/lpc17xx_40xx/open1788/include/board.h
+@@ -147,7 +147,7 @@
+ 
+ /* Ethernet configuration */
+ 
+-#define ETH_MCFG_CLKSEL_DIV        ETH_MCFG_CLKSEL_DIV20
++#define ETH_MCFG_CLKSEL_DIV        ETH_MCFG_CLKSEL_DIV56
+ 
+ #ifdef CONFIG_LPC17_40_SDCARD
+ /* SDIO dividers.  Note that slower clocking is required when DMA is disabled
+@@ -278,21 +278,15 @@
+  * (press and release).
+  */
+ 
+-#define BOARD_BUTTON_USER1         0
+-#define BOARD_BUTTON_USER2         1
+-#define BOARD_BUTTON_USER3         2
+-
+-#define BOARD_JOYSTICK_A           3
+-#define BOARD_JOYSTICK_B           4
+-#define BOARD_JOYSTICK_C           5
+-#define BOARD_JOYSTICK_D           6
+-#define BOARD_JOYSTICK_CTR         7
+-
+-#define NUM_BUTTONS                8
++#define BOARD_BUTTON_USER1        0  /* SW6 (P2.10 / ISP_EN) */
++#define BOARD_JOYSTICK_A          1  /* SW7 UP    (P2.25) */
++#define BOARD_JOYSTICK_B          2  /* SW7 RIGHT (P2.26) */
++#define BOARD_JOYSTICK_C          3  /* SW7 LEFT  (P2.23) */
++#define BOARD_JOYSTICK_D          4  /* SW7 DOWN  (P2.27) */
++#define BOARD_JOYSTICK_CTR        5  /* SW7 CTR   (P2.22) */
++#define NUM_BUTTONS               6
+ 
+ #define BOARD_BUTTON_USER1_BIT     (1 << BOARD_BUTTON_USER1)
+-#define BOARD_BUTTON_USER2_BIT     (1 << BOARD_BUTTON_USER2)
+-#define BOARD_BUTTON_USER3_BIT     (1 << BOARD_BUTTON_USER3)
+ 
+ #define BOARD_JOYSTICK_A_BIT       (1 << BOARD_JOYSTICK_A)
+ #define BOARD_JOYSTICK_B_BIT       (1 << BOARD_JOYSTICK_B)
+@@ -347,11 +341,12 @@
+  */
+ 
+ #define GPIO_SD_DAT0               GPIO_SD_DAT0_2
+-#define GPIO_SD_DAT1               GPIO_SD_DAT1_2
+-#define GPIO_SD_DAT2               GPIO_SD_DAT2_2
+-#define GPIO_SD_DAT3               GPIO_SD_DAT3_2
++#define GPIO_SD_DAT1               GPIO_SD_DAT1_1
++#define GPIO_SD_DAT2               GPIO_SD_DAT2_1
++#define GPIO_SD_DAT3               GPIO_SD_DAT3_1
+ #define GPIO_SD_CLK                GPIO_SD_CLK_2
+ #define GPIO_SD_CMD                GPIO_SD_CMD_2
++#define GPIO_SD_PWR                GPIO_SD_PWR_2
+ 
+ /* LCD R:
+  *
+@@ -368,7 +363,7 @@
+ #define GPIO_LCD_VD0                GPIO_LCD_VD0_1
+ #define GPIO_LCD_VD1                GPIO_LCD_VD1_1
+ #define GPIO_LCD_VD2                GPIO_LCD_VD2_2
+-#define GPIO_LCD_VD3                GPIO_LCD_VD3_3
++#define GPIO_LCD_VD3                GPIO_LCD_VD3_2
+ #define GPIO_LCD_VD4                GPIO_LCD_VD4_1
+ #define GPIO_LCD_VD5                GPIO_LCD_VD5_1
+ #define GPIO_LCD_VD6                GPIO_LCD_VD6_2
+@@ -435,5 +430,21 @@
+ #define GPIO_SSP1_MISO   GPIO_SSP1_MISO_3
+ #define GPIO_SSP1_MOSI   GPIO_SSP1_MOSI_2
+ #define GPIO_SSP1_SCK    GPIO_SSP1_SCK_2
++#define GPIO_SSP0_MISO   GPIO_SSP0_MISO_1
++#define GPIO_SSP0_MOSI   GPIO_SSP0_MOSI_1
++#define GPIO_SSP0_SCK    GPIO_SSP0_SCK_1
++#define GPIO_I2C0_SCL    GPIO_I2C0_SCL_1
++#define GPIO_I2C0_SDA    GPIO_I2C0_SDA_1
++
++
++/* EA LPC1788 UART2 & CAN1 Pin Definitions (UART3 collides with AIN2/AOUT; CAN2 with LCD_VD0/1) */
++
++#define GPIO_UART2_TXD   GPIO_UART2_TXD_1   /* P0.10 */
++#define GPIO_UART2_RXD   GPIO_UART2_RXD_1   /* P0.11 */
++#define GPIO_CAN1_RD     GPIO_CAN1_RD_1     /* P0.0  */
++#define GPIO_CAN1_TD     GPIO_CAN1_TD_1     /* P0.1  */
++/* EA LPC1788 LAN8720 PHY Management Pins */
++#define GPIO_ENET_MDC    GPIO_ENET_MDC_1
++#define GPIO_ENET_MDIO   GPIO_ENET_MDIO_1
+ 
+ #endif /* __BOARDS_ARM_LPC17XX_40XX_OPEN1788_INCLUDE_BOARD_H */
+diff --git a/boards/arm/lpc17xx_40xx/open1788/scripts/Make.defs b/boards/arm/lpc17xx_40xx/open1788/scripts/Make.defs
+index 0a0eb57c0d..a61a56c58b 100644
+--- a/boards/arm/lpc17xx_40xx/open1788/scripts/Make.defs
++++ b/boards/arm/lpc17xx_40xx/open1788/scripts/Make.defs
+@@ -34,3 +34,8 @@ AFLAGS := $(CFLAGS) -D__ASSEMBLY__
+ NXFLATLDFLAGS1 = -r -d -warn-common
+ NXFLATLDFLAGS2 = $(NXFLATLDFLAGS1) -T$(TOPDIR)$(DELIM)binfmt$(DELIM)libnxflat$(DELIM)gnu-nxflat-pcrel.ld -no-check-sections
+ LDNXFLATFLAGS = -e main -s 2048
++
++
++
++
++
+diff --git a/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_bringup.c b/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_bringup.c
+index 5769162933..fed7db936b 100644
+--- a/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_bringup.c
++++ b/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_bringup.c
+@@ -35,6 +35,7 @@
+ #include <nuttx/arch.h>
+ #include <nuttx/kthread.h>
+ #include <nuttx/board.h>
++#include <arch/board/board.h>
+ #include <nuttx/fs/fs.h>
+ #include <nuttx/sdio.h>
+ #include <nuttx/mmcsd.h>
+@@ -44,6 +45,21 @@
+ #include "lpc17_40_gpio.h"
+ #include "lpc17_40_sdcard.h"
+ #include "lpc17_40_usbhost.h"
++#if defined(CONFIG_I2C_DRIVER) && defined(CONFIG_LPC17_40_I2C0)
++#  include <nuttx/i2c/i2c_master.h>
++#  include "lpc17_40_i2c.h"
++#endif
++
++#if defined(CONFIG_CAN) && defined(CONFIG_LPC17_40_CAN1)
++#  include <nuttx/can/can.h>
++#  include "lpc17_40_can.h"
++#endif
++
++#if defined(CONFIG_ADC) && defined(CONFIG_LPC17_40_ADC)
++#  include <nuttx/analog/adc.h>
++#  include "lpc17_40_adc.h"
++#endif
++
+ #include "open1788.h"
+ 
+ /****************************************************************************
+@@ -61,7 +77,7 @@
+ 
+ /* MMC/SD support */
+ 
+-#if !defined(CONFIG_LPC17_40_SDCARD) || !defined(CONFIG_MMCSD) && !defined(CONFIG_MMCD_SDIO)
++#if !defined(CONFIG_LPC17_40_SDCARD) || !defined(CONFIG_MMCSD) || !defined(CONFIG_MMCSD_SDIO)
+ #  undef NSH_HAVE_MMCSD
+ #endif
+ 
+@@ -251,9 +267,28 @@ static int nsh_sdinitialize(void)
+ #endif
+ #endif
+ 
++  /* Configure the SD card power enable pin (MCIPWR on P1.5) */
++
++  lpc17_40_configgpio(GPIO_SD_PWR);
++
+   /* First, get an instance of the SDIO interface */
+ 
+-  g_sdiodev = sdio_initialize(CONFIG_NSH_MMCSDSLOTNO);
++  /* Safe P1.5 power and SDIO init */
++  lpc17_40_configgpio(GPIO_SD_PWR);
++  lpc17_40_gpiowrite(GPIO_SD_PWR, true);
++  FAR struct sdio_dev_s *sdio = sdio_initialize(0);
++  if (sdio == NULL)
++    {
++      syslog(LOG_ERR, "ERROR: Failed to initialize SDIO interface!\n");
++    }
++  else
++    {
++      ret = mmcsd_slotinitialize(0, sdio);
++      if (ret < 0)
++        {
++          syslog(LOG_ERR, "ERROR: Failed to bind MMC/SD slot: %d\n", ret);
++        }
++    }
+   if (!g_sdiodev)
+     {
+       syslog(LOG_ERR, "ERROR: Failed to initialize SDIO slot %d\n",
+@@ -263,7 +298,6 @@ static int nsh_sdinitialize(void)
+ 
+   /* Now bind the SDIO interface to the MMC/SD driver */
+ 
+-  ret = mmcsd_slotinitialize(CONFIG_NSH_MMCSDMINOR, g_sdiodev);
+   if (ret != OK)
+     {
+       syslog(LOG_ERR,
+@@ -393,6 +427,11 @@ int open1788_bringup(void)
+     }
+ 
+ #ifdef CONFIG_VIDEO_FB
++  /* Power LCD rails and DISP_EN via PCA9532 before registering framebuffer */
++
++  extern void ea_lcd_backlight_init(void);
++  ea_lcd_backlight_init();
++
+   /* Initialize and register the framebuffer driver */
+ 
+   ret = fb_register(0, 0);
+@@ -424,5 +463,51 @@ int open1788_bringup(void)
+     }
+ #endif
+ 
++#if defined(CONFIG_I2C_DRIVER) && defined(CONFIG_LPC17_40_I2C0)
++  {
++    struct i2c_master_s *i2c = lpc17_40_i2cbus_initialize(0);
++    if (i2c != NULL)
++      {
++        int regret = i2c_register(i2c, 0);
++        if (regret < 0)
++          {
++            syslog(LOG_ERR, "ERROR: i2c_register(/dev/i2c0) failed: %d\n", regret);
++          }
++      }
++  }
++#endif
++
++#if defined(CONFIG_CAN) && defined(CONFIG_LPC17_40_CAN1)
++  {
++    struct can_dev_s *can = lpc17_40_caninitialize(1);
++    if (can != NULL)
++      {
++        int regret = can_register("/dev/can0", can);
++        if (regret < 0)
++          {
++            syslog(LOG_ERR, "ERROR: can_register(/dev/can0) failed: %d\n", regret);
++          }
++      }
++  }
++#endif
++
++#if defined(CONFIG_ADC) && defined(CONFIG_LPC17_40_ADC)
++  {
++    struct adc_dev_s *adc = lpc17_40_adcinitialize();
++    if (adc != NULL)
++      {
++        int regret = adc_register("/dev/adc0", adc);
++        if (regret < 0)
++          {
++            syslog(LOG_ERR, "ERROR: adc_register(/dev/adc0) failed: %d\n", regret);
++          }
++      }
++  }
++#endif
++
++
+   return ret;
+ }
++
++
++#include <errno.h>
+diff --git a/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_buttons.c b/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_buttons.c
+index 59780d2e0b..a63ea5a680 100644
+--- a/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_buttons.c
++++ b/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_buttons.c
+@@ -70,8 +70,12 @@
+ 
+ static const lpc17_40_pinset_t g_buttoncfg[NUM_BUTTONS] =
+ {
+-  GPIO_USER1, GPIO_USER2, GPIO_USER3, GPIO_JOY_A,
+-  GPIO_JOY_B, GPIO_JOY_C, GPIO_JOY_D, GPIO_JOY_CTR
++  GPIO_USER1,
++  GPIO_JOY_A,
++  GPIO_JOY_B,
++  GPIO_JOY_C,
++  GPIO_JOY_D,
++  GPIO_JOY_CTR
+ };
+ 
+ #if defined(CONFIG_ARCH_IRQBUTTONS) && defined(CONFIG_LPC17_40_GPIOIRQ)
+@@ -81,8 +85,12 @@ static const lpc17_40_pinset_t g_buttoncfg[NUM_BUTTONS] =
+ 
+ static const uint8_t g_buttonirq[NUM_BUTTONS] =
+ {
+-  0,              GPIO_USER2_IRQ, GPIO_USER3_IRQ, GPIO_JOY_A_IRQ,
+-  GPIO_JOY_B_IRQ, GPIO_JOY_C_IRQ, GPIO_JOY_D_IRQ, GPIO_JOY_CTR_IRQ
++  GPIO_USER1_IRQ,
++  GPIO_JOY_A_IRQ,
++  GPIO_JOY_B_IRQ,
++  GPIO_JOY_C_IRQ,
++  GPIO_JOY_D_IRQ,
++  GPIO_JOY_CTR_IRQ
+ };
+ #endif
+ 
+diff --git a/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_djoystick.c b/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_djoystick.c
+index 143fde578e..3de2e958b1 100644
+--- a/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_djoystick.c
++++ b/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_djoystick.c
+@@ -73,7 +73,7 @@
+ 
+ /* Number of Joystick discretes */
+ 
+-#define DJOY_NGPIOS  8
++#define DJOY_NGPIOS  6
+ 
+ /****************************************************************************
+  * Private Function Prototypes
+@@ -100,8 +100,12 @@ static int djoy_interrupt(int irq, void *context, void *arg);
+ 
+ static const lpc17_40_pinset_t g_joygpio[DJOY_NGPIOS] =
+ {
+-  GPIO_JOY_B,   GPIO_JOY_C, GPIO_JOY_A, GPIO_JOY_D,
+-  GPIO_JOY_CTR, GPIO_USER1, GPIO_USER2, GPIO_USER3
++  GPIO_JOY_A,   /* UP */
++  GPIO_JOY_D,   /* DOWN */
++  GPIO_JOY_C,   /* LEFT */
++  GPIO_JOY_B,   /* RIGHT */
++  GPIO_JOY_CTR, /* BUTTON_1 */
++  GPIO_USER1    /* BUTTON_2 (SW6) */
+ };
+ 
+ #ifdef CONFIG_LPC17_40_GPIOIRQ
+@@ -112,8 +116,12 @@ static const lpc17_40_pinset_t g_joygpio[DJOY_NGPIOS] =
+ 
+ static const uint8_t g_buttonirq[DJOY_NGPIOS] =
+ {
+-  GPIO_JOY_B_IRQ,   GPIO_JOY_C_IRQ, GPIO_JOY_A_IRQ, GPIO_JOY_D_IRQ,
+-  GPIO_JOY_CTR_IRQ, 0,              GPIO_USER2_IRQ, GPIO_USER3_IRQ
++  GPIO_JOY_A_IRQ,
++  GPIO_JOY_D_IRQ,
++  GPIO_JOY_C_IRQ,
++  GPIO_JOY_B_IRQ,
++  GPIO_JOY_CTR_IRQ,
++  GPIO_USER1_IRQ
+ };
+ #endif
+ 
+@@ -146,8 +154,8 @@ static const struct djoy_lowerhalf_s g_djoylower =
+ static djoy_buttonset_t djoy_supported(
+                            const struct djoy_lowerhalf_s *lower)
+ {
+-  iinfo("Supported: %02x\n", DJOY_ALLBITS);
+-  return (djoy_buttonset_t)DJOY_ALLBITS;
++  iinfo("Supported: %02x\n", ((djoy_buttonset_t)((1 << DJOY_NGPIOS) - 1)));
++  return (djoy_buttonset_t)((djoy_buttonset_t)((1 << DJOY_NGPIOS) - 1));
+ }
+ 
+ /****************************************************************************
+@@ -179,7 +187,7 @@ static djoy_buttonset_t djoy_sample(const struct djoy_lowerhalf_s *lower)
+         }
+     }
+ 
+-  iinfo("Returning: %02x\n", DJOY_ALLBITS);
++  iinfo("Returning: %02x\n", ((djoy_buttonset_t)((1 << DJOY_NGPIOS) - 1)));
+   return ret;
+ }
+ 
+diff --git a/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_lcd.c b/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_lcd.c
+index 75ca85ff4e..e9361b4a8a 100644
+--- a/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_lcd.c
++++ b/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_lcd.c
+@@ -1,73 +1,109 @@
+-/****************************************************************************
+- * boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_lcd.c
+- *
+- * SPDX-License-Identifier: Apache-2.0
+- *
+- * Licensed to the Apache Software Foundation (ASF) under one or more
+- * contributor license agreements.  See the NOTICE file distributed with
+- * this work for additional information regarding copyright ownership.  The
+- * ASF licenses this file to you under the Apache License, Version 2.0 (the
+- * "License"); you may not use this file except in compliance with the
+- * License.  You may obtain a copy of the License at
+- *
+- *   http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+- * License for the specific language governing permissions and limitations
+- * under the License.
+- *
+- ****************************************************************************/
+-
+-/****************************************************************************
+- * Included Files
+- ****************************************************************************/
+-
+ #include <nuttx/config.h>
+ 
++#include <stdint.h>
+ #include <stdbool.h>
+-#include <nuttx/debug.h>
++#include <stdio.h>
++#include <nuttx/arch.h>
++#include <nuttx/i2c/i2c_master.h>
+ 
+ #include "lpc17_40_lcd.h"
+ #include "lpc17_40_gpio.h"
+-
++#include "lpc17_40_i2c.h"
+ #include "open1788.h"
+ 
+ #ifdef CONFIG_LPC17_40_LCD
+ 
+-/****************************************************************************
+- * Public Functions
+- ****************************************************************************/
++#define EA_PCA9532_ADDR      0x64
++#define EA_PCA9532_PSC0_INC  (0x02 | 0x10)
+ 
+-/****************************************************************************
+- * Name: open1788_lcd_initialize
+- *
+- * Description:
+- *   Initialize the LCD.  Setup backlight (initially off)
+- *
+- ****************************************************************************/
++static struct i2c_master_s *g_lcd_i2c = NULL;
++static bool g_lcd_pwr_initialized = false;
+ 
+-void open1788_lcd_initialize(void)
++static int ea_pca9532_write(struct i2c_master_s *i2c, uint8_t *buf, size_t len)
+ {
+-  /* Configure the LCD backlight (and turn the backlight off) */
++  struct i2c_msg_s msg =
++  {
++    .frequency = 100000,
++    .addr      = EA_PCA9532_ADDR,
++    .flags     = 0,
++    .buffer    = buf,
++    .length    = len
++  };
+ 
+-  lpc17_40_configgpio(GPIO_LCD_BL);
++  return I2C_TRANSFER(i2c, &msg, 1);
+ }
+ 
+-/****************************************************************************
+- * Name: lpc17_40_backlight
+- *
+- * Description:
+- *   If CONFIG_LPC17_40_LCD_BACKLIGHT is defined, then the board-specific
+- *   logic must provide this interface to turn the backlight on and off.
+- *
+- ****************************************************************************/
++void open1788_lcd_initialize(void)
++{
++}
++
++void ea_lcd_backlight_init(void)
++{
++#ifdef CONFIG_LPC17_40_I2C0
++  /* PCA9532 on EA LCD Board rev A (0x64):
++   *   LED0 (LS0[1:0]): LCD_3V3_EN  (01 = low = ON)
++   *   LED1 (LS0[3:2]): LCD_5V_EN   (01 = low = ON)
++   *   LED4 (LS1[1:0]): LCD_DISP_EN (01 = low = OFF, 00 = Hi-Z pullup = ON)
++   *   LED6 (LS1[5:4]): LCD_RESET   (00 = Hi-Z pullup = deasserted)
++   *   LED8 (LS2[1:0]): BL_CONTRAST (01 = low = OFF, 00 = Hi-Z pullup = 100%)
++   */
++
++  uint8_t init_all[] =
++  {
++    EA_PCA9532_PSC0_INC, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x00
++  };
++  uint8_t pwr_on[]   = { 0x06, 0x05 };
++  uint8_t disp_on[]  = { 0x07, 0x00 };
++  int ret;
++
++  if (g_lcd_pwr_initialized)
++    {
++      return;
++    }
++
++  if (g_lcd_i2c == NULL)
++    {
++      g_lcd_i2c = lpc17_40_i2cbus_initialize(0);
++    }
++
++  if (g_lcd_i2c != NULL)
++    {
++      ret  = ea_pca9532_write(g_lcd_i2c, init_all, sizeof(init_all));
++      up_mdelay(20);
++      ret |= ea_pca9532_write(g_lcd_i2c, pwr_on, sizeof(pwr_on));
++      up_mdelay(100);
++      ret |= ea_pca9532_write(g_lcd_i2c, disp_on, sizeof(disp_on));
++      up_mdelay(10);
++      if (ret == 0)
++        {
++          g_lcd_pwr_initialized = true;
++        }
++#ifndef CONFIG_LPC17_40_LCD_BACKLIGHT
++      uint8_t bl_on[] = { 0x08, 0x00 };
++      ea_pca9532_write(g_lcd_i2c, bl_on, sizeof(bl_on));
++#endif
++    }
++#endif
++}
+ 
+ #ifdef CONFIG_LPC17_40_LCD_BACKLIGHT
+ void lpc17_40_backlight(bool blon)
+ {
+-  lpc17_40_gpiowrite(GPIO_LCD_BL, blon);
++#ifdef CONFIG_LPC17_40_I2C0
++  if (!g_lcd_pwr_initialized)
++    {
++      ea_lcd_backlight_init();
++    }
++
++  if (g_lcd_i2c != NULL)
++    {
++      uint8_t cmd[] = { 0x08, (uint8_t)(blon ? 0x00 : 0x01) };
++      ea_pca9532_write(g_lcd_i2c, cmd, sizeof(cmd));
++    }
++#else
++  (void)blon;
++#endif
+ }
+ #endif
++
+ #endif /* CONFIG_LPC17_40_LCD */
+diff --git a/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_sdraminitialize.c b/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_sdraminitialize.c
+index 15b3aef5bb..5df57102ef 100644
+--- a/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_sdraminitialize.c
++++ b/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_sdraminitialize.c
+@@ -3,31 +3,14 @@
+  *
+  * SPDX-License-Identifier: Apache-2.0
+  *
+- * Licensed to the Apache Software Foundation (ASF) under one or more
+- * contributor license agreements.  See the NOTICE file distributed with
+- * this work for additional information regarding copyright ownership.  The
+- * ASF licenses this file to you under the Apache License, Version 2.0 (the
+- * "License"); you may not use this file except in compliance with the
+- * License.  You may obtain a copy of the License at
+- *
+- *   http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+- * License for the specific language governing permissions and limitations
+- * under the License.
+- *
+- ****************************************************************************/
+-
+-/****************************************************************************
+- * Included Files
++ * Embedded Artists LPC1788-32 OEM Board: ISSI IS42S32800D-7 (256 Mbit,
++ * 8M x 32, 4 banks, row=12, col=9, 4096 rows) @ 60 MHz EMCCLK.
+  ****************************************************************************/
+ 
+ #include <nuttx/config.h>
+ 
++#include <stdint.h>
+ #include <nuttx/debug.h>
+-
+ #include <nuttx/arch.h>
+ #include <arch/board/board.h>
+ 
+@@ -39,186 +22,309 @@
+ 
+ #if defined(CONFIG_LPC17_40_EMC) && defined(CONFIG_LPC17_40_EXTDRAM)
+ 
+-/****************************************************************************
+- * Pre-processor Definitions
+- ****************************************************************************/
+-
+-/* The core clock is LPC17_40_EMCCLK which may be either LPC17_40_CCLK*
+- * (undivided), or LPC17_40_CCLK / 2 as determined by settings in the board.h
+- *  header file.
+- *
+- * For example:
+- *   LPC17_40_CCLCK      =  120,000,000
+- *   EMCCLKSEL        -> LPC17_40_CCLK divided by 2
+- *   LPC17_40_EMCCLK     =  60,000,000
+- *   LPC17_40_EMCCLK_MHZ =  60 (Rounded to an integer)
+- *   EMC_NSPERCLK     =  16.667 (Represented with 4 bits of fraction, 267)
+- *
+- *   EMC_NS2CLK(63)   = ((63 << 4) + 266) / 267 = 4 (actual 3.78)
+- *   EMC_NS2CLK(20)   = ((20 << 4) + 266) / 267 = 2 (actual 1.20)
+- */
+-
+-#define LPC17_40_EMCCLK_MHZ    ((LPC17_40_EMCCLK + 500000) / 1000000)
+-#define EMC_NSPERCLK_B4     (((1000 << 4) + (LPC17_40_EMCCLK_MHZ >> 1)) / LPC17_40_EMCCLK_MHZ)
+-#define EMC_NS2CLK(ns)      (((ns << 4) + (EMC_NSPERCLK_B4 - 1)) / EMC_NSPERCLK_B4)
+-#define MDKCFG_RASCAS0VAL   0x00000303
+-
+-/* Set up for 32-bit SDRAM at CS0 */
+-
+ #ifdef CONFIG_LPC17_40_EXTDRAMSIZE
+ #  define SDRAM_SIZE CONFIG_LPC17_40_EXTDRAMSIZE
++#else
++#  define SDRAM_SIZE 0x02000000 /* 32 MB (256 Mbit) */
+ #endif
+ 
+-#ifdef CONFIG_LPC17_40_SDRAM_16BIT
+-#  ifndef SDRAM_SIZE
+-#    define SDRAM_SIZE      0x02000000 /* 256Mbit */
+-#  endif
+-#else /* if defined(CONFIG_LPC17_40_SDRAM_32BIT) */
+-#  undef CONFIG_LPC17_40_SDRAM_32BIT
+-#  define CONFIG_LPC17_40_SDRAM_32BIT 1
+-#  ifndef SDRAM_SIZE
+-#    define SDRAM_SIZE      0x04000000 /* 512Mbit */
+-#  endif
+-#endif
++#define SDRAM_BASE 0xa0000000   /* EMC DYCS0 */
+ 
+-#define SDRAM_BASE          0xa0000000 /* CS0 */
++static volatile uint32_t g_ringosccount[2];
+ 
+-/****************************************************************************
+- * Public Functions
+- ****************************************************************************/
++static uint32_t sdram_test(void)
++{
++  volatile uint32_t *wr_ptr;
++  volatile uint16_t *short_wr_ptr;
++  uint32_t data;
++  uint32_t i;
++  uint32_t j;
++  uint32_t offset;
++
++  short_wr_ptr = (volatile uint16_t *)SDRAM_BASE;
++
++  for (i = 0; i < SDRAM_SIZE / 0x40000; i++)
++    {
++      for (j = 0; j < 0x100; j++)
++        {
++          *short_wr_ptr++ = (uint16_t)(i + j);
++          *short_wr_ptr++ = (uint16_t)(i + j + 1);
++        }
++    }
++
++  wr_ptr = (volatile uint32_t *)SDRAM_BASE;
++  for (i = 0; i < SDRAM_SIZE / 0x40000; i++)
++    {
++      for (j = 0; j < 0x100; j++)
++        {
++          data = *wr_ptr++;
++          if (data != (((((i + j) + 1) & 0xffff) << 16) |
++                       ((i + j) & 0xffff)))
++            {
++              return 0;
++            }
++        }
++    }
++
++  for (offset = sizeof(uint32_t); offset < SDRAM_SIZE; offset <<= 1)
++    {
++      *(volatile uint32_t *)(SDRAM_BASE + offset) = 0xa55a0000u ^ offset;
++    }
++
++  for (offset = sizeof(uint32_t); offset < SDRAM_SIZE; offset <<= 1)
++    {
++      if (*(volatile uint32_t *)(SDRAM_BASE + offset) !=
++          (0xa55a0000u ^ offset))
++        {
++          return 0;
++        }
++    }
++
++  return 1;
++}
+ 
+-/****************************************************************************
+- * Name: open1788_sdram_initialize
+- *
+- * Description:
+- *   Initialize SDRAM
+- *
+- ****************************************************************************/
++static uint32_t calibration(void)
++{
++  uint32_t dwtemp;
++  uint32_t i;
++  uint32_t cnt = 0;
++
++  for (i = 0; i < 10; i++)
++    {
++      dwtemp  = getreg32(LPC17_40_SYSCON_EMCCAL);
++      dwtemp &= ~SYSCON_EMCCAL_START_MASK;
++      putreg32(dwtemp | SYSCON_EMCCAL_START_MASK, LPC17_40_SYSCON_EMCCAL);
++
++      do
++        {
++          dwtemp = getreg32(LPC17_40_SYSCON_EMCCAL);
++        }
++      while ((dwtemp & SYSCON_EMCCAL_DONE_MASK) == 0);
++
++      cnt += (dwtemp & SYSCON_EMCCAL_CALVALUE_MASK);
++    }
++
++  return cnt / 10;
++}
+ 
+-void open1788_sdram_initialize(void)
++static uint32_t find_cmddly(void)
+ {
+-  uint32_t regval;
+-  int i;
++  uint32_t cmddly      = 0;
++  uint32_t cmddlystart = 0xff;
++  uint32_t cmddlyend   = 0xff;
++  uint32_t ppass       = 0;
++  uint32_t pass        = 0;
++  uint32_t dwtemp;
++
++  while (cmddly < 32)
++    {
++      dwtemp  = getreg32(LPC17_40_SYSCON_EMCDLYCTL) &
++                ~SYSCON_EMCDLYCTL_CMDDLY_MASK;
++      putreg32(dwtemp | (cmddly << SYSCON_EMCDLYCTL_CMDDLY_SHIFT),
++               LPC17_40_SYSCON_EMCDLYCTL);
++
++      if (sdram_test() == 1)
++        {
++          if (cmddlystart == 0xff)
++            {
++              cmddlystart = cmddly;
++            }
++
++          ppass = 1;
++        }
++      else
++        {
++          if (ppass == 1)
++            {
++              cmddlyend = cmddly;
++              pass      = 1;
++              ppass     = 0;
++            }
++        }
++
++      cmddly++;
++    }
++
++  if (pass == 1)
++    {
++      cmddly = (cmddlystart + cmddlyend) / 2;
++    }
++  else if (ppass == 1)
++    {
++      cmddly = (cmddlystart + 0x1f) / 2;
++    }
++  else
++    {
++      cmddly = 0x10;
++    }
++
++  dwtemp  = getreg32(LPC17_40_SYSCON_EMCDLYCTL) &
++            ~SYSCON_EMCDLYCTL_CMDDLY_MASK;
++  putreg32(dwtemp | (cmddly << SYSCON_EMCDLYCTL_CMDDLY_SHIFT),
++           LPC17_40_SYSCON_EMCDLYCTL);
++
++  return pass | ppass;
++}
+ 
+-  /* Reconfigure delays:
+-   *
+-   * CMDDLY: Programmable delay value for EMC outputs in command delayed
+-   *   mode.  The delay amount is roughly CMDDLY * 250 picoseconds.
+-   * FBCLKDLY: Programmable delay value for the feedback clock that controls
+-   *   input data sampling.  The delay amount is roughly (FBCLKDLY+1) * 250
+-   *   picoseconds.
+-   * CLKOUT0DLY: Programmable delay value for the CLKOUT0 output. This would
+-   *   typically be used in clock delayed mode.  The delay amount is roughly
+-   *  (CLKOUT0DLY+1) * 250 picoseconds.
+-   * CLKOUT1DLY: Programmable delay value for the CLKOUT1 output. This would
+-   *  typically be used in clock delayed mode.  The delay amount is roughly
+-   *  (CLKOUT1DLY+1) * 250 picoseconds.
+-   */
+-
+-  regval = SYSCON_EMCDLYCTL_CMDDLY(32) |
+-           SYSCON_EMCDLYCTL_FBCLKDLY(32) |
+-           SYSCON_EMCDLYCTL_CLKOUT0DLY(1) |
+-           SYSCON_EMCDLYCTL_CLKOUT1DLY(1);
+-  putreg32(regval, LPC17_40_SYSCON_EMCDLYCTL);
+-
+-  /* Configure the SDRAM */
+-
+-  putreg32(EMC_NS2CLK(20), LPC17_40_EMC_DYNAMICRP);   /* TRP   = 20 nS */
+-
+-  putreg32(15, LPC17_40_EMC_DYNAMICRAS); /* RAS   = 42ns to 100K ns,  */
+-  putreg32(0, LPC17_40_EMC_DYNAMICSREX); /* TSREX = 1 clock */
+-  putreg32(1, LPC17_40_EMC_DYNAMICAPR);  /* TAPR  = 2 clocks? */
+-
+-  putreg32(EMC_NS2CLK(20) + 2, LPC17_40_EMC_DYNAMICDAL);  /* TDAL  = TRP + TDPL = 20ns + 2clk  */
+-
+-  putreg32(1, LPC17_40_EMC_DYNAMICWR);                /* TWR   = 2 clocks */
+-  putreg32(EMC_NS2CLK(63), LPC17_40_EMC_DYNAMICRC);   /* H57V2562GTR-75C TRC = 63ns(min) */
+-  putreg32(EMC_NS2CLK(63), LPC17_40_EMC_DYNAMICRFC);  /* H57V2562GTR-75C TRFC = TRC */
+-  putreg32(15, LPC17_40_EMC_DYNAMICXSR);              /* Exit self-refresh to active */
+-  putreg32(EMC_NS2CLK(63), LPC17_40_EMC_DYNAMICRRD);  /* 3 clock, TRRD = 15ns (min) */
+-  putreg32(1, LPC17_40_EMC_DYNAMICMRD);               /* 2 clock, TMRD = 2 clocks (min) */
+-
+-  /* Command delayed strategy, using EMCCLKDELAY */
++static uint32_t find_fbclkdly(void)
++{
++  uint32_t fbclkdly      = 0;
++  uint32_t fbclkdlystart = 0xff;
++  uint32_t fbclkdlyend   = 0xff;
++  uint32_t ppass         = 0;
++  uint32_t pass          = 0;
++  uint32_t dwtemp;
++
++  while (fbclkdly < 32)
++    {
++      dwtemp  = getreg32(LPC17_40_SYSCON_EMCDLYCTL) &
++                ~SYSCON_EMCDLYCTL_FBCLKDLY_MASK;
++      putreg32(dwtemp | (fbclkdly << SYSCON_EMCDLYCTL_FBCLKDLY_SHIFT),
++               LPC17_40_SYSCON_EMCDLYCTL);
++
++      if (sdram_test() == 1)
++        {
++          if (fbclkdlystart == 0xff)
++            {
++              fbclkdlystart = fbclkdly;
++            }
++
++          ppass = 1;
++        }
++      else
++        {
++          if (ppass == 1)
++            {
++              fbclkdlyend = fbclkdly;
++              pass        = 1;
++              ppass       = 0;
++            }
++        }
++
++      fbclkdly++;
++    }
++
++  if (pass == 1)
++    {
++      fbclkdly = (fbclkdlystart + fbclkdlyend) / 2;
++    }
++  else if (ppass == 1)
++    {
++      fbclkdly = (fbclkdlystart + 0x1f) / 2;
++    }
++  else
++    {
++      fbclkdly = 0x10;
++    }
++
++  dwtemp  = getreg32(LPC17_40_SYSCON_EMCDLYCTL) &
++            ~SYSCON_EMCDLYCTL_FBCLKDLY_MASK;
++  putreg32(dwtemp | (fbclkdly << SYSCON_EMCDLYCTL_FBCLKDLY_SHIFT),
++           LPC17_40_SYSCON_EMCDLYCTL);
++
++  return pass | ppass;
++}
+ 
+-  putreg32(EMC_DYNAMICREADCONFIG_RD_CMD, LPC17_40_EMC_DYNAMICREADCONFIG);
++static void adjust_timing(void)
++{
++  uint32_t dwtemp;
++  uint32_t cmddly;
++  uint32_t fbclkdly;
++
++  g_ringosccount[1] = calibration();
++  if (g_ringosccount[1] == 0)
++    {
++      return;
++    }
++
++  dwtemp   = getreg32(LPC17_40_SYSCON_EMCDLYCTL);
++  cmddly   = ((dwtemp & SYSCON_EMCDLYCTL_CMDDLY_MASK) *
++              g_ringosccount[0]) / g_ringosccount[1];
++  fbclkdly = (((dwtemp & SYSCON_EMCDLYCTL_FBCLKDLY_MASK) >>
++               SYSCON_EMCDLYCTL_FBCLKDLY_SHIFT) *
++              g_ringosccount[0]) / g_ringosccount[1];
++
++  if (cmddly > 0x1f)
++    {
++      cmddly = 0x1f;
++    }
++
++  if (fbclkdly > 0x1f)
++    {
++      fbclkdly = 0x1f;
++    }
++
++  dwtemp &= ~(SYSCON_EMCDLYCTL_CMDDLY_MASK |
++              SYSCON_EMCDLYCTL_FBCLKDLY_MASK);
++  dwtemp |= (cmddly << SYSCON_EMCDLYCTL_CMDDLY_SHIFT) |
++            (fbclkdly << SYSCON_EMCDLYCTL_FBCLKDLY_SHIFT);
++  putreg32(dwtemp, LPC17_40_SYSCON_EMCDLYCTL);
++}
+ 
+-  /* H57V2562GTR-75C: TCL=3CLK, TRCD = 20ns(min), 3 CLK = 24ns */
++void open1788_sdram_initialize(void)
++{
++  int i;
+ 
+-  putreg32(MDKCFG_RASCAS0VAL, LPC17_40_EMC_DYNAMICRASCAS0);
++  /* Initial safe delay tap (cmddly=0x10, fbclkdly=0x10) */
+ 
+-#ifdef CONFIG_LPC17_40_SDRAM_16BIT
+-  /* For Manley lpc1778 SDRAM:
+-   * H57V2562GTR-75C, 256Mb, 16Mx16, 4 banks, row=13, column=9:
+-   *
+-   * 256Mb, 16Mx16, 4 banks, row=13, column=9, RBC
+-   */
++  putreg32(0x00001010, LPC17_40_SYSCON_EMCDLYCTL);
++  putreg32(EMC_CONTROL_E, LPC17_40_EMC_CONTROL);
++  putreg32(0, LPC17_40_EMC_CONFIG);
+ 
+-  putreg32(EMC_DYNAMICCONFIG_MD_SDRAM |  EMC_DYNAMICCONFIG_AM0(13),
+-           LPC17_40_EMC_DYNAMICCONFIG0);
++  /* 256Mbit (32MB), 8Mx32, 4 banks, row=12, col=9, buffers disabled */
+ 
+-#elif defined CONFIG_LPC17_40_SDRAM_32BIT
+-  /* 256Mb, 16Mx16, 4 banks, row=13, column=9, RBC */
++  putreg32(0x00004480, LPC17_40_EMC_DYNAMICCONFIG0);
+ 
+-  putreg32(EMC_DYNAMICCONFIG_MD_SDRAM |  EMC_DYNAMICCONFIG_AM0(13) |
+-           EMC_DYNAMICCONFIG_AM1, LPC17_40_EMC_DYNAMICCONFIG0);
+-#endif
++  /* 60 MHz EMCCLK timings for ISSI IS42S32800D-7 (2 RAS, 2 CAS) */
+ 
+-  up_mdelay(100);
++  putreg32(0x00000202, LPC17_40_EMC_DYNAMICRASCAS0);
++  putreg32(EMC_DYNAMICREADCONFIG_RD_CMD, LPC17_40_EMC_DYNAMICREADCONFIG);
++  putreg32(1, LPC17_40_EMC_DYNAMICRP);    /* 2 clks */
++  putreg32(3, LPC17_40_EMC_DYNAMICRAS);   /* 4 clks */
++  putreg32(5, LPC17_40_EMC_DYNAMICSREX);  /* 6 clks */
++  putreg32(2, LPC17_40_EMC_DYNAMICAPR);   /* 3 clks */
++  putreg32(3, LPC17_40_EMC_DYNAMICDAL);   /* 3 clks */
++  putreg32(1, LPC17_40_EMC_DYNAMICWR);    /* 2 clks */
++  putreg32(4, LPC17_40_EMC_DYNAMICRC);    /* 5 clks */
++  putreg32(4, LPC17_40_EMC_DYNAMICRFC);   /* 5 clks */
++  putreg32(5, LPC17_40_EMC_DYNAMICXSR);   /* 6 clks */
++  putreg32(1, LPC17_40_EMC_DYNAMICRRD);   /* 2 clks */
++  putreg32(1, LPC17_40_EMC_DYNAMICMRD);   /* 2 clks */
+ 
+-  /* Issue NOP command */
++  up_mdelay(100);
+ 
+   putreg32(EMC_DYNAMICCONTROL_CE | EMC_DYNAMICCONTROL_CS |
+            EMC_DYNAMICCONTROL_I_NOP, LPC17_40_EMC_DYNAMICCONTROL);
+-
+-  /* Wait 200 Msec */
+-
+   up_mdelay(200);
+ 
+-  /* Issue PALL command */
+-
+   putreg32(EMC_DYNAMICCONTROL_CE | EMC_DYNAMICCONTROL_CS |
+            EMC_DYNAMICCONTROL_I_PALL, LPC17_40_EMC_DYNAMICCONTROL);
+ 
+-  putreg32(2, LPC17_40_EMC_DYNAMICREFRESH); /* ( n * 16 ) -> 32 clock cycles */
++  putreg32(2, LPC17_40_EMC_DYNAMICREFRESH);
++  for (i = 0; i < 128; i++)
++    {
++      __asm__ __volatile__("nop");
++    }
+ 
+-  /* Wait 128 AHB clock cycles */
++  /* 64ms / 4096 rows = 15.625us; 0x3a * 16 / 60MHz = 15.467us */
+ 
+-  for (i = 0; i < 128; i++);
+-
+-  /* 64ms/8192 = 7.8125us, nx16x8.33ns < 7.8125us, n < 58.6 */
+-
+-  regval = 64000000 / (1 << 13);
+-  regval -= 16;
+-  regval >>= 4;
+-  regval = regval * LPC17_40_EMCCLK_MHZ / 1000;
+-  putreg32(regval, LPC17_40_EMC_DYNAMICREFRESH);
+-
+-  /* Issue MODE command */
++  putreg32(0x0000003a, LPC17_40_EMC_DYNAMICREFRESH);
+ 
+   putreg32(EMC_DYNAMICCONTROL_CE | EMC_DYNAMICCONTROL_CS |
+            EMC_DYNAMICCONTROL_I_MODE, LPC17_40_EMC_DYNAMICCONTROL);
+ 
+-#ifdef CONFIG_LPC17_40_SDRAM_16BIT
+-  getreg16(SDRAM_BASE | (0x33 << 12));  /* 8 burst, 3 CAS latency */
+-#elif defined CONFIG_LPC17_40_SDRAM_32BIT
+-  getreg32(SDRAM_BASE | (0x32 << 13)); /* 4 burst, 3 CAS latency */
+-#endif
++  /* Burst length 4, sequential, CAS latency 2 (0x22 << (2 + 2 + 9)) */
+ 
+-  /* Issue NORMAL command */
++  (void)getreg32(SDRAM_BASE | (0x22 << 13));
+ 
+   putreg32(EMC_DYNAMICCONTROL_I_NORMAL, LPC17_40_EMC_DYNAMICCONTROL);
+-
+-  /* Enable buffer */
+-
+-  regval = getreg32(LPC17_40_EMC_DYNAMICCONFIG0);
+-  regval |= EMC_DYNAMICCONFIG_B;
+-  putreg32(regval, LPC17_40_EMC_DYNAMICCONFIG0);
++  putreg32(0x00004480 | EMC_DYNAMICCONFIG_B, LPC17_40_EMC_DYNAMICCONFIG0);
+   up_mdelay(12);
+ 
+-  regval = getreg32(LPC17_40_SYSCON_EMCDLYCTL);
+-  regval &= ~SYSCON_EMCDLYCTL_CMDDLY_MASK;
+-  regval |= SYSCON_EMCDLYCTL_CMDDLY(18);
+-  putreg32(regval, LPC17_40_SYSCON_EMCDLYCTL);
++  g_ringosccount[0] = calibration();
++  find_cmddly();
++  find_fbclkdly();
++  adjust_timing();
+ }
+ 
+ #endif /* CONFIG_LPC17_40_EMC && CONFIG_LPC17_40_EXTDRAM */
+diff --git a/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_ssp.c b/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_ssp.c
+index ef58c5a51a..822f06974a 100644
+--- a/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_ssp.c
++++ b/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_ssp.c
+@@ -72,6 +72,9 @@ void weak_function open1788_sspdev_initialize(void)
+   /* Configure the SSP0 chip select GPIOs. */
+ 
+ #ifdef CONFIG_LPC17_40_SSP0
++  ssp_dumpgpio(GPIO_TC_CS, "BEFORE SSP0 Initialization");
++  lpc17_40_configgpio(GPIO_TC_CS);
++  ssp_dumpgpio(GPIO_TC_CS, "AFTER SSP0 Initialization");
+ #endif
+ 
+   /* Configure SSP1 chip select GPIOs.  This includes the touchscreen on the
+@@ -123,6 +126,14 @@ void  lpc17_40_ssp0select(struct spi_dev_s *dev, uint32_t devid,
+ {
+   spiinfo("devid: %d CS: %s\n", (int)devid,
+           selected ? "assert" : "de-assert");
++  if (devid == SPIDEV_TOUCHSCREEN(0))
++    {
++      /* Assert/de-assert the CS pin to the touchscreen */
++
++      ssp_dumpgpio(GPIO_TC_CS, "lpc17_40_ssp0select() Entry");
++      lpc17_40_gpiowrite(GPIO_TC_CS, !selected);
++      ssp_dumpgpio(GPIO_TC_CS, "lpc17_40_ssp0select() Exit");
++    }
+ }
+ 
+ uint8_t lpc17_40_ssp0status(struct spi_dev_s *dev, uint32_t devid)
+@@ -171,3 +182,10 @@ uint8_t lpc17_40_ssp2status(struct spi_dev_s *dev, uint32_t devid)
+ #endif
+ 
+ #endif /* CONFIG_LPC17_40_SSP0 || CONFIG_LPC17_40_SSP1  || CONFIG_LPC17_40_SSP2 */
++
++#if defined(CONFIG_LPC17_40_SSP0) && defined(CONFIG_SPI_CALLBACK)
++int lpc17_40_ssp0register(struct spi_dev_s *dev, spi_mediachange_t callback, void *arg)
++{
++  return 0;
++}
++#endif
+diff --git a/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_touchscreen.c b/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_touchscreen.c
+index 2b3447638a..5a3c9239b6 100644
+--- a/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_touchscreen.c
++++ b/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_touchscreen.c
+@@ -34,11 +34,15 @@
+ 
+ #include <nuttx/arch.h>
+ #include <nuttx/irq.h>
++#include <nuttx/wdog.h>
++#include <nuttx/clock.h>
+ #include <nuttx/spi/spi.h>
+ #include <nuttx/input/touchscreen.h>
+ #include <nuttx/input/ads7843e.h>
+ 
++#include "arm_internal.h"
+ #include "lpc17_40_gpio.h"
++#include "hardware/lpc17_40_gpio.h"
+ #include "lpc17_40_ssp.h"
+ #include "open1788.h"
+ 
+@@ -54,8 +58,8 @@
+ #  error "Touchscreen support requires CONFIG_INPUT"
+ #endif
+ 
+-#ifndef CONFIG_LPC17_40_SSP1
+-#  error "Touchscreen support requires CONFIG_LPC17_40_SSP1"
++#ifndef CONFIG_LPC17_40_SSP0
++#  error "Touchscreen support requires CONFIG_LPC17_40_SSP0"
+ #endif
+ 
+ #ifndef CONFIG_LPC17_40_GPIOIRQ
+@@ -67,10 +71,10 @@
+ #endif
+ 
+ #ifndef CONFIG_ADS7843E_SPIDEV
+-#  define CONFIG_ADS7843E_SPIDEV 1
++#  define CONFIG_ADS7843E_SPIDEV 0
+ #endif
+ 
+-#if CONFIG_ADS7843E_SPIDEV != 1
++#if CONFIG_ADS7843E_SPIDEV != 0
+ #  error "CONFIG_ADS7843E_SPIDEV must be one"
+ #endif
+ 
+@@ -128,12 +132,13 @@ static bool tsc_pendown(struct ads7843e_config_s *state);
+ 
+ static struct ads7843e_config_s g_tscinfo =
+ {
+-  .frequency = CONFIG_ADS7843E_FREQUENCY,
+-  .attach    = tsc_attach,
+-  .enable    = tsc_enable,
+-  .clear     = tsc_clear,
+-  .busy      = tsc_busy,
+-  .pendown   = tsc_pendown,
++  .frequency         = CONFIG_ADS7843E_FREQUENCY,
++  .xplate_resistance = 630,
++  .attach            = tsc_attach,
++  .enable            = tsc_enable,
++  .clear             = tsc_clear,
++  .busy              = tsc_busy,
++  .pendown           = tsc_pendown,
+ };
+ 
+ /****************************************************************************
+@@ -152,11 +157,19 @@ static struct ads7843e_config_s g_tscinfo =
+  * pendown - Return the state of the pen down GPIO input
+  */
+ 
+-static int tsc_attach(struct ads7843e_config_s *state, xcpt_t handler)
++static xcpt_t g_tsc_upper_isr = NULL;
++static volatile bool g_tsc_irq_fired = false;
++
++static int tsc_isr_wrapper(int irq, void *context, void *arg)
+ {
+-  /* Attach then enable the touchscreen interrupt handler */
++  g_tsc_irq_fired = true;
++  return g_tsc_upper_isr ? g_tsc_upper_isr(irq, context, arg) : OK;
++}
+ 
+-  irq_attach(LPC17_40_IRQ_PENIRQ, handler, NULL);
++static int tsc_attach(struct ads7843e_config_s *state, xcpt_t handler)
++{
++  g_tsc_upper_isr = handler;
++  irq_attach(LPC17_40_IRQ_PENIRQ, tsc_isr_wrapper, NULL);
+   return OK;
+ }
+ 
+@@ -170,6 +183,8 @@ static void tsc_enable(struct ads7843e_config_s *state, bool enable)
+        * logic after completion of processing of the touchscreen interrupt.
+        */
+ 
++      g_tsc_irq_fired = false;
++      putreg32((1 << 15), LPC17_40_GPIOINT2_INTCLR);
+       up_enable_irq(LPC17_40_IRQ_PENIRQ);
+     }
+   else
+@@ -185,9 +200,7 @@ static void tsc_enable(struct ads7843e_config_s *state, bool enable)
+ 
+ static void tsc_clear(struct ads7843e_config_s *state)
+ {
+-  /* Does nothing.  The interrupt is cleared automatically in the GPIO
+-   * logic for the LPC17xx/LPC40xx family.
+-   */
++  putreg32((1 << 15), LPC17_40_GPIOINT2_INTCLR);
+ }
+ 
+ static bool tsc_busy(struct ads7843e_config_s *state)
+@@ -196,7 +209,7 @@ static bool tsc_busy(struct ads7843e_config_s *state)
+  * between sending the command, then reading the returned data.
+  */
+ 
+-#ifdef XPT2046_NO_BUSY
++#if 1
+ /* REVISIT:  Currently, XPT2046 reports BUSY all of the time.  This is
+  * probably GPIO setting issues.  But there is this cryptic statement in
+  * the XPT2046 spec:  "No DCLK delay required with dedicated serial port."
+@@ -233,7 +246,8 @@ static bool tsc_pendown(struct ads7843e_config_s *state)
+    * initiates an interrupt to the processor via TP_INT.
+    */
+ 
+-  bool pendown = !lpc17_40_gpioread(GPIO_TC_PENIRQ);
++  bool pendown = !lpc17_40_gpioread(GPIO_TC_PENIRQ) || g_tsc_irq_fired;
++  g_tsc_irq_fired = false;
+   iinfo("pendown:%d\n", pendown);
+   return pendown;
+ }
+@@ -270,6 +284,7 @@ int open1788_tsc_setup(int minor)
+   /* Configure and enable the XPT2046 PENIRQ pin as an interrupting input. */
+ 
+   lpc17_40_configgpio(GPIO_TC_PENIRQ);
++  lpc17_40_configgpio(GPIO_TC_CS);
+ 
+   /* Configure the XPT2046 BUSY pin as a normal input. */
+ 
+diff --git a/boards/arm/lpc17xx_40xx/open1788/src/open1788.h b/boards/arm/lpc17xx_40xx/open1788/src/open1788.h
+index 85906ca8b3..0694679251 100644
+--- a/boards/arm/lpc17xx_40xx/open1788/src/open1788.h
++++ b/boards/arm/lpc17xx_40xx/open1788/src/open1788.h
+@@ -60,6 +60,28 @@
+ #define GPIO_LED3        (GPIO_OUTPUT | GPIO_VALUE_ONE | GPIO_PORT1 | GPIO_PIN13)
+ #define GPIO_LED4        (GPIO_OUTPUT | GPIO_VALUE_ONE | GPIO_PORT4 | GPIO_PIN27)
+ 
++/* Embedded Artists OEM Base Board Rev C Buttons & Joystick (SW6 / SW7) */
++
++#define GPIO_USER1        (GPIO_INTBOTH | GPIO_PULLUP | GPIO_PORT2 | GPIO_PIN10) /* SW6 */
++#define GPIO_USER1_IRQ    LPC17_40_IRQ_P2p10
++
++#define GPIO_JOY_A        (GPIO_INTBOTH | GPIO_PULLUP | GPIO_PORT2 | GPIO_PIN25) /* SW7 UP */
++#define GPIO_JOY_A_IRQ    LPC17_40_IRQ_P2p25
++#define GPIO_JOY_B        (GPIO_INTBOTH | GPIO_PULLUP | GPIO_PORT2 | GPIO_PIN26) /* SW7 RIGHT */
++#define GPIO_JOY_B_IRQ    LPC17_40_IRQ_P2p26
++#define GPIO_JOY_C        (GPIO_INTBOTH | GPIO_PULLUP | GPIO_PORT2 | GPIO_PIN23) /* SW7 LEFT */
++#define GPIO_JOY_C_IRQ    LPC17_40_IRQ_P2p23
++#define GPIO_JOY_D        (GPIO_INTBOTH | GPIO_PULLUP | GPIO_PORT2 | GPIO_PIN27) /* SW7 DOWN */
++#define GPIO_JOY_D_IRQ    LPC17_40_IRQ_P2p27
++#define GPIO_JOY_CTR      (GPIO_INTBOTH | GPIO_PULLUP | GPIO_PORT2 | GPIO_PIN22) /* SW7 CTR */
++#define GPIO_JOY_CTR_IRQ  LPC17_40_IRQ_P2p22
++
++
++/* Embedded Artists OEM Base Board Rev C Buttons & Joystick (SW6 / SW7) */
++
++
++
++
+ /* Button definitions *******************************************************/
+ 
+ /* The Open1788 supports several buttons.
+@@ -84,25 +106,10 @@
+  * (press and release).
+  */
+ 
+-#define GPIO_USER1       (GPIO_INPUT   | GPIO_PULLUP | GPIO_PORT4 | GPIO_PIN26)
+-#define GPIO_USER2       (GPIO_INTBOTH | GPIO_PULLUP | GPIO_PORT2 | GPIO_PIN22)
+-#define GPIO_USER3       (GPIO_INTBOTH | GPIO_PULLUP | GPIO_PORT0 | GPIO_PIN10)
+ 
+-#define GPIO_JOY_A       (GPIO_INTBOTH | GPIO_PULLUP | GPIO_PORT2 | GPIO_PIN25)
+-#define GPIO_JOY_B       (GPIO_INTBOTH | GPIO_PULLUP | GPIO_PORT2 | GPIO_PIN26)
+-#define GPIO_JOY_C       (GPIO_INTBOTH | GPIO_PULLUP | GPIO_PORT2 | GPIO_PIN23)
+-#define GPIO_JOY_D       (GPIO_INTBOTH | GPIO_PULLUP | GPIO_PORT2 | GPIO_PIN19)
+-#define GPIO_JOY_CTR     (GPIO_INTBOTH | GPIO_PULLUP | GPIO_PORT0 | GPIO_PIN14)
+ 
+ /* IRQ numbers for the buttons that do support interrupts */
+ 
+-#define GPIO_USER2_IRQ   LPC17_40_IRQ_P2p22
+-#define GPIO_USER3_IRQ   LPC17_40_IRQ_P0p10
+-#define GPIO_JOY_A_IRQ   LPC17_40_IRQ_P2p25
+-#define GPIO_JOY_B_IRQ   LPC17_40_IRQ_P2p26
+-#define GPIO_JOY_C_IRQ   LPC17_40_IRQ_P2p23
+-#define GPIO_JOY_D_IRQ   LPC17_40_IRQ_P2p19
+-#define GPIO_JOY_CTR_IRQ LPC17_40_IRQ_P0p14
+ 
+ /* SD Card ******************************************************************/
+ 
+@@ -119,7 +126,7 @@
+ 
+ /* Backlight enable, P2[1].  Initial state is OFF (zero) */
+ 
+-#define GPIO_LCD_BL      (GPIO_OUTPUT | GPIO_VALUE_ZERO | GPIO_PORT2 | GPIO_PIN1)
++#define GPIO_LCD_BL      0
+ 
+ /* XPT2046 Touchscreen ******************************************************/
+ 
+@@ -143,9 +150,9 @@
+  * the LCD schematic, the are pulled-up on board the LCD module.
+  */
+ 
+-#define GPIO_TC_PENIRQ   (GPIO_INTBOTH | GPIO_FLOAT | GPIO_PORT2 | GPIO_PIN15)
++#define GPIO_TC_PENIRQ   (GPIO_INTFE | GPIO_FLOAT | GPIO_PORT2 | GPIO_PIN15)
+ #define GPIO_TC_BUSY     (GPIO_INPUT | GPIO_FLOAT | GPIO_PORT2 | GPIO_PIN14)
+-#define GPIO_TC_CS       (GPIO_OUTPUT | GPIO_VALUE_ONE | GPIO_PORT1 | GPIO_PIN8)
++#define GPIO_TC_CS       (GPIO_OUTPUT | GPIO_VALUE_ONE | GPIO_PORT0 | GPIO_PIN20)
+ 
+ #define LPC17_40_IRQ_PENIRQ LPC17_40_IRQ_P2p15
+ 
+diff --git a/drivers/input/ads7843e.c b/drivers/input/ads7843e.c
+index 5c0ecebec5..b49a1befa6 100644
+--- a/drivers/input/ads7843e.c
++++ b/drivers/input/ads7843e.c
+@@ -40,6 +40,7 @@
+ #include <sys/types.h>
+ 
+ #include <stdbool.h>
++#include <stdint.h>
+ #include <stdio.h>
+ #include <unistd.h>
+ #include <string.h>
+@@ -262,18 +263,81 @@ static uint16_t ads7843e_sendcmd(FAR struct ads7843e_dev_s *priv,
+ 
+   up_udelay(3); /* 3 microseconds */
+ 
+-  /* Read the 12-bit data (LS 4 bits will be padded with zero) */
++  /* The 12-bit result follows a leading null bit in the 16-bit response. */
+ 
+-  SPI_RECVBLOCK(priv->spi, buffer, 2);
++  buffer[0] = (uint8_t)SPI_SEND(priv->spi, 0x00);
++  buffer[1] = (uint8_t)SPI_SEND(priv->spi, 0x00);
+   SPI_SELECT(priv->spi, SPIDEV_TOUCHSCREEN(0), false);
+ 
+   result = ((uint16_t)buffer[0] << 8) | (uint16_t)buffer[1];
+-  result = result >> 4;
++  result = (result >> 3) & 0x0fff;
+ 
+-  iinfo("cmd:%02x response:%04x\n", cmd, result);
++  iinfo("cmd:%02x rx:%02x %02x response:%04x\n",
++        cmd, buffer[0], buffer[1], result);
+   return result;
+ }
+ 
++/****************************************************************************
++ * Name: ads7843e_filtered_value
++ ****************************************************************************/
++
++static uint16_t ads7843e_filtered_value(FAR struct ads7843e_dev_s *priv,
++                                        uint8_t cmd)
++{
++  uint16_t values[7];
++  uint16_t value;
++  int      i;
++  int      j;
++
++  for (i = 0; i < 7; i++)
++    {
++      values[i] = ads7843e_sendcmd(priv, cmd);
++    }
++
++  for (i = 1; i < 7; i++)
++    {
++      value = values[i];
++      for (j = i; j > 0 && values[j - 1] > value; j--)
++        {
++          values[j] = values[j - 1];
++        }
++
++      values[j] = value;
++    }
++
++  return ((uint32_t)values[2] + values[3] + values[4]) / 3;
++}
++
++/****************************************************************************
++ * Name: ads7843e_touch_resistance
++ ****************************************************************************/
++
++static bool ads7843e_touch_resistance(uint16_t x, uint16_t z1, uint16_t z2,
++                                      uint16_t xplate_resistance,
++                                      uint16_t *resistance)
++{
++  uint64_t numerator;
++  uint64_t denominator;
++  uint64_t result;
++
++  if (xplate_resistance == 0 || z1 == 0 || z2 < z1)
++    {
++      return false;
++    }
++
++  numerator   = (uint64_t)x * xplate_resistance * (z2 - z1);
++  denominator = (uint64_t)4096 * z1;
++  result      = numerator / denominator;
++
++  if (result > UINT16_MAX)
++    {
++      return false;
++    }
++
++  *resistance = (uint16_t)result;
++  return true;
++}
++
+ /****************************************************************************
+  * Name: ads7843e_notify
+  ****************************************************************************/
+@@ -487,6 +551,10 @@ static void ads7843e_worker(FAR void *arg)
+   FAR struct ads7843e_config_s *config;
+   uint16_t                      x;
+   uint16_t                      y;
++  uint16_t                      rawx;
++  uint16_t                      rawy;
++  uint16_t                      z1;
++  uint16_t                      z2;
+   uint16_t                      xdiff;
+   uint16_t                      ydiff;
+   bool                          pendown;
+@@ -526,6 +594,8 @@ static void ads7843e_worker(FAR void *arg)
+ 
+       priv->threshx = INVALID_THRESHOLD;
+       priv->threshy = INVALID_THRESHOLD;
++      priv->sample.pressure_valid = false;
++      priv->sample.pressure       = 0;
+ 
+       /* Ignore the interrupt if the pen was already up (CONTACT_NONE ==
+        * pen up and already reported; CONTACT_UP == pen up, but not
+@@ -569,13 +639,41 @@ static void ads7843e_worker(FAR void *arg)
+        * that these commands have the side-effect of disabling the PENIRQ.
+        */
+ 
++      priv->sample.pressure_valid = false;
++      priv->sample.pressure       = 0;
++
++      if (config->xplate_resistance != 0)
++        {
++          rawx = ads7843e_filtered_value(priv, ADS7843_CMD_XPOSITION);
++          rawy = ads7843e_filtered_value(priv, ADS7843_CMD_YPOSITION);
++          z1   = ads7843e_filtered_value(priv, ADS7843_CMD_Z1POSITION);
++          z2   = ads7843e_filtered_value(priv, ADS7843_CMD_Z2POSITION);
++
++          if (ads7843e_touch_resistance(rawx, z1, z2,
++                                        config->xplate_resistance,
++                                        &priv->sample.pressure))
++            {
++              priv->sample.pressure_valid = true;
++            }
++
+ #ifdef CONFIG_ADS7843E_SWAPXY
+-      x = ads7843e_sendcmd(priv, ADS7843_CMD_YPOSITION);
+-      y = ads7843e_sendcmd(priv, ADS7843_CMD_XPOSITION);
++          x = rawy;
++          y = rawx;
+ #else
+-      x = ads7843e_sendcmd(priv, ADS7843_CMD_XPOSITION);
+-      y = ads7843e_sendcmd(priv, ADS7843_CMD_YPOSITION);
++          x = rawx;
++          y = rawy;
+ #endif
++        }
++      else
++        {
++#ifdef CONFIG_ADS7843E_SWAPXY
++          x = ads7843e_sendcmd(priv, ADS7843_CMD_YPOSITION);
++          y = ads7843e_sendcmd(priv, ADS7843_CMD_XPOSITION);
++#else
++          x = ads7843e_sendcmd(priv, ADS7843_CMD_XPOSITION);
++          y = ads7843e_sendcmd(priv, ADS7843_CMD_YPOSITION);
++#endif
++        }
+ 
+       add_ui_randomness((x << 16) | y);
+ 
+@@ -878,6 +976,7 @@ static ssize_t ads7843e_read(FAR struct file *filep, FAR char *buffer,
+   report->point[0].id        = sample.id;
+   report->point[0].x         = sample.x;
+   report->point[0].y         = sample.y;
++  report->point[0].pressure  = sample.pressure;
+ 
+   /* Report the appropriate flags */
+ 
+@@ -904,6 +1003,10 @@ static ssize_t ads7843e_read(FAR struct file *filep, FAR char *buffer,
+ 
+       report->point[0].flags  = TOUCH_DOWN | TOUCH_ID_VALID |
+                                 TOUCH_POS_VALID;
++      if (sample.pressure_valid)
++        {
++          report->point[0].flags |= TOUCH_PRESSURE_VALID;
++        }
+     }
+   else /* if (sample->contact == CONTACT_MOVE) */
+     {
+@@ -911,6 +1014,10 @@ static ssize_t ads7843e_read(FAR struct file *filep, FAR char *buffer,
+ 
+       report->point[0].flags  = TOUCH_MOVE | TOUCH_ID_VALID |
+                                 TOUCH_POS_VALID;
++      if (sample.pressure_valid)
++        {
++          report->point[0].flags |= TOUCH_PRESSURE_VALID;
++        }
+     }
+ 
+   iinfo("  id:      %d\n", report->point[0].id);
+diff --git a/drivers/input/ads7843e.h b/drivers/input/ads7843e.h
+index 6cb0fe9b7d..22964155d1 100644
+--- a/drivers/input/ads7843e.h
++++ b/drivers/input/ads7843e.h
+@@ -81,6 +81,10 @@
+   ((1 << ADS7843E_CMD_CHAN_SHIFT)| ADS7843E_CMD_START | ADS7843E_CMD_PD0 | ADS7843E_CMD_PD1)
+ #define ADS7843_CMD_XPOSITION \
+   ((5 << ADS7843E_CMD_CHAN_SHIFT)| ADS7843E_CMD_START | ADS7843E_CMD_PD0 | ADS7843E_CMD_PD1)
++#define ADS7843_CMD_Z1POSITION \
++  ((3 << ADS7843E_CMD_CHAN_SHIFT)| ADS7843E_CMD_START | ADS7843E_CMD_PD0 | ADS7843E_CMD_PD1)
++#define ADS7843_CMD_Z2POSITION \
++  ((4 << ADS7843E_CMD_CHAN_SHIFT)| ADS7843E_CMD_START | ADS7843E_CMD_PD0 | ADS7843E_CMD_PD1)
+ #define ADS7843_CMD_ENABPENIRQ \
+   ((1 << ADS7843E_CMD_CHAN_SHIFT)| ADS7843E_CMD_START)
+ 
+@@ -93,9 +97,9 @@
+ #define DEV_FORMAT   "/dev/input%d"
+ #define DEV_NAMELEN  16
+ 
+-/* Poll the pen position while the pen is down at this rate (50MS): */
++/* Poll the pen position while the pen is down at this rate (30MS): */
+ 
+-#define ADS7843E_WDOG_DELAY       MSEC2TICK(50)
++#define ADS7843E_WDOG_DELAY       MSEC2TICK(30)
+ 
+ /****************************************************************************
+  * Public Types
+@@ -118,8 +122,10 @@ struct ads7843e_sample_s
+   uint8_t  id;                          /* Sampled touch point ID */
+   uint8_t  contact;                     /* Contact state (see enum ads7843e_contact_e) */
+   bool     valid;                       /* True: x,y contain valid, sampled data */
++  bool     pressure_valid;              /* True: pressure contains valid data */
+   uint16_t x;                           /* Measured X position */
+   uint16_t y;                           /* Measured Y position */
++  uint16_t pressure;                    /* Estimated touch resistance in ohms */
+ };
+ 
+ /* This structure describes the state of one ADS7843E driver instance */
+diff --git a/include/nuttx/input/ads7843e.h b/include/nuttx/input/ads7843e.h
+index 78bbcc0ccc..e1b05f5429 100644
+--- a/include/nuttx/input/ads7843e.h
++++ b/include/nuttx/input/ads7843e.h
+@@ -97,6 +97,8 @@ struct ads7843e_config_s
+   /* Device characterization */
+ 
+   uint32_t frequency;  /* SPI frequency */
++  uint16_t xplate_resistance; /* X-plate resistance in ohms */
++                               /* Zero disables pressure sampling */
+ 
+   /* If multiple ADS7843E devices are supported, then an IRQ number must
+    * be provided for each so that their interrupts can be distinguished.
+=== 2. APPS GIT STATUS & DIFF ===
+ M graphics/nxwm/src/capplicationwindow.cxx
+ M graphics/nxwm/src/ccalibration.cxx
+ M graphics/nxwm/src/cstartwindow.cxx
+ M graphics/nxwm/src/ctouchscreen.cxx
+ M graphics/nxwm/src/nxwm_main.cxx
+ M include/graphics/nxwm/ctouchscreen.hxx
+diff --git a/graphics/nxwm/src/capplicationwindow.cxx b/graphics/nxwm/src/capplicationwindow.cxx
+index 659db97ad..023907a20 100644
+--- a/graphics/nxwm/src/capplicationwindow.cxx
++++ b/graphics/nxwm/src/capplicationwindow.cxx
+@@ -183,7 +183,11 @@ bool CApplicationWindow::open(void)
+   struct nxgl_point_s iconPos;
+   struct nxgl_size_s  iconSize;
+ 
+-  iconPos.x = windowSize.w;
++  const nxgl_coord_t buttonWidth      = 40;
++  const nxgl_coord_t buttonGap        = 4;
++  const nxgl_coord_t buttonRightInset = 12;
++
++  iconPos.x = windowSize.w - buttonRightInset;
+ 
+   // Create the STOP icon only if this is a non-persistent application
+ 
+@@ -197,33 +201,12 @@ bool CApplicationWindow::open(void)
+           return false;
+         }
+ 
+-      // Create the STOP application icon at the right of the toolbar
+-      // Get the height and width of the stop bitmap
+-
+-      iconSize.w = m_stopBitmap->getWidth();
+-      iconSize.h = m_stopBitmap->getHeight();
+-
+-      // The default CImage has borders enabled with thickness of the border
+-      // width.  Add twice the thickness of the border to the width and height.
+-      // (We could let CImage do this for us by calling
+-      // CImage::getPreferredDimensions())
+-
+-      iconSize.w += 2 * 1;
+-      iconSize.h += 2 * 1;
+-
+-      // Pick an X/Y position such that the image will position at the right of
+-      // the toolbar and centered vertically.
++      // Give the stop control a larger hit area and inset it from the edge.
+ 
++      iconSize.w = buttonWidth;
++      iconSize.h = windowSize.h;
+       iconPos.x -= iconSize.w;
+-
+-      if (iconSize.h >= windowSize.h)
+-        {
+-          iconPos.y = 0;
+-        }
+-      else
+-        {
+-          iconPos.y = (windowSize.h - iconSize.h) >> 1;
+-        }
++      iconPos.y = 0;
+ 
+       // Now we have enough information to create the image
+ 
+@@ -237,7 +220,11 @@ bool CApplicationWindow::open(void)
+       // Configure 'this' to receive mouse click inputs from the image
+ 
+       m_stopImage->setBorderless(true);
++      m_stopImage->alignHorizontalCenter();
++      m_stopImage->alignVerticalCenter();
+       m_stopImage->addWidgetEventHandler(this);
++
++      iconPos.x -= buttonGap;
+     }
+ 
+ #ifndef CONFIG_NXWM_DISABLE_MINIMIZE
+@@ -249,32 +236,12 @@ bool CApplicationWindow::open(void)
+       return false;
+     }
+ 
+-  // Get the height and width of the stop bitmap
+-
+-  iconSize.w = m_minimizeBitmap->getWidth();
+-  iconSize.h = m_minimizeBitmap->getHeight();
+-
+-  // The default CImage has borders enabled with thickness of the border
+-  // width.  Add twice the thickness of the border to the width and height.
+-  // (We could let CImage do this for us by calling
+-  // CImage::getPreferredDimensions())
+-
+-  iconSize.w += 2 * 1;
+-  iconSize.h += 2 * 1;
+-
+-  // Pick an X/Y position such that the image will position at the right of
+-  // the toolbar and centered vertically.
++  // Give the minimize control a larger hit area.
+ 
++  iconSize.w = buttonWidth;
++  iconSize.h = windowSize.h;
+   iconPos.x -= iconSize.w;
+-
+-  if (iconSize.h >= windowSize.h)
+-    {
+-      iconPos.y = 0;
+-    }
+-  else
+-    {
+-      iconPos.y = (windowSize.h - iconSize.h) >> 1;
+-    }
++  iconPos.y = 0;
+ 
+   // Now we have enough information to create the image
+ 
+@@ -288,6 +255,8 @@ bool CApplicationWindow::open(void)
+   // Configure 'this' to receive mouse click inputs from the image
+ 
+   m_minimizeImage->setBorderless(true);
++  m_minimizeImage->alignHorizontalCenter();
++  m_minimizeImage->alignVerticalCenter();
+   m_minimizeImage->addWidgetEventHandler(this);
+ #endif
+ 
+diff --git a/graphics/nxwm/src/ccalibration.cxx b/graphics/nxwm/src/ccalibration.cxx
+index 262a9d567..001cc3713 100644
+--- a/graphics/nxwm/src/ccalibration.cxx
++++ b/graphics/nxwm/src/ccalibration.cxx
+@@ -581,10 +581,14 @@ FAR void *CCalibration::calibration(FAR void *arg)
+       gerr("ERROR: failed to create widgets\n");
+       return (FAR void *)0;
+     }
++#endif
+ 
++#ifdef CONFIG_NXWM_CALIBRATION_AVERAGE
+   // No samples have yet been collected
+ 
++#ifdef CONFIG_NXWM_CALIBRATION_AVERAGE
+   This->m_nsamples = 0;
++#endif
+ #endif
+ 
+   // The calibration thread is now running
+diff --git a/graphics/nxwm/src/cstartwindow.cxx b/graphics/nxwm/src/cstartwindow.cxx
+index 8ee409e27..b52187436 100644
+--- a/graphics/nxwm/src/cstartwindow.cxx
++++ b/graphics/nxwm/src/cstartwindow.cxx
+@@ -43,6 +43,8 @@
+  * Pre-Processor Definitions
+  ********************************************************************************************/
+ 
++#define STARTWINDOW_MIN_SPACING 12
++
+ /********************************************************************************************
+  * Global Data
+  ********************************************************************************************/
+@@ -237,8 +239,21 @@ void CStartWindow::redraw(void)
+   // Begin adding icons in the upper left corner
+ 
+   struct nxgl_point_s iconPos;
+-  iconPos.x = CONFIG_NXWM_STARTWINDOW_HSPACING;
+-  iconPos.y = CONFIG_NXWM_STARTWINDOW_VSPACING;
++  nxgl_coord_t horizontalSpacing = CONFIG_NXWM_STARTWINDOW_HSPACING;
++  nxgl_coord_t verticalSpacing = CONFIG_NXWM_STARTWINDOW_VSPACING;
++
++  if (horizontalSpacing < STARTWINDOW_MIN_SPACING)
++    {
++      horizontalSpacing = STARTWINDOW_MIN_SPACING;
++    }
++
++  if (verticalSpacing < STARTWINDOW_MIN_SPACING)
++    {
++      verticalSpacing = STARTWINDOW_MIN_SPACING;
++    }
++
++  iconPos.x = horizontalSpacing;
++  iconPos.y = verticalSpacing;
+ 
+   // Add each icon in the list of applications
+ 
+@@ -286,19 +301,19 @@ void CStartWindow::redraw(void)
+ 
+       // Advance the next icon position to the left
+ 
+-      iconPos.x +=  m_iconSize.w + CONFIG_NXWM_TASKBAR_HSPACING;
++      iconPos.x +=  m_iconSize.w + horizontalSpacing;
+ 
+       // If there is insufficient space on on this row for the next
+       // max-sized icon, then advance to the next row
+ 
+       if (iconPos.x + m_iconSize.w >= windowSize.w)
+         {
+-          iconPos.x  = CONFIG_NXWM_STARTWINDOW_HSPACING;
+-          iconPos.y += m_iconSize.h + CONFIG_NXWM_TASKBAR_VSPACING;
++          iconPos.x  = horizontalSpacing;
++          iconPos.y += m_iconSize.h + verticalSpacing;
+ 
+           // Don't try drawing past the bottom of the window
+ 
+-          if (iconPos.y >= windowSize.w)
++          if (iconPos.y + m_iconSize.h > windowSize.h)
+             {
+               break;
+             }
+diff --git a/graphics/nxwm/src/ctouchscreen.cxx b/graphics/nxwm/src/ctouchscreen.cxx
+index b7807c710..22ea0a1ff 100644
+--- a/graphics/nxwm/src/ctouchscreen.cxx
++++ b/graphics/nxwm/src/ctouchscreen.cxx
+@@ -78,6 +78,9 @@ CTouchscreen::CTouchscreen(NXWidgets::CNxServer *server, struct nxgl_size_s *win
+   // Use the default touch data buffer
+ 
+   m_touch       = &m_sample;
++  m_lastX       = 0;
++  m_lastY       = 0;
++  m_haveLastPosition = false;
+ 
+   // Initialize the m_waitSem semaphore so that any waits for data will block
+ 
+@@ -188,7 +191,25 @@ void CTouchscreen::setCalibrationData(const struct SCalibrationData &caldata)
+   // Wake up the listener thread so that it will use our buffer
+   // to receive data
+ 
+-  pthread_kill(m_thread, CONFIG_NXWM_TOUCHSCREEN_SIGNO);
++  wakeListener();
++}
++
++void CTouchscreen::setEnabled(bool enable)
++{
++  m_enabled = enable;
++  wakeListener();
++}
++
++void CTouchscreen::wakeListener(void)
++{
++  if (m_state == LISTENER_RUNNING)
++    {
++      int ret = pthread_kill(m_thread, CONFIG_NXWM_TOUCHSCREEN_SIGNO);
++      if (ret != 0)
++        {
++          gerr("ERROR: Failed to wake touchscreen listener: %d\n", ret);
++        }
++    }
+ }
+ 
+ /**
+@@ -356,7 +377,7 @@ FAR void *CTouchscreen::listener(FAR void *arg)
+ 
+ void CTouchscreen::handleMouseInput(struct touch_sample_s *sample)
+ {
+-  _info("Touch id: %d flags: %02x x: %d y: %d h: %d w: %d pressure: %d\n",
++  _info("Touch id: %d flags: %02x x: %d y: %d h: %d w: %d Rtouch: %d ohms\n",
+        sample->point[0].id, sample->point[0].flags, sample->point[0].x,
+        sample->point[0].y,  sample->point[0].h,     sample->point[0].w,
+        sample->point[0].pressure);
+@@ -383,6 +404,7 @@ void CTouchscreen::handleMouseInput(struct touch_sample_s *sample)
+ 
+       m_touch   = &m_sample;
+       m_capture = false;
++      m_haveLastPosition = false;
+       sem_post(&m_waitSem);
+       return;
+     }
+@@ -430,12 +452,7 @@ void CTouchscreen::handleMouseInput(struct touch_sample_s *sample)
+   nxgl_coord_t x;
+   nxgl_coord_t y;
+ 
+-  if ((sample->point[0].flags & TOUCH_POS_VALID) == 0)
+-    {
+-       x = 0;
+-       y = 0;
+-    }
+-  else
++  if ((sample->point[0].flags & TOUCH_POS_VALID) != 0)
+     {
+ #ifdef CONFIG_NXWM_CALIBRATION_ANISOTROPIC
+       // We have valid coordinates.  Get the raw touch
+@@ -547,10 +564,36 @@ void CTouchscreen::handleMouseInput(struct touch_sample_s *sample)
+       _info("raw: (%" PRId32 ", %" PRId32 ") scaled: (%d, %d)\n",
+             rawX, rawY, x, y);
+ #endif
++
++      m_lastX = x;
++      m_lastY = y;
++      m_haveLastPosition = true;
++    }
++  else if ((sample->point[0].flags & TOUCH_UP) != 0 &&
++           m_haveLastPosition)
++    {
++      // Some controllers do not include coordinates in the release sample.
++      // Release at the last valid position so widgets can complete the click.
++
++      x = m_lastX;
++      y = m_lastY;
++    }
++  else
++    {
++      return;
+     }
+ 
+   // Get the server handle and "inject the mouse data
+ 
+   NXHANDLE handle = m_server->getServer();
+-  nx_mousein(handle, x, y, buttons);
++  int ret = nx_mousein(handle, x, y, buttons);
++  if (ret < 0)
++    {
++      gerr("ERROR: nx_mousein failed: %d\n", ret);
++    }
++
++  if (buttons == NX_MOUSE_NOBUTTONS)
++    {
++      m_haveLastPosition = false;
++    }
+ }
+diff --git a/graphics/nxwm/src/nxwm_main.cxx b/graphics/nxwm/src/nxwm_main.cxx
+index 6b6a3ca1d..8c20cf3e6 100644
+--- a/graphics/nxwm/src/nxwm_main.cxx
++++ b/graphics/nxwm/src/nxwm_main.cxx
+@@ -78,6 +78,7 @@ struct SNxWmTest
+ /////////////////////////////////////////////////////////////////////////////
+ 
+ static struct SNxWmTest g_nxwmtest;
++static volatile bool g_nxwmStarted;
+ 
+ /////////////////////////////////////////////////////////////////////////////
+ // Public Function Prototypes
+@@ -119,6 +120,8 @@ static void testCleanUpAndExit(int exitCode)
+       delete g_nxwmtest.startwindow;
+     }
+ 
++  g_nxwmStarted = false;
++
+   // And exit
+ 
+   exit(exitCode);
+@@ -220,10 +223,11 @@ static bool createStartWindow(void)
+       return false;
+     }
+ 
+-  // Add the CStartWindow application to the task bar (minimized)
++  // Keep the start window available as the fallback once startup
++  // calibration completes.
+ 
+   printf("createStartWindow: Start the start window application\n");
+-  if (!g_nxwmtest.taskbar->startApplication(g_nxwmtest.startwindow, true))
++  if (!g_nxwmtest.taskbar->startApplication(g_nxwmtest.startwindow, false))
+     {
+       printf("createStartWindow: ERROR: Failed to start the start window application\n");
+       return false;
+@@ -485,6 +489,14 @@ static bool createMediaPlayer(void)
+ 
+ int main(int argc, char *argv[])
+ {
++  if (g_nxwmStarted)
++    {
++      printf("nxwm_main: Already running; ignoring duplicate launch\n");
++      return EXIT_SUCCESS;
++    }
++
++  g_nxwmStarted = true;
++
+ #ifdef CONFIG_NXWM_NXTERM
+   // Initialize the NSH library
+ 
+@@ -492,6 +504,7 @@ int main(int argc, char *argv[])
+   if (!NxWM::nshlibInitialize())
+     {
+       printf("nxwm_main: ERROR: Failed to initialize the NSH library\n");
++      g_nxwmStarted = false;
+       return EXIT_FAILURE;
+     }
+ #endif
+@@ -628,6 +641,9 @@ int main(int argc, char *argv[])
+         }
+     }
+ #endif
+-
+-  return EXIT_SUCCESS;
++  printf("nxwm_main: Window manager active\n");
++  for (;;)
++    {
++      sleep(1);
++    }
+ }
+diff --git a/include/graphics/nxwm/ctouchscreen.hxx b/include/graphics/nxwm/ctouchscreen.hxx
+index 7808f21ba..dce99c180 100644
+--- a/include/graphics/nxwm/ctouchscreen.hxx
++++ b/include/graphics/nxwm/ctouchscreen.hxx
+@@ -85,6 +85,9 @@ namespace NxWM
+     struct SCalibrationData      m_calibData;  /**< Calibration data */
+     struct touch_sample_s        m_sample;     /**< In normal mode, touch data is collected here */
+     struct touch_sample_s       *m_touch;      /**< Points to the current touch data buffer */
++    nxgl_coord_t                 m_lastX;      /**< Last valid pointer position */
++    nxgl_coord_t                 m_lastY;      /**< Last valid pointer position */
++    bool                         m_haveLastPosition;
+ 
+     /**
+      * The touchscreen listener thread.  This is the entry point of a thread that
+@@ -105,6 +108,8 @@ namespace NxWM
+ 
+     void handleMouseInput(struct touch_sample_s *sample);
+ 
++    void wakeListener(void);
++
+   public:
+ 
+     /**
+@@ -145,13 +150,7 @@ namespace NxWM
+      * @param capture.  True enables capture mode; false disables.
+      */
+ 
+-    inline void setEnabled(bool enable)
+-    {
+-      // Set the capture flag.  m_calibrated must also be set to get to normal
+-      // mode where touchscreen data is forwarded to NX.
+-
+-      m_enabled = enable;
+-    }
++    void setEnabled(bool enable);
+ 
+     /**
+      * Is the touchscreen calibrated?
+=== 3. RELEVANT .CONFIG FLAGS ===
+330:CONFIG_LPC17_40_SDCARD=y
+338:CONFIG_LPC17_40_SSP0=y
+358:CONFIG_LPC17_40_GPDMA=y
+404:CONFIG_LPC17_40_GPIOIRQ=y
+414:CONFIG_LPC17_40_SDCARD_DMA=y
+629:CONFIG_TIMER_ADJUST_NSEC=0
+759:CONFIG_SCHED_HPWORK=y
+761:CONFIG_SCHED_HPWORKPRIORITY=192
+762:CONFIG_SCHED_HPWORKSTACKSIZE=2048
+763:CONFIG_SCHED_HPWORKSTACKSECTION=""
+974:CONFIG_INPUT_ADS7843E=y
+976:CONFIG_ADS7843E_NPOLLWAITERS=4
+977:CONFIG_ADS7843E_SPIDEV=0
+978:CONFIG_ADS7843E_DEVMINOR=0
+979:CONFIG_ADS7843E_SPIMODE=1
+980:CONFIG_ADS7843E_FREQUENCY=100000
+982:CONFIG_ADS7843E_THRESHX=3
+983:CONFIG_ADS7843E_THRESHY=3
+1048:CONFIG_MMCSD=y
+1049:CONFIG_MMCSD_IOCSUPPORT=y
+1050:CONFIG_MMCSD_NSLOTS=1
+1053:CONFIG_MMCSD_MULTIBLOCK_LIMIT=0
+1054:CONFIG_MMCSD_MMCSUPPORT=y
+1057:CONFIG_SDIO_DMA=y
+1058:CONFIG_MMCSD_SDIO=y
+1061:CONFIG_SDIO_BLOCKSETUP=y
+1062:CONFIG_MMCSD_BLOCK_WDATADELAY=260
+2561:CONFIG_NXWM=y
+2580:CONFIG_NXWM_BACKGROUND_IMAGE="NXWidgets::g_nuttxBitmap160x160"
+2589:CONFIG_NXWM_TASKBAR_VSPACING=2
+2590:CONFIG_NXWM_TASKBAR_HSPACING=2
+2591:CONFIG_NXWM_TASKBAR_TOP=y
+2618:CONFIG_NXWM_STARTWINDOW_VSPACING=4
+2619:CONFIG_NXWM_STARTWINDOW_HSPACING=4
+2621:CONFIG_NXWM_STARTWINDOW_MQNAME="nxwm"
+2622:CONFIG_NXWM_STARTWINDOW_MXMSGS=32
+2623:CONFIG_NXWM_STARTWINDOW_MXMPRIO=42
+2624:CONFIG_NXWM_STARTWINDOW_PRIO=100
+2625:CONFIG_NXWM_STARTWINDOW_STACKSIZE=2048
+2630:CONFIG_NXWM_NXTERM=y
+2631:CONFIG_NXWM_NXTERM_PRIO=100
+2632:CONFIG_NXWM_NXTERM_STACKSIZE=2048
+2640:CONFIG_NXWM_TOUCHSCREEN=y
+2645:CONFIG_NXWM_TOUCHSCREEN_DEVNO=0
+2646:CONFIG_NXWM_TOUCHSCREEN_DEVPATH="/dev/input0"
+2647:CONFIG_NXWM_TOUCHSCREEN_SIGNO=32
+2648:CONFIG_NXWM_TOUCHSCREEN_LISTENERPRIO=120
+2649:CONFIG_NXWM_TOUCHSCREEN_LISTENERSTACK=4096
+2659:CONFIG_NXWM_CALIBRATION_MARGIN=50
+2664:CONFIG_NXWM_CALIBRATION_SIGNO=32
+2665:CONFIG_NXWM_CALIBRATION_LISTENERPRIO=100
+2666:CONFIG_NXWM_CALIBRATION_LISTENERSTACK=2048
+3000:CONFIG_NSH_MMCSDMINOR=0
+3001:CONFIG_NSH_MMCSDSLOTNO=0

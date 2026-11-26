@@ -1,0 +1,1580 @@
+┌──(bg9211014🎃kali)-[~/lpc1788_workspace/nuttx]
+└─$ bash << 'EOF'
+cd ~/lpc1788_workspace/nuttx || exit 1
+
+echo "=== 1. .config (FAT / MMCSD / DMA / DRAM / NXWM) ==="
+grep -nE "^CONFIG_(FAT_|MMCSD_|SDIO_|LPC17_40_EXTDRAM|LPC17_40_GPDMA|LPC17_40_SDCARD|DEBUG_DMA|DEBUG_MEMCARD|ADS7843E|NXWM_CALIBRATION)" .config
+
+echo "=== 2. lpc17_40_gpdma.h (tail) ==="
+sed -n '480,$p' arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h
+
+echo "=== 3. lpc17_40_gpdma.c (init & irq) ==="
+sed -n '120,405p' arch/arm/src/lpc17xx_40xx/lpc17_40_gpdma.c
+
+echo "=== 4. mmcsd_sdio.c (readsingle / writesingle / transfer) ==="
+grep -nE "^static .*mmcsd_(readsingle|writesingle|readmultiple|writemultiple|transfer)\(" drivers/mmcsd/mmcsd_sdio.c
+sed -n '2750,3150p' drivers/mmcsd/mmcsd_sdio.c
+
+echo "=== 5. open1788 bringup & board.h ==="
+sed -n '230,390p' boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_bringup.c
+sed -n '140,195p;325,360p' boards/arm/lpc17xx_40xx/open1788/include/board.h
+
+echo "=== 6. touchscreen.h ==="
+sed -n '40,180p' include/nuttx/input/touchscreen.h
+
+echo "=== 7. EA reference lpc177x_8x_mci.c DMA setup ==="
+sed -n '140,250p' ~/ss4/eanatty/lpc1788_samples/Lib_MCU/src/lpc177x_8x_mci.c
+
+echo "=== 8. nxwm_main.cxx (init sequence) ==="
+sed -n '160,340p' ../apps/graphics/nxwm/src/nxwm_main.cxx
+EOF
+=== 1. .config (FAT / MMCSD / DMA / DRAM / NXWM) ===
+330:CONFIG_LPC17_40_SDCARD=y
+358:CONFIG_LPC17_40_GPDMA=y
+373:CONFIG_LPC17_40_EXTDRAM=y
+374:CONFIG_LPC17_40_EXTDRAMSIZE=33554432
+378:CONFIG_LPC17_40_EXTDRAMHEAP=y
+379:CONFIG_LPC17_40_EXTDRAMHEAP_OFFSET=1048576
+414:CONFIG_LPC17_40_SDCARD_DMA=y
+976:CONFIG_ADS7843E_NPOLLWAITERS=4
+977:CONFIG_ADS7843E_SPIDEV=0
+978:CONFIG_ADS7843E_DEVMINOR=0
+979:CONFIG_ADS7843E_SPIMODE=1
+980:CONFIG_ADS7843E_FREQUENCY=100000
+982:CONFIG_ADS7843E_THRESHX=3
+983:CONFIG_ADS7843E_THRESHY=3
+1049:CONFIG_MMCSD_IOCSUPPORT=y
+1050:CONFIG_MMCSD_NSLOTS=1
+1053:CONFIG_MMCSD_MULTIBLOCK_LIMIT=0
+1054:CONFIG_MMCSD_MMCSUPPORT=y
+1057:CONFIG_SDIO_DMA=y
+1058:CONFIG_MMCSD_SDIO=y
+1062:CONFIG_MMCSD_BLOCK_WDATADELAY=260
+1689:CONFIG_FAT_LCNAMES=y
+1690:CONFIG_FAT_LFN=y
+1691:CONFIG_FAT_MAXFNAME=64
+1694:CONFIG_FAT_LFN_ALIAS_TRAILCHARS=0
+2659:CONFIG_NXWM_CALIBRATION_MARGIN=50
+2664:CONFIG_NXWM_CALIBRATION_SIGNO=32
+2665:CONFIG_NXWM_CALIBRATION_LISTENERPRIO=100
+2666:CONFIG_NXWM_CALIBRATION_LISTENERSTACK=2048
+=== 2. lpc17_40_gpdma.h (tail) ===
+#define DMACH_CONTROL_DBSIZE_MASK         (7 << DMACH_CONTROL_DBSIZE_SHIFT)
+#  define DMACH_CONTROL_DBSIZE_1          (0 << DMACH_CONTROL_DBSIZE_SHIFT)
+#  define DMACH_CONTROL_DBSIZE_4          (1 << DMACH_CONTROL_DBSIZE_SHIFT)
+#  define DMACH_CONTROL_DBSIZE_8          (2 << DMACH_CONTROL_DBSIZE_SHIFT)
+#  define DMACH_CONTROL_DBSIZE_16         (3 << DMACH_CONTROL_DBSIZE_SHIFT)
+#  define DMACH_CONTROL_DBSIZE_32         (4 << DMACH_CONTROL_DBSIZE_SHIFT)
+#  define DMACH_CONTROL_DBSIZE_64         (5 << DMACH_CONTROL_DBSIZE_SHIFT)
+#  define DMACH_CONTROL_DBSIZE_128        (6 << DMACH_CONTROL_DBSIZE_SHIFT)
+#  define DMACH_CONTROL_DBSIZE_256        (7 << DMACH_CONTROL_DBSIZE_SHIFT)
+
+#define DMACH_CONTROL_SWIDTH_SHIFT        (18)      /* Bits 18-20: Source transfer width */
+#define DMACH_CONTROL_SWIDTH_MASK         (7 << DMACH_CONTROL_SWIDTH_SHIFT)
+#  define DMACH_CONTROL_SWIDTH_8BIT       (0 << DMACH_CONTROL_SWIDTH_SHIFT) /* Byte (8-bit) */
+#  define DMACH_CONTROL_SWIDTH_16BIT      (1 << DMACH_CONTROL_SWIDTH_SHIFT) /* Halfword (16-bit) */
+#  define DMACH_CONTROL_SWIDTH_32BIT      (2 << DMACH_CONTROL_SWIDTH_SHIFT) /* Word (32-bit) */
+
+#define DMACH_CONTROL_DWIDTH_SHIFT        (21)      /* Bits 21-23: Destination transfer width */
+#define DMACH_CONTROL_DWIDTH_MASK         (7 << DMACH_CONTROL_DWIDTH_SHIFT)
+#  define DMACH_CONTROL_DWIDTH_8BIT       (0 << DMACH_CONTROL_DWIDTH_SHIFT) /* Byte (8-bit) */
+#  define DMACH_CONTROL_DWIDTH_16BIT      (1 << DMACH_CONTROL_DWIDTH_SHIFT) /* Halfword (16-bit) */
+#  define DMACH_CONTROL_DWIDTH_32BIT      (2 << DMACH_CONTROL_DWIDTH_SHIFT) /* Word (32-bit) */
+
+#define DMACH_CONTROL_SI                  (1 << 26) /* Bit 26: Source increment */
+#define DMACH_CONTROL_DI                  (1 << 27) /* Bit 27: Destination increment */
+#define DMACH_CONTROL_PROT1               (1 << 28) /* Bit 28: User/privileged mode */
+#define DMACH_CONTROL_PROT2               (1 << 29) /* Bit 29: Bufferable */
+#define DMACH_CONTROL_PROT3               (1 << 30) /* Bit 30: Cacheable */
+#define DMACH_CONTROL_I                   (1 << 31) /* Bit 31: Terminal count interrupt enable */
+
+/* DMA Channel Configuration Register */
+
+#define DMACH_CONFIG_E                    (1 << 0) /* Bit 0: Channel enable */
+#define DMACH_CONFIG_SRCPER_SHIFT         (1)      /* Bits 1-5: Source peripheral */
+#define DMACH_CONFIG_SRCPER_MASK          (31 << DMACH_CONFIG_SRCPER_SHIFT)
+#  define DMACH_CONFIG_SRCPER_SDCARD      (DMA_REQ_SDCARD << DMACH_CONFIG_SRCPER_SHIFT)
+#  define DMACH_CONFIG_SRCPER_SSP0TX      (DMA_REQ_SSP0TX << DMACH_CONFIG_SRCPER_SHIFT)
+#  define DMACH_CONFIG_SRCPER_SSP0RX      (DMA_REQ_SSP0RX << DMACH_CONFIG_SRCPER_SHIFT)
+#  define DMACH_CONFIG_SRCPER_SSP1TX      (DMA_REQ_SSP1TX << DMACH_CONFIG_SRCPER_SHIFT)
+#  define DMACH_CONFIG_SRCPER_SSP1RX      (DMA_REQ_SSP1RX << DMACH_CONFIG_SRCPER_SHIFT)
+#  define DMACH_CONFIG_SRCPER_SSP2TX      (DMA_REQ_SSP2TX << DMACH_CONFIG_SRCPER_SHIFT)
+#  define DMACH_CONFIG_SRCPER_SSP2RX      (DMA_REQ_SSP2RX << DMACH_CONFIG_SRCPER_SHIFT)
+#  define DMACH_CONFIG_SRCPER_I2SCH0      (DMA_REQ_I2SCH0 << DMACH_CONFIG_SRCPER_SHIFT)
+#  define DMACH_CONFIG_SRCPER_I2SCH1      (DMA_REQ_I2SCH1 << DMACH_CONFIG_SRCPER_SHIFT)
+#  define DMACH_CONFIG_SRCPER_ADC         (DMA_REQ_ADC << DMACH_CONFIG_SRCPER_SHIFT)
+#  define DMACH_CONFIG_SRCPER_DAC         (DMA_REQ_DAC << DMACH_CONFIG_SRCPER_SHIFT)
+#  define DMACH_CONFIG_SRCPER_UART0TX     (DMA_REQ_UART0TX << DMACH_CONFIG_SRCPER_SHIFT)
+#  define DMACH_CONFIG_SRCPER_UART0RX     (DMA_REQ_UART0RX << DMACH_CONFIG_SRCPER_SHIFT)
+#  define DMACH_CONFIG_SRCPER_UART1TX     (DMA_REQ_UART1TX << DMACH_CONFIG_SRCPER_SHIFT)
+#  define DMACH_CONFIG_SRCPER_UART1RX     (DMA_REQ_UART1RX << DMACH_CONFIG_SRCPER_SHIFT)
+#  define DMACH_CONFIG_SRCPER_UART2TX     (DMA_REQ_UART2TX << DMACH_CONFIG_SRCPER_SHIFT)
+#  define DMACH_CONFIG_SRCPER_UART2RX     (DMA_REQ_UART2RX << DMACH_CONFIG_SRCPER_SHIFT)
+#  define DMACH_CONFIG_SRCPER_UART3TX     (DMA_REQ_UART3TX << DMACH_CONFIG_SRCPER_SHIFT)
+#  define DMACH_CONFIG_SRCPER_UART3RX     (DMA_REQ_UART3RX << DMACH_CONFIG_SRCPER_SHIFT)
+#  define DMACH_CONFIG_SRCPER_UART4TX     (DMA_REQ_UART4TX << DMACH_CONFIG_SRCPER_SHIFT)
+#  define DMACH_CONFIG_SRCPER_UART4RX     (DMA_REQ_UART4RX << DMACH_CONFIG_SRCPER_SHIFT)
+#  define DMACH_CONFIG_SRCPER_MAT0p0      (DMA_REQ_MAT0p0 << DMACH_CONFIG_SRCPER_SHIFT)
+#  define DMACH_CONFIG_SRCPER_MAT0p1      (DMA_REQ_MAT0p1 << DMACH_CONFIG_SRCPER_SHIFT)
+#  define DMACH_CONFIG_SRCPER_MAT1p0      (DMA_REQ_MAT1p0 << DMACH_CONFIG_SRCPER_SHIFT)
+#  define DMACH_CONFIG_SRCPER_MAT1p1      (DMA_REQ_MAT1p1 << DMACH_CONFIG_SRCPER_SHIFT)
+#  define DMACH_CONFIG_SRCPER_MAT2p0      (DMA_REQ_MAT2p0 << DMACH_CONFIG_SRCPER_SHIFT)
+#  define DMACH_CONFIG_SRCPER_MAT2p1      (DMA_REQ_MAT2p1 << DMACH_CONFIG_SRCPER_SHIFT)
+#  define DMACH_CONFIG_SRCPER_MAT3p0      (DMA_REQ_MAT3p0 << DMACH_CONFIG_SRCPER_SHIFT)
+#  define DMACH_CONFIG_SRCPER_MAT3p1      (DMA_REQ_MAT3p1 << DMACH_CONFIG_SRCPER_SHIFT)
+#define DMACH_CONFIG_DSTPER_SHIFT         (6)      /* Bits 6-10: Destination peripheral */
+#define DMACH_CONFIG_DSTPER_MASK          (31 << DMACH_CONFIG_DSTPER_SHIFT)
+#  define DMACH_CONFIG_DSTPER_SDCARD      (DMA_REQ_SDCARD << DMACH_CONFIG_DSTPER_SHIFT)
+#  define DMACH_CONFIG_DSTPER_SSP0TX      (DMA_REQ_SSP0TX << DMACH_CONFIG_DSTPER_SHIFT)
+#  define DMACH_CONFIG_DSTPER_SSP0RX      (DMA_REQ_SSP0RX << DMACH_CONFIG_DSTPER_SHIFT)
+#  define DMACH_CONFIG_DSTPER_SSP1TX      (DMA_REQ_SSP1TX << DMACH_CONFIG_DSTPER_SHIFT)
+#  define DMACH_CONFIG_DSTPER_SSP1RX      (DMA_REQ_SSP1RX << DMACH_CONFIG_DSTPER_SHIFT)
+#  define DMACH_CONFIG_DSTPER_SSP2TX      (DMA_REQ_SSP2TX << DMACH_CONFIG_DSTPER_SHIFT)
+#  define DMACH_CONFIG_DSTPER_SSP2RX      (DMA_REQ_SSP2RX << DMACH_CONFIG_DSTPER_SHIFT)
+#  define DMACH_CONFIG_DSTPER_I2SCH0      (DMA_REQ_I2SCH0 << DMACH_CONFIG_DSTPER_SHIFT)
+#  define DMACH_CONFIG_DSTPER_I2SCH1      (DMA_REQ_I2SCH1 << DMACH_CONFIG_DSTPER_SHIFT)
+#  define DMACH_CONFIG_DSTPER_ADC         (DMA_REQ_ADC << DMACH_CONFIG_DSTPER_SHIFT)
+#  define DMACH_CONFIG_DSTPER_DAC         (DMA_REQ_DAC << DMACH_CONFIG_DSTPER_SHIFT)
+#  define DMACH_CONFIG_DSTPER_UART0TX     (DMA_REQ_UART0TX << DMACH_CONFIG_DSTPER_SHIFT)
+#  define DMACH_CONFIG_DSTPER_UART0RX     (DMA_REQ_UART0RX << DMACH_CONFIG_DSTPER_SHIFT)
+#  define DMACH_CONFIG_DSTPER_UART1TX     (DMA_REQ_UART1TX << DMACH_CONFIG_DSTPER_SHIFT)
+#  define DMACH_CONFIG_DSTPER_UART1RX     (DMA_REQ_UART1RX << DMACH_CONFIG_DSTPER_SHIFT)
+#  define DMACH_CONFIG_DSTPER_UART2TX     (DMA_REQ_UART2TX << DMACH_CONFIG_DSTPER_SHIFT)
+#  define DMACH_CONFIG_DSTPER_UART2RX     (DMA_REQ_UART2RX << DMACH_CONFIG_DSTPER_SHIFT)
+#  define DMACH_CONFIG_DSTPER_UART3TX     (DMA_REQ_UART3TX << DMACH_CONFIG_DSTPER_SHIFT)
+#  define DMACH_CONFIG_DSTPER_UART3RX     (DMA_REQ_UART3RX << DMACH_CONFIG_DSTPER_SHIFT)
+#  define DMACH_CONFIG_DSTPER_UART4TX     (DMA_REQ_UART4TX << DMACH_CONFIG_DSTPER_SHIFT)
+#  define DMACH_CONFIG_DSTPER_UART4RX     (DMA_REQ_UART4RX << DMACH_CONFIG_DSTPER_SHIFT)
+#  define DMACH_CONFIG_DSTPER_MAT0p0      (DMA_REQ_MAT0p0 << DMACH_CONFIG_DSTPER_SHIFT)
+#  define DMACH_CONFIG_DSTPER_MAT0p1      (DMA_REQ_MAT0p1 << DMACH_CONFIG_DSTPER_SHIFT)
+#  define DMACH_CONFIG_DSTPER_MAT1p0      (DMA_REQ_MAT1p0 << DMACH_CONFIG_DSTPER_SHIFT)
+#  define DMACH_CONFIG_DSTPER_MAT1p1      (DMA_REQ_MAT1p1 << DMACH_CONFIG_DSTPER_SHIFT)
+#  define DMACH_CONFIG_DSTPER_MAT2p0      (DMA_REQ_MAT2p0 << DMACH_CONFIG_DSTPER_SHIFT)
+#  define DMACH_CONFIG_DSTPER_MAT2p1      (DMA_REQ_MAT2p1 << DMACH_CONFIG_DSTPER_SHIFT)
+#  define DMACH_CONFIG_DSTPER_MAT3p0      (DMA_REQ_MAT3p0 << DMACH_CONFIG_DSTPER_SHIFT)
+#  define DMACH_CONFIG_DSTPER_MAT3p1      (DMA_REQ_MAT3p1 << DMACH_CONFIG_DSTPER_SHIFT)
+#define DMACH_CONFIG_XFRTYPE_SHIFT        (11)      /* Bits 11-13: Type of transfer */
+#define DMACH_CONFIG_XFRTYPE_MASK         (7 << DMACH_CONFIG_XFRTYPE_SHIFT)
+                                                                            /* Flow controller = DMA controller */
+#  define DMACH_CONFIG_XFRTYPE_M2M        (0 << DMACH_CONFIG_XFRTYPE_SHIFT) /*   Memory to memory */
+#  define DMACH_CONFIG_XFRTYPE_M2P        (1 << DMACH_CONFIG_XFRTYPE_SHIFT) /*   Memory to peripheral */
+#  define DMACH_CONFIG_XFRTYPE_P2M        (2 << DMACH_CONFIG_XFRTYPE_SHIFT) /*   Peripheral to memory */
+#  define DMACH_CONFIG_XFRTYPE_P2P        (3 << DMACH_CONFIG_XFRTYPE_SHIFT) /*   Peripheral to peripheral */
+#ifdef LPC178x_40xx
+                                                                            /* Flow controller = Dest peripheral */
+#  define DMACH_CONFIG_XFRTYPE_M2M_DC     (4 << DMACH_CONFIG_XFRTYPE_SHIFT) /* Memory to memory */
+#  define DMACH_CONFIG_XFRTYPE_M2P_DC     (5 << DMACH_CONFIG_XFRTYPE_SHIFT) /* Memory to peripheral */
+                                                                            /* Flow controller = Source peripheral */
+#  define DMACH_CONFIG_XFRTYPE_P2M_SC     (6 << DMACH_CONFIG_XFRTYPE_SHIFT) /* Peripheral to memory */
+#  define DMACH_CONFIG_XFRTYPE_P2P_SC     (7 << DMACH_CONFIG_XFRTYPE_SHIFT) /* Peripheral to peripheral */
+#endif
+#define DMACH_CONFIG_IE                   (1 << 14) /* Bit 14: Interrupt error mask */
+#define DMACH_CONFIG_ITC                  (1 << 15) /* Bit 15: Terminal count interrupt mask */
+#define DMACH_CONFIG_L                    (1 << 16) /* Bit 16: Lock */
+#define DMACH_CONFIG_A                    (1 << 17) /* Bit 17: Active */
+#define DMACH_CONFIG_H                    (1 << 18) /* Bit 18: Halt */
+                                                    /* Bits 19-31: Reserved */
+
+/****************************************************************************
+ * Public Types
+ ****************************************************************************/
+
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+/****************************************************************************
+ * Public Functions Prototypes
+ ****************************************************************************/
+
+#endif /* __ARCH_ARM_SRC_LPC17XX_40XX_HARDWARE_LPC17_40_GPDMA_H */
+=== 3. lpc17_40_gpdma.c (init & irq) ===
+ *   None
+ *
+ ****************************************************************************/
+
+static void lpc17_40_dmainprogress(struct lpc17_40_dmach_s *dmach)
+{
+  irqstate_t flags;
+
+  /* Increment the DMA in progress counter */
+
+  flags = enter_critical_section();
+  DEBUGASSERT(!dmach->inprogress && g_dma_inprogress < LPC17_40_NDMACH);
+  g_dma_inprogress++;
+  dmach->inprogress = true;
+  leave_critical_section(flags);
+}
+
+/****************************************************************************
+ * Name: lpc17_40_dmadone
+ *
+ * Description:
+ *   A DMA has completed. Decrement the g_dma_inprogress counter.
+ *
+ *   This function is called only from lpc17_40_dmastop which, in turn, will
+ *   be called either by the user directly, by the user indirectly via
+ *   lpc17_40_dmafree(), or from gpdma_interrupt when the transfer completes.
+ *
+ *   NOTE: In the first two cases, we must be able to handle the case where
+ *   there is no DMA in progress and gracefully ignore the call.
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+static void lpc17_40_dmadone(struct lpc17_40_dmach_s *dmach)
+{
+  irqstate_t flags;
+
+  /* Increment the DMA in progress counter */
+
+  flags = enter_critical_section();
+  if (dmach->inprogress)
+    {
+      DEBUGASSERT(g_dma_inprogress > 0);
+      dmach->inprogress = false;
+      g_dma_inprogress--;
+    }
+
+  leave_critical_section(flags);
+}
+
+/****************************************************************************
+ * Name: gpdma_interrupt
+ *
+ * Description:
+ *   The common GPDMA interrupt handler.
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+static int gpdma_interrupt(int irq, void *context, void *arg)
+{
+  struct lpc17_40_dmach_s *dmach;
+  uint32_t regval;
+  uint32_t chbit;
+  int result;
+  int i;
+
+  /* Check each DMA channel */
+
+  for (i = 0; i < LPC17_40_NDMACH; i++)
+    {
+      chbit = DMACH((uint32_t)i);
+
+      /* Is there an interrupt pending for this channel?  If the bit for
+       * this channel is set, that indicates that a specific DMA channel
+       * interrupt request is active. The request can be generated from
+       * either the error or terminal count interrupt requests.
+       */
+
+      regval = getreg32(LPC17_40_DMA_INTST);
+      if ((regval & chbit) != 0)
+        {
+          /* Yes.. Is this channel assigned? Is there a callback function? */
+
+          dmach = &g_gpdma.dmach[i];
+          if (dmach->inuse && dmach->callback)
+            {
+              /* Yes.. did an error occur? */
+
+              regval = getreg32(LPC17_40_DMA_INTERRST);
+              if ((regval & chbit) != 0)
+                {
+                  /* Yes.. report error status */
+
+                  result = -EIO;
+                }
+
+              /* Then this must be a terminal transfer event */
+
+              else
+                {
+                  /* Let's make sure it is the terminal transfer event. */
+
+                  regval = getreg32(LPC17_40_DMA_INTTCST);
+                  if ((regval & chbit) != 0)
+                    {
+                      result = OK;
+                    }
+
+                  /* This should not happen */
+
+                  else
+                    {
+                      result = -EINVAL;
+                    }
+                }
+
+              /* Perform the callback */
+
+              dmach->callback((DMA_HANDLE)dmach, dmach->arg, result);
+            }
+
+          /* Disable this channel, mask any further interrupts for
+           * this channel, and clear any pending interrupts.
+           */
+
+          lpc17_40_dmastop((DMA_HANDLE)dmach);
+        }
+    }
+
+  return OK;
+}
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: arm_dma_initialize
+ *
+ * Description:
+ *   Initialize the GPDMA subsystem.  Called from up_initialize() early in
+ *   the boot-up sequence.  Prototyped in arm_internal.h.
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+void weak_function arm_dma_initialize(void)
+{
+  uint32_t regval;
+  int ret;
+  int i;
+
+  /* Enable clocking to the GPDMA block */
+
+  regval  = getreg32(LPC17_40_SYSCON_PCONP);
+  regval |= SYSCON_PCONP_PCGPDMA;
+  putreg32(regval, LPC17_40_SYSCON_PCONP);
+
+  /* Reset all channel configurations */
+
+  for (i = 0; i < LPC17_40_NDMACH; i++)
+    {
+      putreg32(0, LPC17_40_DMACH_CONFIG(i));
+    }
+
+  /* Clear all DMA interrupts */
+
+  putreg32(DMACH_ALL, LPC17_40_DMA_INTTCCLR);
+  putreg32(DMACH_ALL, LPC17_40_DMA_INTERRCLR);
+
+  /* Initialize the DMA state structure */
+
+  for (i = 0; i < LPC17_40_NDMACH; i++)
+    {
+      g_gpdma.dmach[i].chn   = i;      /* Channel number */
+      g_gpdma.dmach[i].inuse = false;  /* Channel is not in-use */
+    }
+
+  /* Attach and enable the common interrupt handler */
+
+  ret = irq_attach(LPC17_40_IRQ_GPDMA, gpdma_interrupt, NULL);
+  if (ret == OK)
+    {
+      up_enable_irq(LPC17_40_IRQ_GPDMA);
+    }
+
+  /* Enable the DMA controller (for little endian operation) */
+
+  putreg32(DMA_CONFIG_E, LPC17_40_DMA_CONFIG);
+}
+
+/****************************************************************************
+ * Name: lpc17_40_dmaconfigure
+ *
+ * Description:
+ *   Configure a DMA request.  Each DMA request may have two different DMA
+ *   request sources.  This associates one of the sources with a DMA request.
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+void lpc17_40_dmaconfigure(uint8_t dmarequest, bool alternate)
+{
+  uint32_t regval;
+
+  DEBUGASSERT(dmarequest < LPC17_40_NDMAREQ);
+
+#ifdef LPC176x
+  /* For the LPC176x family, only request numbers 8-15 have DMASEL bits */
+
+  if (dmarequest < 8)
+    {
+      return;
+    }
+
+  dmarequest -= 8;
+#endif
+
+  /* Set or clear the DMASEL bit corresponding to the request number */
+
+  regval = getreg32(LPC17_40_SYSCON_DMAREQSEL);
+
+  if (alternate)
+    {
+      regval |= (1 << dmarequest);
+    }
+  else
+    {
+      regval &= ~(1 << dmarequest);
+    }
+
+  putreg32(regval, LPC17_40_SYSCON_DMAREQSEL);
+}
+
+/****************************************************************************
+ * Name: lpc17_40_dmachannel
+ *
+ * Description:
+ *   Allocate a DMA channel.  This function sets aside a DMA channel and
+ *   gives the caller exclusive access to the DMA channel.
+ *
+ * Returned Value:
+ *   On success, this function returns a non-NULL, void* DMA channel handle.
+ *   NULL is returned on any failure.  This function can fail only if no DMA
+ *   channel is available.
+ *
+ ****************************************************************************/
+
+DMA_HANDLE lpc17_40_dmachannel(void)
+{
+  struct lpc17_40_dmach_s *dmach = NULL;
+  int i;
+  int ret;
+
+  /* Get exclusive access to the GPDMA state structure */
+
+  ret = nxmutex_lock(&g_gpdma.lock);
+  if (ret < 0)
+    {
+      return NULL;
+    }
+
+  /* Find an available DMA channel */
+
+  for (i = 0; i < LPC17_40_NDMACH; i++)
+    {
+      if (!g_gpdma.dmach[i].inuse)
+        {
+          /* Found one! */
+
+          dmach = &g_gpdma.dmach[i];
+          g_gpdma.dmach[i].inuse = true;
+          break;
+        }
+    }
+
+  /* Return what we found (or not) */
+=== 4. mmcsd_sdio.c (readsingle / writesingle / transfer) ===
+210:static ssize_t mmcsd_readsingle(FAR struct mmcsd_part_s *part,
+213:static ssize_t mmcsd_readmultiple(FAR struct mmcsd_part_s *part,
+217:static ssize_t mmcsd_writesingle(FAR struct mmcsd_part_s *part,
+221:static ssize_t mmcsd_writemultiple(FAR struct mmcsd_part_s *part,
+1584:static ssize_t mmcsd_readsingle(FAR struct mmcsd_part_s *part,
+1743:static ssize_t mmcsd_readmultiple(FAR struct mmcsd_part_s *part,
+1941:static ssize_t mmcsd_writesingle(FAR struct mmcsd_part_s *part,
+2135:static ssize_t mmcsd_writemultiple(FAR struct mmcsd_part_s *part,
+      return ret;
+    }
+
+  switch (cmd)
+    {
+      case BIOC_PROBE: /* Check for media in the slot */
+        {
+          finfo("BIOC_PROBE\n");
+
+          /* Probe the MMC/SD slot for media */
+
+          ret = mmcsd_probe(priv);
+          if (ret != OK)
+            {
+              ferr("ERROR: mmcsd_probe failed: %d\n", ret);
+            }
+        }
+        break;
+
+      case BIOC_EJECT: /* Media has been removed from the slot */
+        {
+          finfo("BIOC_EJECT\n");
+
+          /* Process the removal of the card */
+
+          ret = mmcsd_removed(priv);
+          if (ret != OK)
+            {
+              ferr("ERROR: mmcsd_removed failed: %d\n", ret);
+            }
+
+          /* Enable logic to detect if a card is re-inserted */
+
+          SDIO_CALLBACKENABLE(priv->dev, SDIOMEDIA_INSERTED);
+        }
+        break;
+
+#ifdef CONFIG_MMCSD_IOCSUPPORT
+      case MMC_IOC_CMD: /* MMCSD device ioctl commands */
+        {
+          finfo("MMC_IOC_CMD\n");
+          ret = mmcsd_iocmd(part, (FAR struct mmc_ioc_cmd *)arg);
+          if (ret != OK)
+            {
+              ferr("ERROR: mmcsd_iocmd failed: %d\n", ret);
+            }
+        }
+        break;
+
+      case MMC_IOC_MULTI_CMD: /* MMCSD device ioctl multi commands */
+        {
+          finfo("MMC_IOC_MULTI_CMD\n");
+          ret = mmcsd_multi_iocmd(part, (FAR struct mmc_ioc_multi_cmd *)arg);
+          if (ret != OK)
+            {
+              ferr("ERROR: mmcsd_iocmd failed: %d\n", ret);
+            }
+        }
+        break;
+#endif
+
+      default:
+        ret = -ENOTTY;
+        break;
+    }
+
+  mmcsd_unlock(priv);
+  return ret;
+}
+
+/****************************************************************************
+ * Initialization/uninitialization/reset
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: mmcsd_mediachange
+ *
+ * Description:
+ *  This is a callback function from the SDIO driver that indicates that
+ *  there has been a change in the slot... either a card has been inserted
+ *  or a card has been removed.
+ *
+ * Assumptions:
+ *   This callback is NOT supposd to run in the context of an interrupt
+ *   handler; it is probably running in the context of work thread.
+ *
+ ****************************************************************************/
+
+static void mmcsd_mediachange(FAR void *arg)
+{
+  FAR struct mmcsd_state_s *priv = (FAR struct mmcsd_state_s *)arg;
+  int ret;
+
+  finfo("arg: %p\n", arg);
+  DEBUGASSERT(priv);
+
+  /* Is there a card present in the slot? */
+
+  ret = mmcsd_lock(priv);
+  if (ret < 0)
+    {
+      return;
+    }
+
+  if (SDIO_PRESENT(priv->dev))
+    {
+      /* Yes... process the card insertion.  This could cause chaos if we
+       * think that a card is already present and there are mounted file
+       * systems!  NOTE that mmcsd_probe() will always re-enable callbacks
+       * appropriately.
+       */
+
+      mmcsd_probe(priv);
+    }
+  else
+    {
+      /* No... process the card removal.  This could have very bad
+       * implications for any mounted file systems!  NOTE that
+       * mmcsd_removed() does NOT re-enable callbacks so we will need to
+       * do that here.
+       */
+
+      mmcsd_removed(priv);
+
+      /* Enable logic to detect if a card is re-inserted */
+
+      SDIO_CALLBACKENABLE(priv->dev, SDIOMEDIA_INSERTED);
+    }
+
+  mmcsd_unlock(priv);
+}
+
+/****************************************************************************
+ * Name: mmcsd_sd_highspeed
+ *
+ * Description:
+ *   Switch an SD card from default speed into high speed timing with CMD6,
+ *   doubling the rate the bus may then be clocked at.
+ *
+ *   The card's answer is believed rather than the command's: the status
+ *   block it returns reports the function it actually selected, and a card
+ *   that cannot do what was asked says so there instead of failing the
+ *   command.  Only a card that confirms the switch is reported switched,
+ *   because the caller raises the clock on the strength of this and a card
+ *   still in default speed is out of specification above twenty five
+ *   megahertz.
+ *
+ * Assumptions:
+ *   Called once per card, from the initialization sequence, with the card
+ *   selected and the bus already at the default transfer clock.  The
+ *   sixty four byte status block is read through the interrupt path rather
+ *   than by DMA: it is smaller than the setup it would take, and it keeps
+ *   the caller's stack off the requirements a DMA capable buffer has.
+ *
+ * Returned Value:
+ *   OK if the card confirms the switch, a negated errno otherwise.  Every
+ *   failure is survivable: the caller stays at the default rate.
+ *
+ ****************************************************************************/
+
+static int mmcsd_sd_highspeed(FAR struct mmcsd_state_s *priv)
+{
+  uint8_t status[MMCSD_SWITCH_BLOCKLEN];
+  int ret;
+
+  if (priv->sdversion < MMCSD_SCR_SPEC_1_10)
+    {
+      finfo("Card predates CMD6, staying at default speed\n");
+      return -ENOTSUP;
+    }
+
+  ret = mmcsd_setblocklen(priv, MMCSD_SWITCH_BLOCKLEN);
+  if (ret != OK)
+    {
+      ferr("ERROR: mmcsd_setblocklen failed: %d\n", ret);
+      return ret;
+    }
+
+  SDIO_BLOCKSETUP(priv->dev, MMCSD_SWITCH_BLOCKLEN, 1);
+  SDIO_RECVSETUP(priv->dev, status, MMCSD_SWITCH_BLOCKLEN);
+  SDIO_WAITENABLE(priv->dev,
+                  SDIOWAIT_TRANSFERDONE | SDIOWAIT_TIMEOUT | SDIOWAIT_ERROR,
+                  MMCSD_SWITCH_DATADELAY);
+
+  mmcsd_sendcmdpoll(priv, SD_CMD6, MMCSD_SWITCH_HIGHSPEED);
+  ret = mmcsd_recv_r1(priv, SD_CMD6);
+  if (ret != OK)
+    {
+      ferr("ERROR: RECVR1 for CMD6 failed: %d\n", ret);
+      SDIO_CANCEL(priv->dev);
+      return ret;
+    }
+
+  ret = mmcsd_eventwait(priv, SDIOWAIT_TIMEOUT | SDIOWAIT_ERROR);
+  if (ret != OK)
+    {
+      ferr("ERROR: mmcsd_eventwait for switch status failed: %d\n", ret);
+      return ret;
+    }
+
+  if ((status[MMCSD_SWITCH_STATUS_MODE] & 15) !=
+      MMCSD_SWITCH_MODE_HIGHSPEED)
+    {
+      finfo("Card declined high speed, staying at default speed\n");
+      return -EIO;
+    }
+
+  /* The specification asks for eight clocks after the switch before the
+   * card is spoken to again.  This reuses the driver's clock change delay,
+   * which is far longer than that.
+   */
+
+  MMCSD_USLEEP(MMCSD_CLK_DELAY);
+
+  finfo("Card switched to high speed\n");
+  return OK;
+}
+
+/****************************************************************************
+ * Name: mmcsd_widebus
+ *
+ * Description:
+ *  An SD card has been inserted and its SCR has been obtained.  Select wide
+ *  (4-bit) bus operation if the card supports it.
+ *
+ * Assumptions:
+ *   This function is called only once per card insertion as part of the SD
+ *   card initialization sequence.  It is not necessary to reselect the card
+ *   there is not need to check if wide bus operation has already been
+ *   selected.
+ *
+ ****************************************************************************/
+
+static int mmcsd_widebus(FAR struct mmcsd_state_s *priv)
+{
+  int ret;
+
+  /* Check if the SD card supports wide bus operation (as reported in the
+   * SCR or in the SDIO driver capabililities)
+   */
+
+  if (IS_SD(priv->type) &&
+      (priv->buswidth & MMCSD_SCR_BUSWIDTH_4BIT) != 0 &&
+      (priv->caps & SDIO_CAPS_1BIT_ONLY) == 0)
+    {
+      /* SD card supports 4-bit BUS and host settings is not 1-bit only. */
+
+      finfo("Setting SD BUS width to 4-bit. Card type: %d\n", priv->type);
+
+      /* Disconnect any CD/DAT3 pull up using ACMD42.  ACMD42 is optional and
+       * need not be supported by all SD calls.
+       *
+       * First end CMD55 APP_CMD with argument as card's RCA.
+       */
+
+      mmcsd_sendcmdpoll(priv, SD_CMD55, (uint32_t)priv->rca << 16);
+      ret = mmcsd_recv_r1(priv, SD_CMD55);
+      if (ret != OK)
+        {
+          ferr("ERROR: RECVR1 for CMD55 of ACMD42: %d\n", ret);
+          return ret;
+        }
+
+      /* Then send ACMD42 with the argument to disconnect the CD/DAT3
+       * pull-up
+       *
+       * TODO: May want to disable, then re-enable around data transfers
+       * to support card detection"
+       */
+
+      mmcsd_sendcmdpoll(priv, SD_ACMD42, MMCSD_ACMD42_CD_DISCONNECT);
+      ret = mmcsd_recv_r1(priv, SD_ACMD42);
+      if (ret != OK)
+        {
+          fwarn("WARNING: SD card does not support ACMD42: %d\n", ret);
+          return ret;
+        }
+
+      /* Now send ACMD6 to select bus width operation, beginning
+       * with CMD55, APP_CMD:
+       */
+
+      mmcsd_sendcmdpoll(priv, SD_CMD55, (uint32_t)priv->rca << 16);
+      ret = mmcsd_recv_r1(priv, SD_CMD55);
+      if (ret != OK)
+        {
+          ferr("ERROR: RECVR1 for CMD55 of ACMD6: %d\n", ret);
+          return ret;
+        }
+
+      /* Then send ACMD6 */
+
+      mmcsd_sendcmdpoll(priv, SD_ACMD6, MMCSD_ACMD6_BUSWIDTH_4);
+
+      ret = mmcsd_recv_r1(priv, SD_ACMD6);
+      if (ret != OK)
+        {
+          return ret;
+        }
+    }
+#ifdef CONFIG_MMCSD_MMCSUPPORT
+  else if (IS_MMC(priv->type) &&
+           (priv->caps & SDIO_CAPS_1BIT_ONLY) == 0)
+    {
+      /* Configuring MMC - Use MMC_SWITCH access modes.
+       * Select 8-bit if host supports it, otherwise 4-bit.
+       *
+       * Switch the host to wide bus operation before issuing the
+       * SWITCH command: on hosts that program the bus width in the
+       * widebus callback, switching the card first leaves the switch
+       * unfinished and all following transfers fail.
+       */
+
+      SDIO_WIDEBUS(priv->dev, true);
+      priv->widebus = true;
+      MMCSD_USLEEP(MMCSD_CLK_DELAY);
+
+      if (priv->caps & SDIO_CAPS_8BIT)
+        {
+          mmcsd_sendcmdpoll(priv, MMCSD_CMD6,
+                            MMC_CMD6_BUSWIDTH(EXT_CSD_BUS_WIDTH_8));
+        }
+      else
+        {
+          mmcsd_sendcmdpoll(priv, MMCSD_CMD6,
+                            MMC_CMD6_BUSWIDTH(EXT_CSD_BUS_WIDTH_4));
+        }
+
+      ret = mmcsd_recv_r1(priv, MMCSD_CMD6);
+
+      if (ret != OK)
+        {
+          ferr("ERROR: (MMCSD_CMD6) Setting MMC BUS width: %d\n", ret);
+          return ret;
+        }
+    }
+#endif /* #ifdef CONFIG_MMCSD_MMCSUPPORT */
+  else if (!IS_SD(priv->type) && !IS_MMC(priv->type))
+    {
+      /* Take this path when no MMC / SD is yet detected */
+
+      fwarn("No card inserted.\n");
+      SDIO_WIDEBUS(priv->dev, false);
+      priv->widebus = false;
+      SDIO_CLOCK(priv->dev, CLOCK_SDIO_DISABLED);
+      MMCSD_USLEEP(MMCSD_CLK_DELAY);
+
+      return OK;
+    }
+
+  /* Configure the SDIO peripheral */
+
+  if ((priv->caps & SDIO_CAPS_1BIT_ONLY) == 0 &&
+      (IS_MMC(priv->type) ||
+       (priv->buswidth & MMCSD_SCR_BUSWIDTH_4BIT) != 0))
+    {
+      /* JEDEC specs: A.8.3 Changing the data bus width: 'Bus testing
+       * procedure' shows how mmc bus width may be detected.  This driver
+       * doesn't do it, so let the low level driver decide how to go with
+       * the widebus selection.  It may well be 1, 4 or 8 bits.
+       *
+       * For SD cards the priv->buswidth is set.
+       */
+
+      finfo("Wide bus operation selected\n");
+      SDIO_WIDEBUS(priv->dev, true);
+      priv->widebus = true;
+    }
+  else
+    {
+      finfo("Narrow bus operation selected\n");
+      SDIO_WIDEBUS(priv->dev, false);
+      priv->widebus = false;
+    }
+
+  if (IS_SD(priv->type))
+    {
+      if ((priv->buswidth & MMCSD_SCR_BUSWIDTH_4BIT) != 0)
+        {
+          /* Switch the card into high speed before the host is told to
+           * clock it there, and only if the host asked for high speed by
+           * its capabilities.  High speed is offered on the wide bus
+           * alone: a card narrow enough to want the other path predates
+           * the switch command anyway.
+           */
+
+          if ((priv->caps & SDIO_CAPS_SD_HS_MODE) != 0 &&
+              mmcsd_sd_highspeed(priv) == OK)
+            {
+              SDIO_CLOCK(priv->dev, CLOCK_SD_TRANSFER_4BIT_HS);
+            }
+          else
+            {
+              SDIO_CLOCK(priv->dev, CLOCK_SD_TRANSFER_4BIT);
+            }
+        }
+      else
+        {
+          SDIO_CLOCK(priv->dev, CLOCK_SD_TRANSFER_1BIT);
+        }
+    }
+=== 5. open1788 bringup & board.h ===
+  present = !lpc17_40_gpioread(GPIO_SD_CD);
+  if (present != g_sd_inserted)
+    {
+      sdio_mediachange(g_sdiodev, present);
+      g_sd_inserted = present;
+    }
+
+  return OK;
+}
+#endif
+
+/****************************************************************************
+ * Name: nsh_sdinitialize
+ *
+ * Description:
+ *   Initialize SPI-based microSD.
+ *
+ ****************************************************************************/
+
+#ifdef NSH_HAVE_MMCSD
+static int nsh_sdinitialize(void)
+{
+  int ret;
+
+#ifdef NSH_HAVE_MMCSD_CD
+  /* Configure the SD card detect GPIO */
+
+  lpc17_40_configgpio(GPIO_SD_CD);
+
+#ifdef NSH_HAVE_MMCSD_CDINT
+  /* Attach an interrupt handler to get notifications when a card is
+   * inserted or deleted.
+   */
+
+  irq_attach(LPC17_40_IRQ_P0p13, nsh_cdinterrupt, NULL);
+  up_enable_irq(LPC17_40_IRQ_P0p13);
+
+#endif
+#endif
+
+  /* Configure the SD card power enable pin (MCIPWR on P1.5) */
+
+  lpc17_40_configgpio(GPIO_SD_PWR);
+
+  /* First, get an instance of the SDIO interface */
+
+  g_sdiodev = sdio_initialize(CONFIG_NSH_MMCSDSLOTNO);
+  if (!g_sdiodev)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to initialize SDIO slot %d\n",
+             CONFIG_NSH_MMCSDSLOTNO);
+      return -ENODEV;
+    }
+
+  /* Now bind the SDIO interface to the MMC/SD driver */
+
+  ret = mmcsd_slotinitialize(CONFIG_NSH_MMCSDMINOR, g_sdiodev);
+  if (ret != OK)
+    {
+      syslog(LOG_ERR,
+             "ERROR: Failed to bind SDIO to the MMC/SD driver: %d\n",
+             ret);
+      return ret;
+    }
+
+  /* Check if there is a card in the slot and inform the SDCARD driver.  If
+   * we do not support the card  detect, then let's assume that there is
+   * one.
+   */
+
+#ifdef NSH_HAVE_MMCSD_CD
+  g_sd_inserted = !lpc17_40_gpioread(GPIO_SD_CD);
+  sdio_mediachange(g_sdiodev, g_sd_inserted);
+#else
+  sdio_mediachange(g_sdiodev, true);
+#endif
+  return OK;
+}
+#else
+#  define nsh_sdinitialize() (OK)
+#endif
+
+/****************************************************************************
+ * Name: nsh_usbhostinitialize
+ *
+ * Description:
+ *   Initialize SPI-based microSD.
+ *
+ ****************************************************************************/
+
+#ifdef NSH_HAVE_USBHOST
+static int nsh_usbhostinitialize(void)
+{
+  int ret;
+
+  /* First, register all of the class drivers needed to support the drivers
+   * that we care about:
+   */
+
+  syslog(LOG_INFO, "Register class drivers\n");
+
+#ifdef CONFIG_USBHOST_MSC
+  /* Register the USB host Mass Storage Class */
+
+  ret = usbhost_msc_initialize();
+  if (ret != OK)
+    {
+      syslog(LOG_ERR,
+             "ERROR: Failed to register the mass storage class: %d\n", ret);
+    }
+#endif
+
+#ifdef CONFIG_USBHOST_CDCACM
+  /* Register the CDC/ACM serial class */
+
+  ret = usbhost_cdcacm_initialize();
+  if (ret != OK)
+    {
+      syslog(LOG_ERR,
+             "ERROR: Failed to register the CDC/ACM serial class: %d\n",
+             ret);
+    }
+#endif
+
+  /* Then get an instance of the USB host interface */
+
+  syslog(LOG_INFO, "Initialize USB host\n");
+  g_usbconn = lpc17_40_usbhost_initialize(0);
+  if (g_usbconn)
+    {
+      /* Start a thread to handle device connection. */
+
+      syslog(LOG_INFO, "Start nsh_waiter\n");
+
+      ret = kthread_create("usbhost", CONFIG_USBHOST_DEFPRIO,
+                           CONFIG_USBHOST_STACKSIZE,
+                           nsh_waiter, NULL);
+      return ret < 0 ? -ENOEXEC : OK;
+    }
+
+  return -ENODEV;
+}
+#else
+#  define nsh_usbhostinitialize() (OK)
+#endif
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: open1788_bringup
+ *
+ * Description:
+ *   Perform architecture-specific initialization
+ *
+ *   CONFIG_BOARD_LATE_INITIALIZE=y :
+ *     Called from board_late_initialize().
+ *
+ ****************************************************************************/
+
+
+#undef  CONFIG_LPC17_40_FLASH
+#define CONFIG_LPC17_40_FLASH         1
+
+/* Flash access use 6 CPU clocks - Safe for any allowed conditions */
+
+#define BOARD_FLASHCFG_VALUE       (SYSCON_FLASHCFG_TIM_5 | 0x03a)
+
+/* Ethernet configuration */
+
+#define ETH_MCFG_CLKSEL_DIV        ETH_MCFG_CLKSEL_DIV56
+
+#ifdef CONFIG_LPC17_40_SDCARD
+/* SDIO dividers.  Note that slower clocking is required when DMA is disabled
+ * in order to avoid RX overrun/TX underrun errors due to delayed responses
+ * to service FIFOs in interrupt driven mode.
+ * SDCARD_CLOCK=PCLK/(2*(SDCARD_CLKDIV+1))
+ */
+
+#  define SDCARD_CLKDIV_INIT       74   /* 400Khz  */
+#  define SDCARD_INIT_CLKDIV       (SDCARD_CLKDIV_INIT)
+
+#  define SDCARD_NORMAL_CLKDIV     1    /* DMA ON:  SDCARD_CLOCK=15MHz */
+#define SDCARD_SLOW_CLKDIV         14   /* DMA OFF: SDCARD_CLOCK=2MHz */
+
+#  ifdef CONFIG_SDIO_DMA
+#    define SDCARD_MMCXFR_CLKDIV   (SDCARD_NORMAL_CLKDIV)
+#  else
+#    define SDCARD_MMCXFR_CLKDIV   (SDCARD_SLOW_CLKDIV)
+#  endif
+
+#  ifdef CONFIG_SDIO_DMA
+#    define SDCARD_SDXFR_CLKDIV    (SDCARD_NORMAL_CLKDIV)
+#  else
+#    define SDCARD_SDXFR_CLKDIV    (SDCARD_SLOW_CLKDIV)
+#  endif
+#endif
+
+/* Set EMC delay values:
+ *
+ * CMDDLY: Programmable delay value for EMC outputs in command delayed
+ *   mode.  The delay amount is roughly CMDDLY * 250 picoseconds.
+ * FBCLKDLY: Programmable delay value for the feedback clock that controls
+ *   input data sampling.  The delay amount is roughly (FBCLKDLY+1) * 250
+ *   picoseconds.
+ * CLKOUT0DLY: Programmable delay value for the CLKOUT0 output. This would
+ *   typically be used in clock delayed mode.  The delay amount is roughly
+ *  (CLKOUT0DLY+1) * 250 picoseconds.
+ * CLKOUT1DLY: Programmable delay value for the CLKOUT1 output. This would
+ *  typically be used in clock delayed mode.  The delay amount is roughly
+ *  (CLKOUT1DLY+1) * 250 picoseconds.
+ *
+ * Optimal for NOR: {1,1,1,1}
+ * Needed for NAND and SDRAM: {17,1,2,1}
+ */
+
+#define GPIO_UART1_RI              GPIO_UART1_RI_1
+#define GPIO_UART1_DSR             GPIO_UART1_DSR_1
+#define GPIO_UART1_DCD             GPIO_UART1_DCD_1
+#define GPIO_UART1_CTS             GPIO_UART1_CTS_1
+#define GPIO_UART1_DTR             GPIO_UART1_DTR_1
+#define GPIO_UART1_TXD             GPIO_UART1_TXD_1
+#define GPIO_UART1_RXD             GPIO_UART1_RXD_1
+
+/* MCI-SDIO:
+ *
+ * D0    --- Connected to P1[6]
+ * D1    --- Connected to P2[11]
+ * D2    --- Connected to P2[12]
+ * D3    --- Connected to P2[13]
+ * CLK   --- Connected to P1[2]
+ * CMD   --- Connected to P1[3]
+ */
+
+#define GPIO_SD_DAT0               GPIO_SD_DAT0_2
+#define GPIO_SD_DAT1               GPIO_SD_DAT1_1
+#define GPIO_SD_DAT2               GPIO_SD_DAT2_1
+#define GPIO_SD_DAT3               GPIO_SD_DAT3_1
+#define GPIO_SD_CLK                GPIO_SD_CLK_2
+#define GPIO_SD_CMD                GPIO_SD_CMD_2
+#define GPIO_SD_PWR                GPIO_SD_PWR_2
+
+/* LCD R:
+ *
+ * VD0   --- Connected to P0[4]
+ * VD1   --- Connected to P0[5]
+ * VD2   --- Connected to P4[28]
+ * VD3   --- Connected to P4[29]
+ * VD4   --- Connected to P2[6]
+ * VD5   --- Connected to P2[7]
+ * VD6   --- Connected to P2[8]
+ * VD7   --- Connected to P2[9]
+=== 6. touchscreen.h ===
+#include <stdbool.h>
+#include <nuttx/fs/ioctl.h>
+#include <nuttx/circbuf.h>
+#include <nuttx/semaphore.h>
+#include <time.h>
+#include <inttypes.h>
+#include <fixedmath.h>
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+/* IOCTL Commands ***********************************************************/
+
+/* Common TSC IOCTL commands */
+
+#define TSIOC_SETXRCAL       _TSIOC(0x0001) /* arg: Pointer to
+                                             * int Xplate R calibration value
+                                             */
+#define TSIOC_GETXRCAL       _TSIOC(0x0002) /* arg: Pointer to
+                                             * int Xplate R calibration value
+                                             */
+#define TSIOC_SETFREQUENCY   _TSIOC(0x0003) /* arg: Pointer to
+                                             * uint32_t frequency value
+                                             */
+#define TSIOC_GETFREQUENCY   _TSIOC(0x0004) /* arg: Pointer to
+                                             *  uint32_t frequency value
+                                             */
+#define TSIOC_GETFWVERSION   _TSIOC(0x0005) /* arg: Pointer to
+                                             * uint32_t firmware version
+                                             * value
+                                             * */
+#define TSIOC_ENABLEGESTURE  _TSIOC(0x0006) /* arg: Pointer to
+                                             * int for enable gesture feature
+                                             */
+#define TSIOC_DOACALIB       _TSIOC(0x0007) /* arg: none.
+                                             * Initiate TS auto calibration
+                                             */
+#define TSIOC_CALDATA        _TSIOC(0x0008) /* arg: Pointer to
+                                             * struct g_tscaldata_s
+                                             */
+#define TSIOC_USESCALED      _TSIOC(0x0009) /* arg: bool, yes/no */
+#define TSIOC_GETOFFSETX     _TSIOC(0x000a) /* arg: Pointer to
+                                             * int X offset value
+                                             */
+#define TSIOC_GETOFFSETY     _TSIOC(0x000b) /* arg: Pointer to
+                                             * int Y offset value
+                                             */
+#define TSIOC_GETTHRESHX     _TSIOC(0x000c) /* arg: Pointer to
+                                             * int X threshold value
+                                             */
+#define TSIOC_GETTHRESHY     _TSIOC(0x000d) /* arg: Pointer to
+                                             * int Y threshold value
+                                             */
+
+#define TSIOC_GRAB           _TSIOC(0x000e) /* arg: Pointer to
+                                             * int for enable grab
+                                             */
+
+#define TSC_FIRST            0x0001          /* First common command */
+#define TSC_NCMDS            14              /* Fourteen common commands */
+
+/* Backward compatible IOCTL */
+
+#define TSIOC_SETCALIB       TSIOC_SETXRCAL
+#define TSIOC_GETCALIB       TSIOC_GETXRCAL
+
+/* User defined ioctl commands are also supported.  However, the
+ * TSC driver must reserve a block of commands as follows in order
+ * prevent IOCTL command numbers from overlapping.
+ *
+ * This is generally done as follows.  The first reservation for
+ * TSC driver A would look like:
+ *
+ *   TSC_A_FIRST         (TSC_FIRST + TSC_NCMDS)     <- First command
+ *   TSC_A_NCMDS         42                          <- Number of commands
+ *
+ * IOCTL commands for TSC driver A would then be defined in a
+ * TSC A header file like:
+ *
+ *   TSCIOC_A_CMD1       _TSIOC(TSC_A_FIRST + 0)
+ *   TSCIOC_A_CMD2       _TSIOC(TSC_A_FIRST + 1)
+ *   TSCIOC_A_CMD3       _TSIOC(TSC_A_FIRST + 2)
+ *   ...
+ *   TSCIOC_A_CMD42      _TSIOC(TSC_A_FIRST + 41)
+ *
+ * The next reservation would look like:
+ *
+ *   TSC_B_FIRST         (TSC_A_FIRST + TSC_A_NCMDS) <- Next command
+ *   TSC_B_NCMDS         77                          <- Number of commands
+ */
+
+/* These definitions provide the meaning of all of the bits that may be
+ * reported in the struct touch_point_s flags.
+ */
+
+#define TOUCH_DOWN           (1 << 0) /* A new touch contact is established */
+#define TOUCH_MOVE           (1 << 1) /* Movement occurred with previously reported contact */
+#define TOUCH_UP             (1 << 2) /* The touch contact was lost */
+#define TOUCH_ID_VALID       (1 << 3) /* Touch ID is certain */
+#define TOUCH_POS_VALID      (1 << 4) /* Hardware provided a valid X/Y position */
+#define TOUCH_PRESSURE_VALID (1 << 5) /* Hardware provided a valid pressure */
+#define TOUCH_SIZE_VALID     (1 << 6) /* Hardware provided a valid H/W contact size */
+#define TOUCH_GESTURE_VALID  (1 << 7) /* Hardware provided a valid gesture */
+
+/* These definitions provide the meaning of all of the bits that may be
+ * reported in the struct touch_lowerhalf_s flags.
+ */
+
+#define TOUCH_FLAG_SWAPXY    (1 << 0) /* Swap the X and Y coordinates */
+#define TOUCH_FLAG_MIRRORX   (1 << 1) /* Mirror X coordinate */
+#define TOUCH_FLAG_MIRRORY   (1 << 2) /* Mirror Y coordinate */
+
+/* These are definitions for touch gesture */
+
+#define TOUCH_SINGLE_CLICK   (0x00)
+#define TOUCH_DOUBLE_CLICK   (0x01)
+#define TOUCH_SLIDE_UP       (0x02)
+#define TOUCH_SLIDE_DOWN     (0x03)
+#define TOUCH_SLIDE_LEFT     (0x04)
+#define TOUCH_SLIDE_RIGHT    (0x05)
+#define TOUCH_PALM           (0x06)
+
+/* Help function */
+
+#define SCALE_TS(x, o, s)     (b16toi(b16divb16(((x) - (o)), (s))))
+
+/****************************************************************************
+ * Public Types
+ ****************************************************************************/
+
+/* This struct is used to store touchscreen calibration data for use by
+ * low level touichscreen drivers.
+ *
+ * It is used as follows:
+ *
+ *   scaledX = (raw_x - offset_x) / slope_x
+ *   scaledY = (raw_y - offset_y) / slope_y
+ *
+ * The calibration values would typically be derived by taking top left and
+ * bottom right measurements on the actual LCD/touchscreen used:
+=== 7. EA reference lpc177x_8x_mci.c DMA setup ===
+#if MCI_DMA_ENABLED
+/*********************************************************************//**
+ * @brief               Do setting GPDMA for MCI working
+ *
+ * @param[in]   DMAMode set for the Type of DMA Transfer. It may be memory
+ *                                              to peripheral (M2P) or peripheral to memory (P2M)
+ *                                              in MCI working
+ *
+ * @param[in]   ChannelNum      which channel is used for current transfer with 
+ *                                              DMA compent
+ *
+ * @param[in]   memBuf  point to a UINT8 buffer. In 2 cases of DMAMode
+ *                                              seperated:
+ *                                              - M2P: it is the source address that hold the
+ *                                              expected buffer to transfer
+ *                                              - P2M: it is the destination address that will store
+ *                                              data that retrieved from the peripheral (the Card in slot)
+ *
+ * @return              None
+ *
+ * @note                This is only required if DMA support is enabled
+ **********************************************************************/
+uint32_t MCI_SettingDma(uint8_t* memBuf, uint32_t ChannelNum, uint32_t DMAMode )
+{
+        uint32_t tempDgb;
+        GPDMA_Channel_CFG_Type GPDMACfg;
+
+        // Transfer size
+        GPDMACfg.TransferSize = DMA_MCI_SIZE;
+        // Transfer width
+        GPDMACfg.TransferWidth = GPDMA_WIDTH_WORD;
+        // Transfer type
+        GPDMACfg.TransferType = DMAMode;
+        // Linker List Item - unused
+        GPDMACfg.DMALLI = 0;
+
+        /* USB RAM is used for test.
+        Please note, Ethernet has its own SRAM, but GPDMA can't access
+        that. GPDMA can access USB SRAM and IRAM. Ethernet DMA controller can 
+        access both IRAM and Ethernet SRAM. */
+        GPDMACfg.ChannelNum = ChannelNum;
+
+        if ( DMAMode == GPDMA_TRANSFERTYPE_M2P_DEST_CTRL )
+        {
+                /* Ch0 set for M2P transfer from mempry to MCI FIFO. */
+                // Source memory
+                GPDMACfg.SrcMemAddr = (uint32_t)memBuf;
+                // Destination memory
+                GPDMACfg.DstMemAddr = (uint32_t)&LPC_MCI->FIFO;
+
+                // Source connection 
+                GPDMACfg.SrcConn = 0;
+                // Destination connection 
+                GPDMACfg.DstConn = GPDMA_CONN_MCI;
+
+        }
+        else if ( DMAMode == GPDMA_TRANSFERTYPE_P2M_SRC_CTRL )
+        {
+                /* Ch0 set for P2M transfer from MCI FIFO to memory. */
+                // Source memory
+                GPDMACfg.SrcMemAddr = (uint32_t)&LPC_MCI->FIFO;
+                // Destination memory
+                GPDMACfg.DstMemAddr = (uint32_t)memBuf;
+
+                // Source connection 
+                GPDMACfg.SrcConn = GPDMA_CONN_MCI;
+                // Destination connection
+                GPDMACfg.DstConn = 0;
+        }
+        else
+        {
+                return ( FALSE );
+        }
+
+        // Setup channel with given parameter
+        GPDMA_Setup(&GPDMACfg);
+
+        // Enable GPDMA channel 
+        GPDMA_ChannelCmd(ChannelNum, ENABLE);
+
+        /* Enable GPDMA interrupt */
+        NVIC_EnableIRQ(DMA_IRQn);
+
+        return (TRUE);
+}
+
+
+/*********************************************************************//**
+ * @brief               GPDMA interrupt handler sub-routine
+ *
+ * @param               None
+ *
+ * @return              None
+ *
+ * @note                This is only executed if DMA support is enabled
+ **********************************************************************/
+void DMA_IRQHandler (void)
+{
+        // check GPDMA interrupt on channel 0
+        if (GPDMA_IntGetStatus(GPDMA_STAT_INT, MCI_DMA_WRITE_CHANNEL))
+        {
+                //check interrupt status on channel 0
+                // Check counter terminal status
+                if(GPDMA_IntGetStatus(GPDMA_STAT_INTTC, MCI_DMA_WRITE_CHANNEL))
+                {
+                        // Clear terminate counter Interrupt pending
+                        GPDMA_ClearIntPending (GPDMA_STATCLR_INTTC, MCI_DMA_WRITE_CHANNEL);
+
+                        dmaWrCh_TermianalCnt++;
+                }
+                if (GPDMA_IntGetStatus(GPDMA_STAT_INTERR, MCI_DMA_WRITE_CHANNEL))
+=== 8. nxwm_main.cxx (init sequence) ===
+      printf("createTaskbar: ERROR: Failed to connect CTaskbar instance to the NX server\n");
+      return false;
+    }
+
+  // Initialize the task bar
+  //
+  // Taskbar::initWindowManager() prepares the task bar to receive applications.
+  // CTaskBar::startWindowManager() brings the window manager up with those applications
+  // in place.
+
+  printf("createTaskbar: Initialize CTaskbar instance\n");
+  if (!g_nxwmtest.taskbar->initWindowManager())
+    {
+      printf("createTaskbar: ERROR: Failed to initialize CTaskbar instance\n");
+      return false;
+    }
+
+  return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// Name: createStartWindow
+/////////////////////////////////////////////////////////////////////////////
+
+static bool createStartWindow(void)
+{
+  // Create the start window.  The start window is unique among applications
+  // because it has no factory.  The general sequence for setting up the
+  // start window is:
+  //
+  // 1. Create and open a CApplicationWindow
+  // 2. Use the window to create the CStartWindow the start window application
+  // 2. Call Cstartwindow::addApplication numerous times to install applications
+  //    in the start window.
+  // 3. Call CTaskBar::startApplication (initially minimized) to start the start
+  //    window application.
+  //
+  // NOTE: that the start window should not have a stop button.
+
+  NxWM::CApplicationWindow *window = g_nxwmtest.taskbar->openApplicationWindow(NxWM::CApplicationWindow::WINDOW_PERSISTENT);
+  if (!window)
+    {
+      printf("createStartWindow: ERROR: Failed to create CApplicationWindow\n");
+      return false;
+    }
+
+  // Open the window (it is hot in here)
+
+  if (!window->open())
+    {
+      printf("createStartWindow: ERROR: Failed to open CApplicationWindow\n");
+      delete window;
+      return false;
+    }
+
+  // Instantiate the application, providing the window to the application's
+  // constructor
+
+  g_nxwmtest.startwindow = new NxWM::CStartWindow(g_nxwmtest.taskbar, window);
+  if (!g_nxwmtest.startwindow)
+    {
+      gerr("ERROR: Failed to instantiate CStartWindow\n");
+      delete window;
+      return false;
+    }
+
+  // Keep the start window available as the fallback once startup
+  // calibration completes.
+
+  printf("createStartWindow: Start the start window application\n");
+  if (!g_nxwmtest.taskbar->startApplication(g_nxwmtest.startwindow, false))
+    {
+      printf("createStartWindow: ERROR: Failed to start the start window application\n");
+      return false;
+    }
+
+  return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// Name: startWindowManager
+/////////////////////////////////////////////////////////////////////////////
+
+static bool startWindowManager(void)
+{
+  // Start the window manager
+
+  printf("startWindowManager: Start the window manager\n");
+  if (!g_nxwmtest.taskbar->startWindowManager())
+    {
+      printf("startWindowManager: ERROR: Failed to start the window manager\n");
+      return false;
+    }
+
+  return true;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// Name: createTouchScreen
+/////////////////////////////////////////////////////////////////////////////
+
+#ifdef CONFIG_NXWM_TOUCHSCREEN
+static bool createTouchScreen(void)
+{
+  // Get the physical size of the display in pixels
+
+  struct nxgl_size_s displaySize;
+  g_nxwmtest.taskbar->getDisplaySize(displaySize);
+
+    // Create the touchscreen device
+
+  printf("createTouchScreen: Creating CTouchscreen\n");
+  g_nxwmtest.touchscreen = new NxWM::CTouchscreen(g_nxwmtest.taskbar, &displaySize);
+  if (!g_nxwmtest.touchscreen)
+    {
+      printf("createTouchScreen: ERROR: Failed to create CTouchscreen\n");
+      return false;
+    }
+
+  printf("createTouchScreen: Start touchscreen listener\n");
+  if (!g_nxwmtest.touchscreen->start())
+    {
+      printf("createTouchScreen: ERROR: Failed start the touchscreen listener\n");
+      delete g_nxwmtest.touchscreen;
+      return false;
+    }
+
+  return true;
+}
+#endif
+
+/////////////////////////////////////////////////////////////////////////////
+// Name: createKeyboard
+/////////////////////////////////////////////////////////////////////////////
+
+#ifdef CONFIG_NXWM_KEYBOARD
+static bool createKeyboard(void)
+{
+  printf("createKeyboard: Creating CKeyboard\n");
+  NxWM::CKeyboard *keyboard = new NxWM::CKeyboard(g_nxwmtest.taskbar);
+  if (!keyboard)
+    {
+      printf("createKeyboard: ERROR: Failed to create CKeyboard\n");
+      return false;
+    }
+
+  printf("createKeyboard: Start keyboard listener\n");
+  if (!keyboard->start())
+    {
+      printf("createKeyboard: ERROR: Failed start the keyboard listener\n");
+      delete keyboard;
+      return false;
+    }
+
+  return true;
+}
+#endif
+
+/////////////////////////////////////////////////////////////////////////////
+// Name: createCalibration
+/////////////////////////////////////////////////////////////////////////////
+
+#ifdef CONFIG_NXWM_TOUCHSCREEN
+static bool createCalibration(void)
+{
+  // 1Create the CCalibrationFactory application factory
+
+  printf("createCalibration: Creating CCalibrationFactory\n");
+  NxWM::CCalibrationFactory *factory = new NxWM::CCalibrationFactory(g_nxwmtest.taskbar, g_nxwmtest.touchscreen);
+  if (!factory)
+    {
+      printf("createCalibration: ERROR: Failed to create CCalibrationFactory\n");
+      return false;
+    }
+
+  // Add the calibration application to the start window.
+
+  printf("createCalibration: Adding CCalibration to the start window\n");
+  if (!g_nxwmtest.startwindow->addApplication(factory))
+    {
+      printf("createCalibration: ERROR: Failed to add CCalibrationto the start window\n");
+                                                                                                                                                       
+┌──(bg9211014🎃kali)-[~/lpc1788_workspace/nuttx]
+└─$ 

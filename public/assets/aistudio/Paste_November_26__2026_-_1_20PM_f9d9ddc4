@@ -1,0 +1,1018 @@
+┌──(bg9211014🎃kali)-[~/lpc1788_workspace/nuttx]
+└─$ bash << 'EOF'
+cd ~/lpc1788_workspace/nuttx || exit 1
+
+echo "=== 1. MM_REGIONS / ARCH / CHIP FLAGS ==="
+grep -nE "^CONFIG_(MM_REGIONS|ARCH_CHIP|ARCH_LPC17|LPC1788|ARMV7M|SDIO|LPC17_40_SDCARD)" .config
+
+echo "=== 2. LPC178x_40xx MACRO CHECK ==="
+grep -rn "LPC178x_40xx" arch/arm/src/lpc17xx_40xx/ arch/arm/include/lpc17xx_40xx/ boards/arm/lpc17xx_40xx/open1788/ | head -n 30
+
+echo "=== 3. APPS GIT STATUS ==="
+git -C ../apps status -s
+
+echo "=== 4. touchscreen.h (struct touch_point_s / touch_sample_s) ==="
+sed -n '180,280p' include/nuttx/input/touchscreen.h
+
+echo "=== 5. mmcsd_sdio.c (readsingle / writesingle) ==="
+sed -n '1584,1740p;1941,2130p' drivers/mmcsd/mmcsd_sdio.c
+
+echo "=== 6. lpc178x_40xx_clockconfig.c ==="
+sed -n '1,180p' arch/arm/src/lpc17xx_40xx/lpc178x_40xx_clockconfig.c
+
+echo "=== 7. EA MCI & GPDMA_Setup reference ==="
+sed -n '1,140p;250,360p' ~/ss4/eanatty/lpc1788_samples/Lib_MCU/src/lpc177x_8x_mci.c
+grep -n -A 60 "Status GPDMA_Setup" ~/ss4/eanatty/lpc1788_samples/Lib_MCU/src/lpc177x_8x_gpdma.c
+EOF
+=== 1. MM_REGIONS / ARCH / CHIP FLAGS ===
+149:CONFIG_ARCH_CHIP_LPC17XX_40XX=y
+251:CONFIG_ARCH_CHIP="lpc17xx_40xx"
+283:CONFIG_ARMV7M_HAVE_STACKCHECK=y
+310:CONFIG_ARCH_CHIP_LPC1788=y
+330:CONFIG_LPC17_40_SDCARD=y
+414:CONFIG_LPC17_40_SDCARD_DMA=y
+1057:CONFIG_SDIO_DMA=y
+1878:CONFIG_MM_REGIONS=3
+=== 2. LPC178x_40xx MACRO CHECK ===
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_syscon.h:40:#elif defined(LPC178x_40xx)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_wdt.h:50:#ifdef LPC178x_40xx
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_wdt.h:63:#ifdef LPC178x_40xx
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_wdt.h:76:#ifdef LPC178x_40xx
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_wdt.h:86:#ifdef LPC178x_40xx
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_wdt.h:105:#ifdef LPC178x_40xx
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_wdt.h:125:#ifdef LPC178x_40xx
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_wdt.h:132:#ifdef LPC178x_40xx
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_qei.h:157:#ifdef LPC178x_40xx
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_qei.h:191:#ifdef LPC178x_40xx
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_rtc.h:191:#ifdef LPC178x_40xx
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_uart.h:62:#ifdef LPC178x_40xx
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_uart.h:85:#ifdef LPC178x_40xx
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_uart.h:128:#ifdef LPC178x_40xx
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_uart.h:151:#ifdef LPC178x_40xx
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_uart.h:159:#ifdef LPC178x_40xx
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_uart.h:386:#ifdef LPC178x_40xx
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_uart.h:398:#ifdef LPC178x_40xx
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpio.h:48:#ifdef LPC178x_40xx
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpio.h:81:#ifdef LPC178x_40xx
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpio.h:121:#ifdef LPC178x_40xx
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_pinconn.h:40:#elif defined(LPC178x_40xx)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_memorymap.h:40:#elif defined(LPC178x_40xx)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:271:#elif defined(LPC178x_40xx)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:405:#elif defined(LPC178x_40xx)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:581:#ifdef LPC178x_40xx
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_pinconfig.h:40:#elif defined(LPC178x_40xx)
+arch/arm/src/lpc17xx_40xx/lpc17_40_gpioint.c:156:   *   LPC178x_40xx: 16 interrupts p0.0-p0.15
+arch/arm/src/lpc17xx_40xx/lpc17_40_gpioint.c:167:   *   LPC178x_40xx: 16 interrupts p0.16-p0.31
+arch/arm/src/lpc17xx_40xx/lpc17_40_gpioint.c:187:#elif defined (LPC178x_40xx)
+=== 3. APPS GIT STATUS ===
+ M graphics/nxwm/src/capplicationwindow.cxx
+ M graphics/nxwm/src/ccalibration.cxx
+ M graphics/nxwm/src/cstartwindow.cxx
+ M graphics/nxwm/src/ctouchscreen.cxx
+ M graphics/nxwm/src/nxwm_main.cxx
+ M include/graphics/nxwm/ctouchscreen.hxx
+=== 4. touchscreen.h (struct touch_point_s / touch_sample_s) ===
+ * bottom right measurements on the actual LCD/touchscreen used:
+ *
+ * xSlope  = (ActualRightX -  ActualLeftX) / (WantedRightX - WantedLeftX)
+ * xOffset =  ActualLeftX  - (WantedLeftX * xSlope)
+ *
+ * And similarly for the Y values.
+ *
+ * ySlope  = (ActualBottomY -  ActualTopY) / (WantedBottomY - WantedTopY)
+ * yOffset =  ActualTopY    - (WantedTopY * ySlope)
+ *
+ */
+
+  struct g_tscaldata_s
+  {
+    b16_t slope_x;
+    b16_t offset_x;
+    b16_t slope_y;
+    b16_t offset_y;
+  };
+
+/* This structure contains information about a single touch point.
+ * Positional units are device specific.
+ */
+
+struct touch_point_s
+{
+  uint8_t  id;        /* Unique identifies contact; Same in all reports for the contact */
+  uint8_t  flags;     /* See TOUCH_* definitions above */
+  int16_t  x;         /* X coordinate of the touch point (uncalibrated) */
+  int16_t  y;         /* Y coordinate of the touch point (uncalibrated) */
+  int16_t  h;         /* Height of touch point (uncalibrated) */
+  int16_t  w;         /* Width of touch point (uncalibrated) */
+  uint16_t gesture;   /* Gesture of touchscreen contact */
+  uint16_t pressure;  /* Touch pressure */
+  uint64_t timestamp; /* Touch event time stamp, in microseconds */
+};
+
+/* The typical touchscreen driver is a read-only, input character device
+ * driver.the driver write() method is not supported and any attempt to
+ * open the driver in any mode other than read-only will fail.
+ *
+ * Data read from the touchscreen device consists only of touch events and
+ * touch sample data.  This is reflected by struct touch_sample_s.  This
+ * structure is returned by either the driver read method.
+ *
+ * On some devices, multiple touchpoints may be supported. So this top level
+ * data structure is a struct touch_sample_s that "contains" a set of touch
+ * points.  Each touch point is managed individually using an ID that
+ * identifies a touch from first contact until the end of the contact.
+ */
+
+struct touch_sample_s
+{
+  int npoints;                   /* The number of touch points in point[] */
+  struct touch_point_s point[1]; /* Actual dimension is npoints */
+};
+
+#define SIZEOF_TOUCH_SAMPLE_S(n) \
+  (sizeof(struct touch_sample_s) + ((n) - 1) * sizeof(struct touch_point_s))
+
+#ifdef CONFIG_INPUT_TOUCHSCREEN
+
+/* This structure is for touchscreen lower half driver */
+
+struct touch_lowerhalf_s
+{
+  uint8_t       maxpoint;       /* Maximal point supported by the touchscreen */
+  uint8_t       flags;          /* Flags for rotation, see TOUCH_FLAG_* */
+  uint16_t      xres;           /* Horizontal resolution in pixels */
+  uint16_t      yres;           /* Vertical   resolution in pixels */
+  FAR void      *priv;          /* Save the upper half pointer */
+
+  /**************************************************************************
+   * Name: control
+   *
+   * Description:
+   *   Users can use this interface to implement custom IOCTL.
+   *
+   * Arguments:
+   *   lower   - The instance of lower half of touchscreen device.
+   *   cmd     - User defined specific command.
+   *   arg     - Argument of the specific command.
+   *
+   * Return Value:
+   *   Zero(OK) on success; a negated errno value on failure.
+   *   -ENOTTY - The command is not supported.
+   **************************************************************************/
+
+  CODE int (*control)(FAR struct touch_lowerhalf_s *lower,
+                      int cmd, unsigned long arg);
+
+  /**************************************************************************
+   * Name: write
+   *
+   * Description:
+   *   Users can use this interface to implement custom write.
+   *
+   * Arguments:
+   *   lower   - The instance of lower half of touchscreen device.
+   *   buffer  - User defined specific buffer.
+   *   buflen  - User defined specific buffer size.
+=== 5. mmcsd_sdio.c (readsingle / writesingle) ===
+static ssize_t mmcsd_readsingle(FAR struct mmcsd_part_s *part,
+                                FAR uint8_t *buffer, off_t startblock)
+{
+  FAR struct mmcsd_state_s *priv = part->priv;
+#ifdef CONFIG_MMCSD_MMCSUPPORT
+  uint32_t partnum = part - priv->part;
+#endif
+  off_t offset;
+  int ret;
+
+  finfo("startblock=%jd\n", (intmax_t)startblock);
+  DEBUGASSERT(priv != NULL && buffer != NULL);
+
+  /* Check if the card is locked */
+
+  if (priv->locked)
+    {
+      ferr("ERROR: Card is locked\n");
+      return -EPERM;
+    }
+
+#ifdef CONFIG_MMCSD_MMCSUPPORT
+  if (priv->partnum != partnum)
+    {
+      ret = mmcsd_switch(priv, MMC_CMD6_MODE(MMC_CMD6_MODE_WRITE_BYTE) |
+                               MMC_CMD6_INDEX(EXT_CSD_PART_CONF) |
+                               MMC_CMD6_VALUE(partnum));
+      if (ret != OK)
+        {
+          ferr("ERROR: mmcsd_switch failed: %d\n", ret);
+          return ret;
+        }
+
+      priv->partnum = partnum;
+    }
+#endif
+
+#if defined(CONFIG_SDIO_DMA) && defined(CONFIG_ARCH_HAVE_SDIO_PREFLIGHT)
+  /* If we think we are going to perform a DMA transfer, make sure that we
+   * will be able to before we commit the card to the operation.
+   */
+
+  if ((priv->caps & SDIO_CAPS_DMASUPPORTED) != 0)
+    {
+      ret = SDIO_DMAPREFLIGHT(priv->dev, buffer, priv->blocksize);
+
+      if (ret != OK)
+        {
+          return ret;
+        }
+    }
+#endif
+
+  /* Verify that the card is ready for the transfer.  The card may still be
+   * busy from the preceding write transfer.  It would be simpler to check
+   * for write busy at the end of each write, rather than at the beginning of
+   * each read AND write, but putting the busy-wait at the beginning of the
+   * transfer allows for more overlap and, hopefully, better performance
+   */
+
+  ret = mmcsd_transferready(priv);
+  if (ret != OK)
+    {
+      ferr("ERROR: Card not ready: %d\n", ret);
+      return ret;
+    }
+
+  /* If this is a byte addressed SD card, then convert sector start sector
+   * number to a byte offset
+   */
+
+  if (IS_BLOCK(priv->type))
+    {
+      offset = startblock;
+    }
+  else
+    {
+      offset = startblock << priv->blockshift;
+    }
+
+  finfo("offset=%jd\n", (intmax_t)offset);
+
+  /* Select the block size for the card */
+
+  ret = mmcsd_setblocklen(priv, priv->blocksize);
+  if (ret != OK)
+    {
+      ferr("ERROR: mmcsd_setblocklen failed: %d\n", ret);
+      return ret;
+    }
+
+  /* Configure SDIO controller hardware for the read transfer */
+
+  SDIO_BLOCKSETUP(priv->dev, priv->blocksize, 1);
+  SDIO_WAITENABLE(priv->dev,
+                  SDIOWAIT_TRANSFERDONE | SDIOWAIT_TIMEOUT | SDIOWAIT_ERROR,
+                  MMCSD_BLOCK_RDATADELAY);
+
+#ifdef CONFIG_SDIO_DMA
+  if ((priv->caps & SDIO_CAPS_DMASUPPORTED) != 0)
+    {
+      ret = SDIO_DMARECVSETUP(priv->dev, buffer, priv->blocksize);
+      if (ret != OK)
+        {
+          finfo("SDIO_DMARECVSETUP: error %d\n", ret);
+          SDIO_CANCEL(priv->dev);
+          return ret;
+        }
+    }
+  else
+#endif
+    {
+      ret = SDIO_RECVSETUP(priv->dev, buffer, priv->blocksize);
+      if (ret != OK)
+        {
+          finfo("SDIO_RECVSETUP: error %d\n", ret);
+          SDIO_CANCEL(priv->dev);
+          return ret;
+        }
+    }
+
+  /* Send CMD17, READ_SINGLE_BLOCK: Read a block of the size selected
+   * by the mmcsd_setblocklen() and verify that good R1 status is
+   * returned.  The card state should change from Transfer to Sending-Data
+   * state.
+   */
+
+  mmcsd_sendcmdpoll(priv, MMCSD_CMD17, offset);
+  ret = mmcsd_recv_r1(priv, MMCSD_CMD17);
+  if (ret != OK)
+    {
+      ferr("ERROR: mmcsd_recv_r1 for CMD17 failed: %d\n", ret);
+      SDIO_CANCEL(priv->dev);
+      return ret;
+    }
+
+  /* Then wait for the data transfer to complete */
+
+  ret = mmcsd_eventwait(priv, SDIOWAIT_TIMEOUT | SDIOWAIT_ERROR);
+  if (ret != OK)
+    {
+      ferr("ERROR: CMD17 transfer failed: %d\n", ret);
+      return ret;
+    }
+
+  /* Return value:  One sector read */
+
+  return 1;
+}
+
+/****************************************************************************
+ * Name: mmcsd_readmultiple
+ *
+ * Description:
+ *   Read multiple, contiguous blocks of data from the physical device.
+ *
+ ****************************************************************************/
+static ssize_t mmcsd_writesingle(FAR struct mmcsd_part_s *part,
+                                 FAR const uint8_t *buffer, off_t startblock)
+{
+  FAR struct mmcsd_state_s *priv = part->priv;
+#ifdef CONFIG_MMCSD_MMCSUPPORT
+  uint32_t partnum = part - priv->part;
+#endif
+  off_t offset;
+  int ret;
+
+  finfo("startblock=%jd\n", (intmax_t)startblock);
+  DEBUGASSERT(priv != NULL && buffer != NULL);
+
+  /* Check if the card is locked or write protected (either via software or
+   * via the mechanical write protect on the card)
+   */
+
+  if (mmcsd_wrprotected(priv))
+    {
+      ferr("ERROR: Card is locked or write protected\n");
+      return -EPERM;
+    }
+
+#ifdef CONFIG_MMCSD_MMCSUPPORT
+  if (priv->partnum != partnum)
+    {
+      ret = mmcsd_switch(priv, MMC_CMD6_MODE(MMC_CMD6_MODE_WRITE_BYTE) |
+                               MMC_CMD6_INDEX(EXT_CSD_PART_CONF) |
+                               MMC_CMD6_VALUE(partnum));
+      if (ret != OK)
+        {
+          ferr("ERROR: mmcsd_switch failed: %d\n", ret);
+          return ret;
+        }
+
+      priv->partnum = partnum;
+    }
+#endif
+
+#if defined(CONFIG_SDIO_DMA) && defined(CONFIG_ARCH_HAVE_SDIO_PREFLIGHT)
+  /* If we think we are going to perform a DMA transfer, make sure that we
+   * will be able to before we commit the card to the operation.
+   */
+
+  if ((priv->caps & SDIO_CAPS_DMASUPPORTED) != 0)
+    {
+      ret = SDIO_DMAPREFLIGHT(priv->dev, buffer, priv->blocksize);
+
+      if (ret != OK)
+        {
+          return ret;
+        }
+    }
+#endif
+
+  /* Verify that the card is ready for the transfer.  The card may still be
+   * busy from the preceding write transfer.  It would be simpler to check
+   * for write busy at the end of each write, rather than at the beginning of
+   * each read AND write, but putting the busy-wait at the beginning of the
+   * transfer allows for more overlap and, hopefully, better performance
+   */
+
+  ret = mmcsd_transferready(priv);
+  if (ret != OK)
+    {
+      ferr("ERROR: Card not ready: %d\n", ret);
+      return ret;
+    }
+
+  /* If this is a byte addressed SD card, then convert sector start sector
+   * number to a byte offset
+   */
+
+  if (IS_BLOCK(priv->type))
+    {
+      offset = startblock;
+    }
+  else
+    {
+      offset = startblock << priv->blockshift;
+    }
+
+  finfo("offset=%jd\n", (intmax_t)offset);
+
+  /* Select the block size for the card */
+
+  ret = mmcsd_setblocklen(priv, priv->blocksize);
+  if (ret != OK)
+    {
+      ferr("ERROR: mmcsd_setblocklen failed: %d\n", ret);
+      return ret;
+    }
+
+  /* If Controller does not need DMA setup before the write then send CMD24
+   * now.
+   */
+
+  if ((priv->caps & SDIO_CAPS_DMABEFOREWRITE) == 0)
+    {
+      /* Send CMD24, WRITE_BLOCK, and verify good R1 status is returned */
+
+      mmcsd_sendcmdpoll(priv, MMCSD_CMD24, offset);
+      ret = mmcsd_recv_r1(priv, MMCSD_CMD24);
+      if (ret != OK)
+        {
+          ferr("ERROR: mmcsd_recv_r1 for CMD24 failed: %d\n", ret);
+          return ret;
+        }
+    }
+
+  /* Configure SDIO controller hardware for the write transfer */
+
+  SDIO_BLOCKSETUP(priv->dev, priv->blocksize, 1);
+  SDIO_WAITENABLE(priv->dev,
+                  SDIOWAIT_TRANSFERDONE | SDIOWAIT_TIMEOUT | SDIOWAIT_ERROR,
+                  MMCSD_BLOCK_WDATADELAY);
+
+#ifdef CONFIG_SDIO_DMA
+  if ((priv->caps & SDIO_CAPS_DMASUPPORTED) != 0)
+    {
+      ret = SDIO_DMASENDSETUP(priv->dev, buffer, priv->blocksize);
+      if (ret != OK)
+        {
+          finfo("SDIO_DMASENDSETUP: error %d\n", ret);
+          SDIO_CANCEL(priv->dev);
+          return ret;
+        }
+    }
+  else
+#endif
+    {
+      ret = SDIO_SENDSETUP(priv->dev, buffer, priv->blocksize);
+      if (ret != OK)
+        {
+          finfo("SDIO_SENDSETUP: error %d\n", ret);
+          SDIO_CANCEL(priv->dev);
+          return ret;
+        }
+    }
+
+  /* If Controller needs DMA setup before write then only send CMD24 now. */
+
+  if ((priv->caps & SDIO_CAPS_DMABEFOREWRITE) != 0)
+    {
+      /* Send CMD24, WRITE_BLOCK, and verify good R1 status is returned */
+
+      mmcsd_sendcmdpoll(priv, MMCSD_CMD24, offset);
+      ret = mmcsd_recv_r1(priv, MMCSD_CMD24);
+      if (ret != OK)
+        {
+          ferr("ERROR: mmcsd_recv_r1 for CMD24 failed: %d\n", ret);
+          SDIO_CANCEL(priv->dev);
+          return ret;
+        }
+    }
+
+  /* Wait for the transfer to complete */
+
+  ret = mmcsd_eventwait(priv, SDIOWAIT_TIMEOUT | SDIOWAIT_ERROR);
+  if (ret != OK)
+    {
+      ferr("ERROR: CMD24 transfer failed: %d\n", ret);
+      return ret;
+    }
+
+  /* Flag that a write transfer is pending that we will have to check for
+   * write complete at the beginning of the next transfer.
+   */
+
+  priv->wrbusy = true;
+
+#if defined(CONFIG_MMCSD_SDIOWAIT_WRCOMPLETE)
+  /* Arm the write complete detection with timeout */
+
+  SDIO_WAITENABLE(priv->dev, SDIOWAIT_WRCOMPLETE | SDIOWAIT_TIMEOUT,
+                  MMCSD_BLOCK_WDATADELAY);
+#endif
+
+  /* On success, return the number of blocks written */
+
+  return 1;
+}
+
+/****************************************************************************
+ * Name: mmcsd_writemultiple
+ *
+ * Description:
+ *   Write multiple, contiguous blocks of data to the physical device.
+ *   This function expects that the data to be written is contained in
+ *   one large buffer that is pointed to by buffer.
+=== 6. lpc178x_40xx_clockconfig.c ===
+/****************************************************************************
+ * arch/arm/src/lpc17xx_40xx/lpc178x_40xx_clockconfig.c
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ ****************************************************************************/
+
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
+#include <nuttx/config.h>
+
+#include <stdint.h>
+#include <nuttx/debug.h>
+
+#include <nuttx/arch.h>
+#include <arch/board/board.h>
+
+#include "arm_internal.h"
+#include "lpc17_40_clockconfig.h"
+#include "hardware/lpc17_40_syscon.h"
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+#ifndef LPC178x_40xx
+#  error "The logic in this file applies only to the LPC178x/40xx family"
+#endif
+
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: lpc17_40_clockconfig
+ *
+ * Description:
+ *   Called to initialize the LPC17xx/LPC40xx.
+ *   This does whatever setup is needed to put the SoC in a usable state.
+ *   This includes the initialization of clocking using the settings in
+ *  board.h.
+ *
+ *   The LPC176x and LPC178x/40xx system control block is *nearly* identical
+ *   but we have found that the LPC178x/40xx is more sensitive to the
+ *   ordering of certain operations. So, although the hardware seems very
+ *   similar, the safer thing to do is to separate the LPC176x and
+ *   LPC178x/40xx into separate files.
+ *
+ ****************************************************************************/
+
+void lpc17_40_clockconfig(void)
+{
+  uint32_t regval;
+
+  /* TODO:
+   *
+   * (1) "Make sure that the PLL output is not already being used.  The
+   *      CCLKSEL, USBCLKSEL, and SPIFICLKSEL registers must not select the
+   *      PLL being set up. Clock dividers included in these registers may
+   *      also be set up at this time if writing to any of the noted
+   *      registers."
+   *
+   * (2) "If the main PLL is being set up, and the main clock source is being
+   *      changed (IRC versus main oscillator), change this first by writing
+   *      the correct value to the CLKSRCSEL register."
+   *
+   * This is not an issue now because we only setup the clocks on power up,
+   * so the PLL cannot be the select source.  However, this could be an issue
+   * at some point later when, for example, we may want to implement reduced
+   * power mode with other clocking.
+   */
+
+  /* Enable the main oscillator (or not) and the frequency range of the main
+   * oscillator
+   */
+
+  putreg32(BOARD_SCS_VALUE, LPC17_40_SYSCON_SCS);
+
+  /* Wait for the main oscillator to be ready. */
+
+#ifdef CONFIG_LPC17_40_MAINOSC
+  while ((getreg32(LPC17_40_SYSCON_SCS) & SYSCON_SCS_OSCSTAT) == 0);
+#endif
+
+  /* PLL0 is used to generate the CPU clock divider input (PLLCLK). */
+
+#ifdef CONFIG_LPC17_40_PLL0
+  /* (3) "Write PLL new setup values to the PLLCFG register. Write a 1 to
+   *      the PLLE bit in the PLLCON register. Perform a PLL feed sequence
+   *      by writing first the value 0xAA, then the value 0x55 to the PLLFEED
+   *      register"
+   *
+   * Select the PLL0 source clock, multiplier, and pre-divider values.
+   * NOTE that a special "feed" sequence must be written to the PLL0FEED
+   * register in order for changes to the PLL0CFG register to take effect.
+   */
+
+  putreg32(BOARD_CLKSRCSEL_VALUE, LPC17_40_SYSCON_CLKSRCSEL);
+  putreg32(BOARD_PLL0CFG_VALUE, LPC17_40_SYSCON_PLL0CFG);
+  putreg32(SYSCON_PLLCON_PLLE, LPC17_40_SYSCON_PLL0CON);
+
+  /* Enable the PLL.
+   * NOTE that a special "feed" sequence must be written to the PLL0FEED
+   * register in order for changes to the PLL0CON register to take effect.
+   */
+
+  putreg32(0xaa, LPC17_40_SYSCON_PLL0FEED);
+  putreg32(0x55, LPC17_40_SYSCON_PLL0FEED);
+
+  /* (4) "Set up the necessary clock dividers. These may include the CCLKSEL,
+   *      PCLKSEL, EMCCLKSEL, USBCLKSEL, and the SPIFICLKSEL registers.
+   */
+
+  putreg32(BOARD_CCLKSEL_VALUE, LPC17_40_SYSCON_CCLKSEL);
+  putreg32(BOARD_PCLKDIV, LPC17_40_SYSCON_PCLKSEL);
+
+#ifdef CONFIG_LPC17_40_EMC
+  putreg32(BOARD_EMCCLKSEL_VALUE, LPC17_40_SYSCON_EMCCLKSEL);
+#endif
+#if defined(CONFIG_LPC17_40_USBDEV) || defined(CONFIG_LPC17_40_USBHOST)
+  putreg32(BOARD_USBCLKSEL_VALUE, LPC17_40_SYSCON_USBCLKSEL);
+#endif
+#ifdef CONFIG_LPC17_40_SPIFI
+  putreg32(BOARD_SPIFICLKSEL_VALUE, LPC17_40_SPIFICLKSEL_CCLKSEL);
+#endif
+
+  /* (5) "Wait for the PLL to lock. This may be accomplished by polling the
+   *      PLLSTAT register and testing for PLOCK = 1, or by using the PLL
+   *      lock interrupt.Wait for PLL0 to lock.
+   */
+
+  while ((getreg32(LPC17_40_SYSCON_PLL0STAT) & SYSCON_PLL0STAT_PLOCK) == 0);
+
+  /* (6) "Connect the PLL by selecting its output in the appropriate places.
+   *      This may include the CCLKSEL, USBCLKSEL, and SPIFICLKSEL registers.
+   */
+
+#endif /* CONFIG_LPC17_40_PLL0 */
+
+  /* PLL1 receives its clock input from the main oscillator only and can be
+   * used to provide a fixed 48 MHz clock only to the USB subsystem (if that
+   * clock cannot be obtained from PLL0).
+   */
+
+#ifdef CONFIG_LPC17_40_PLL1
+  /* (3) "Write PLL new setup values to the PLLCFG register. Write a 1 to
+   *      the PLLE bit in the PLLCON register. Perform a PLL feed sequence by
+   *      writing first the value 0xAA, then the value 0x55 to the PLLFEED
+   *      register"
+   *
+   * Select the PLL1 multiplier, and pre-divider values.
+=== 7. EA MCI & GPDMA_Setup reference ===
+/**********************************************************************
+* $Id$          lpc177x_8x_mci.c                        2011-06-02
+*//**
+* @file         lpc177x_8x_mci.c
+* @brief        Contains all functions support for MCI firmware library
+*                       on LPC177x_8x
+* @version      2.0
+* @date         29. June. 2011
+* @author       NXP MCU SW Application Team
+* 
+* Copyright(C) 2011, NXP Semiconductor
+* All rights reserved.
+*
+***********************************************************************
+* Software that is described herein is for illustrative purposes only
+* which provides customers with programming information regarding the
+* products. This software is supplied "AS IS" without any warranties.
+* NXP Semiconductors assumes no responsibility or liability for the
+* use of the software, conveys no license or title under any patent,
+* copyright, or mask work right to the product. NXP Semiconductors
+* reserves the right to make changes in the software without
+* notification. NXP Semiconductors also make no representation or
+* warranty that such application will be suitable for the specified
+* use without further testing or modification.
+**********************************************************************/
+
+#include "LPC177x_8x.h"
+#include "lpc_types.h"
+#include "lpc177x_8x_mci.h"
+#include "lpc177x_8x_gpdma.h"
+#include "lpc177x_8x_clkpwr.h"
+
+#define DMA_MCI_SIZE                            BLOCK_LENGTH
+
+#define MCI_DMA_WRITE_CHANNEL           (0)
+#define MCI_DMA_READ_CHANNEL            (1)
+
+#define _SHIFT(x)                                               (1 << x)
+#define _XSHIFT(x, y)                                   (x << y)
+
+#define SHIFT_(x)                                               (1 >> x)
+#define XSHIFT_(x, y)                                   (x >> y)
+
+
+#define MCI_CARDSTATUS_READYFORDATA_P0S         (8)
+
+#define MCI_CARDSTATUS_CURRENTSTATE_POS         (9)
+#define MCI_CARDSTATUS_CURRENTSTATE_BMASK       (0x0F)
+
+#define CARDSTATEOF(x)          (XSHIFT_(x, MCI_CARDSTATUS_CURRENTSTATE_POS) & MCI_CARDSTATUS_CURRENTSTATE_BMASK)
+
+#define MCI_CMD8_VOLTAGESUPPLIED_POS            (8)
+#define MCI_CMD8_VOLTAGESUPPLIED_BMASK          (0xFF)
+
+#define MCI_CMD8_CHECKPATTERN_POS                       (0)
+#define MCI_CMD8_CHECKPATTERN_BMASK                     (0xFF)
+
+#define MCI_ACMD41_HCS_POS              (30)
+
+#define MCI_PWRCTRL_BMASK                               (0xC3)
+
+#define MCI_PWRCTRL_OPENDRAIN_POS               (6)
+#define MCI_PWRCTRL_OPENDRAIN_NUMBIT    (1)
+#define MCI_PWRCTRL_OPENDRAIN_BMASK             (0x01)
+
+#define MCI_CID_MANUFACTURER_ID_WPOS            (24)    //in word 0
+#define MCI_CID_MANUFACTURER_ID_WBMASK          (0xFF)
+
+#define MCI_CID_OEMAPPLICATION_ID_WPOS          (8)             //in word 0
+#define MCI_CID_OEMAPPLICATION_ID_WBMASK        (0xFFFF)
+
+#define MCI_CID_PRODUCTNAME_ID_H_WPOS           (0)             //in word 0
+#define MCI_CID_PRODUCTNAME_ID_H_WBMASK         (0xFF)
+
+#define MCI_CID_PRODUCTNAME_ID_L_WPOS           (0)             //in word 1
+#define MCI_CID_PRODUCTNAME_ID_L_WBMASK         (0xFFFFFFFF)
+
+#define MCI_CID_PRODUCTREVISION_ID_WPOS         (24)    //in word 2
+#define MCI_CID_PRODUCTREVISION_ID_WBMASK       (0xFF)
+
+#define MCI_CID_PRODUCTSERIALNUM_ID_H_WPOS              (0)     //in word 2
+#define MCI_CID_PRODUCTSERIALNUM_ID_H_WBMASK    (0x00FFFFFF)
+#define MCI_CID_PRODUCTSERIALNUM_ID_L_WPOS              (24)    //in word 3
+#define MCI_CID_PRODUCTSERIALNUM_ID_L_WBMASK    (0xFF)
+#define MCI_CID_PRODUCTSERIALNUM_ID_WBMASK              (0xFFFFFFFF)
+
+#define MCI_CID_RESERVED_ID_WPOS                        (20)    //in word 3
+#define MCI_CID_RESERVED_ID_WBMASK                      (0x1F)
+
+#define MCI_CID_MANUFACTURINGDATE_ID_WPOS       (8)     //in word 3
+#define MCI_CID_MANUFACTURINGDATE_ID_WBMASK     (0x0FFF)
+
+#define MCI_CID_CHECKSUM_ID_WPOS                        (1)     //in word 3
+#define MCI_CID_CHECKSUM_ID_WBMASK                      (0x7F)
+
+#define MCI_CID_UNUSED_ID_WPOS                          (0)     //in word 3
+#define MCI_CID_UNUSED_ID_WBMASK                        (0x01)
+
+volatile uint32_t Mci_Data_Xfer_End = 0;
+
+volatile uint32_t CardRCA;
+
+volatile en_Mci_CardType MCI_CardType;
+
+// Terminal Counter flag, Error Counter flag for Channel 0
+uint32_t dmaWrCh_TermianalCnt, dmaWrCh_ErrorCnt;
+uint32_t dmaRdCh_TermianalCnt, dmaRdCh_ErrorCnt;
+
+
+uint32_t MCI_SettingDma(uint8_t* memBuf, uint32_t ChannelNum, uint32_t DMAMode );
+
+uint32_t MCI_ReadFifo(uint32_t * dest);
+uint32_t MCI_WriteFifo(uint32_t * src);
+
+void MCI_TXEnable( void );
+void MCI_RXEnable( void );
+void MCI_TXDisable( void );
+void MCI_RXDisable( void );
+
+void MCI_CmdProcess( void );
+void MCI_DataErrorProcess( void );
+void MCI_DataErrorProcess( void );
+void MCI_DATA_END_InterruptService( void );
+void MCI_FIFOInterruptService( void );
+
+uint32_t MCI_CheckStatus(void);
+
+
+
+volatile uint8_t* dataSrcBlock = (uint8_t *) MCI_DMA_SRC_ADDR;
+volatile uint8_t* dataDestBlock = (uint8_t *) MCI_DMA_DST_ADDR;;
+
+volatile uint32_t txBlockCnt=0, rxBlockCnt=0;
+
+/** @addtogroup MCI_Private_Functions MCI Private Function
+ * @ingroup MCI
+ * @{
+ */
+
+#if MCI_DMA_ENABLED
+                if (GPDMA_IntGetStatus(GPDMA_STAT_INTERR, MCI_DMA_WRITE_CHANNEL))
+                {
+                        // Clear error counter Interrupt pending
+                        GPDMA_ClearIntPending (GPDMA_STATCLR_INTERR, MCI_DMA_WRITE_CHANNEL);
+
+                        dmaWrCh_ErrorCnt++;
+                }
+        }
+        else if (GPDMA_IntGetStatus(GPDMA_STAT_INT, MCI_DMA_READ_CHANNEL))
+        {
+                //check interrupt status on channel 0
+                // Check counter terminal status
+                if(GPDMA_IntGetStatus(GPDMA_STAT_INTTC, MCI_DMA_READ_CHANNEL))
+                {
+                        // Clear terminate counter Interrupt pending
+                        GPDMA_ClearIntPending (GPDMA_STATCLR_INTTC, MCI_DMA_READ_CHANNEL);
+
+                        dmaRdCh_TermianalCnt++;
+                }
+                if (GPDMA_IntGetStatus(GPDMA_STAT_INTERR, MCI_DMA_READ_CHANNEL))
+                {
+                        // Clear error counter Interrupt pending
+                        GPDMA_ClearIntPending (GPDMA_STATCLR_INTERR, MCI_DMA_READ_CHANNEL);
+
+                        dmaRdCh_ErrorCnt++;
+                }
+        }
+}
+#endif
+
+
+/*********************************************************************//**
+ * @brief               Read data from FIFO (after a transmission with card) to
+ *                              a destination buffer
+ *
+ * @param[in]   *dest The buffer to store the data that read from card
+ *
+ * @return              MCI_FUNC_OK
+ *************************************************************************/
+uint32_t MCI_ReadFifo(uint32_t * dest) 
+{
+        uint8_t i;
+
+        for (i = 0; i < 8; i++) 
+        {
+                *dest = LPC_MCI->FIFO;
+
+                dest++;
+        }
+
+        return MCI_FUNC_OK;
+}
+
+
+/*********************************************************************//**
+ * @brief               Write data from a source buffer to FIFO for transmission
+ *
+ * @param[in]   *src The buffer hold the data need to write to card
+ *
+ * @return              MCI_FUNC_OK
+ *************************************************************************/
+uint32_t MCI_WriteFifo(uint32_t * src)
+{
+        uint8_t i;
+
+        for (i = 0; i < 8; i++) 
+        {
+                LPC_MCI->FIFO = *src;
+
+                src++;
+        }
+
+        return MCI_FUNC_OK;
+}
+
+
+/*********************************************************************//**
+ * @brief               Enable Transmit data interrupt
+ *
+ * @param               None
+ *
+ * @return              None
+ *************************************************************************/
+void MCI_TXEnable( void )
+{
+#if MCI_DMA_ENABLED
+        LPC_MCI->MASK0 |= ((DATA_END_INT_MASK)|(ERR_TX_INT_MASK));      /* Enable TX interrupts only */
+#else
+        LPC_MCI->MASK0 |= ((FIFO_TX_INT_MASK)|(DATA_END_INT_MASK)|(ERR_TX_INT_MASK));   /* FIFO TX interrupts only */
+#endif
+
+        return;
+}
+
+
+/*********************************************************************//**
+ * @brief               Disable Transmit data interrupt
+ *
+ * @param               None
+ *
+ * @return              None
+ *************************************************************************/
+void MCI_TXDisable( void )
+{
+#if MCI_DMA_ENABLED
+        LPC_MCI->MASK0 &= ~((DATA_END_INT_MASK)|(ERR_TX_INT_MASK));     /* Enable TX interrupts only */
+#else
+        LPC_MCI->MASK0 &= ~((FIFO_TX_INT_MASK)|(DATA_END_INT_MASK)|(ERR_TX_INT_MASK));  /* FIFO TX interrupts only */
+#endif
+
+        return;
+248:Status GPDMA_Setup(GPDMA_Channel_CFG_Type *GPDMAChannelConfig)
+249-{
+250-    LPC_GPDMACH_TypeDef *pDMAch;
+251-    uint32_t tmp1, tmp2;
+252-
+253-    if (LPC_GPDMA->EnbldChns & (GPDMA_DMACEnbldChns_Ch(GPDMAChannelConfig->ChannelNum))) {
+254-            // This channel is enabled, return ERROR, need to release this channel first
+255-            return ERROR;
+256-    }
+257-
+258-    // Get Channel pointer
+259-    pDMAch = (LPC_GPDMACH_TypeDef *) pGPDMACh[GPDMAChannelConfig->ChannelNum];
+260-
+261-    // Reset the Interrupt status
+262-    LPC_GPDMA->IntTCClear = GPDMA_DMACIntTCClear_Ch(GPDMAChannelConfig->ChannelNum);
+263-    LPC_GPDMA->IntErrClr = GPDMA_DMACIntErrClr_Ch(GPDMAChannelConfig->ChannelNum);
+264-
+265-    // Clear DMA configure
+266-    pDMAch->CControl = 0x00;
+267-    pDMAch->CConfig = 0x00;
+268-
+269-    /* Assign Linker List Item value */
+270-    pDMAch->CLLI = GPDMAChannelConfig->DMALLI;
+271-
+272-    /* Set value to Channel Control Registers */
+273-    switch (GPDMAChannelConfig->TransferType)
+274-    {
+275-    // Memory to memory
+276-    case GPDMA_TRANSFERTYPE_M2M:
+277-            // Assign physical source and destination address
+278-            pDMAch->CSrcAddr = GPDMAChannelConfig->SrcMemAddr;
+279-            pDMAch->CDestAddr = GPDMAChannelConfig->DstMemAddr;
+280-            pDMAch->CControl
+281-                            = GPDMA_DMACCxControl_TransferSize(GPDMAChannelConfig->TransferSize) \
+282-                                            | GPDMA_DMACCxControl_SBSize(GPDMA_BSIZE_32) \
+283-                                            | GPDMA_DMACCxControl_DBSize(GPDMA_BSIZE_32) \
+284-                                            | GPDMA_DMACCxControl_SWidth(GPDMAChannelConfig->TransferWidth) \
+285-                                            | GPDMA_DMACCxControl_DWidth(GPDMAChannelConfig->TransferWidth) \
+286-                                            | GPDMA_DMACCxControl_SI \
+287-                                            | GPDMA_DMACCxControl_DI \
+288-                                            | GPDMA_DMACCxControl_I;
+289-            break;
+290-    // Memory to peripheral
+291-    case GPDMA_TRANSFERTYPE_M2P:
+292-    case GPDMA_TRANSFERTYPE_M2P_DEST_CTRL:
+293-            // Assign physical source
+294-            pDMAch->CSrcAddr = GPDMAChannelConfig->SrcMemAddr;
+295-            // Assign peripheral destination address
+296-            pDMAch->CDestAddr = (uint32_t)GPDMA_LUTPerAddr[GPDMAChannelConfig->DstConn];
+297-            pDMAch->CControl
+298-                            = GPDMA_DMACCxControl_TransferSize((uint32_t)GPDMAChannelConfig->TransferSize) \
+299-                                            | GPDMA_DMACCxControl_SBSize((uint32_t)GPDMA_LUTPerBurst[GPDMAChannelConfig->DstConn]) \
+300-                                            | GPDMA_DMACCxControl_DBSize((uint32_t)GPDMA_LUTPerBurst[GPDMAChannelConfig->DstConn]) \
+301-                                            | GPDMA_DMACCxControl_SWidth((uint32_t)GPDMA_LUTPerWid[GPDMAChannelConfig->DstConn]) \
+302-                                            | GPDMA_DMACCxControl_DWidth((uint32_t)GPDMA_LUTPerWid[GPDMAChannelConfig->DstConn]) \
+303-                                            | GPDMA_DMACCxControl_SI \
+304-                                            | GPDMA_DMACCxControl_I;
+305-            break;
+306-    // Peripheral to memory
+307-    case GPDMA_TRANSFERTYPE_P2M:
+308-    case GPDMA_TRANSFERTYPE_P2M_SRC_CTRL:
+                                            

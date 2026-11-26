@@ -1,0 +1,2006 @@
+┌──(bg9211014🎃kali)-[~/lpc1788_workspace/nuttx]
+└─$ bash << 'EOF'
+export GIT_PAGER=cat
+cd ~/lpc1788_workspace/nuttx || exit 1
+
+echo "=== 1. ACTIVE CONFIG FLAGS ==="
+grep -nE "^CONFIG_(LPC17_40_SDCARD|LPC17_40_GPDMA|SDIO|MMCSD|ADS7843E|NXWM|DEBUG_MEMCARD|DEBUG_INPUT|DEBUG_GRAPHICS)" .config
+
+echo "=== 2. GPDMA / SDCARD HARDWARE DEFS ==="
+grep -rnE "SDCARD|DMA_REQ|DMAREQSEL|DMASEL|DMACH_CONFIG_SRCPER|DMACH_CONFIG_DSTPER|LPC17_40_NDMAREQ|LPC176x" arch/arm/src/lpc17xx_40xx/hardware/ arch/arm/src/lpc17xx_40xx/lpc17_40_gpdma.h
+
+echo "=== 3. CURRENT DIFFS (NUTTX + APPS) ==="
+git diff arch/arm/src/lpc17xx_40xx/lpc17_40_sdcard.c drivers/mmcsd/mmcsd_sdio.c drivers/input/ads7843e.c boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_touchscreen.c
+git -C ../apps diff include/graphics/nxwm/ graphics/nxwm/src/ccalibration.cxx graphics/nxwm/src/ctouchscreen.cxx graphics/nxwm/src/nxwm_main.cxx
+
+echo "=== 4. LPC17_40_SDCARD DMA / XFR FUNCTIONS ==="
+grep -nE "^static .*lpc17_40_(sdinterrupt|dmacallback|dmasetup|recvsetup|sendsetup|dmarecvsetup|dmasendsetup|eventtimeout|endtransfer)" arch/arm/src/lpc17xx_40xx/lpc17_40_sdcard.c
+sed -n '1200,1375p;1750,1920p;2360,2615p' arch/arm/src/lpc17xx_40xx/lpc17_40_sdcard.c
+
+echo "=== 5. CCALIBRATION HEADER ==="
+sed -n '1,220p' ../apps/include/graphics/nxwm/ccalibration.hxx
+EOF
+=== 1. ACTIVE CONFIG FLAGS ===
+330:CONFIG_LPC17_40_SDCARD=y
+358:CONFIG_LPC17_40_GPDMA=y
+414:CONFIG_LPC17_40_SDCARD_DMA=y
+976:CONFIG_ADS7843E_NPOLLWAITERS=4
+977:CONFIG_ADS7843E_SPIDEV=0
+978:CONFIG_ADS7843E_DEVMINOR=0
+979:CONFIG_ADS7843E_SPIMODE=1
+980:CONFIG_ADS7843E_FREQUENCY=100000
+982:CONFIG_ADS7843E_THRESHX=3
+983:CONFIG_ADS7843E_THRESHY=3
+1048:CONFIG_MMCSD=y
+1049:CONFIG_MMCSD_IOCSUPPORT=y
+1050:CONFIG_MMCSD_NSLOTS=1
+1053:CONFIG_MMCSD_MULTIBLOCK_LIMIT=0
+1054:CONFIG_MMCSD_MMCSUPPORT=y
+1057:CONFIG_SDIO_DMA=y
+1058:CONFIG_MMCSD_SDIO=y
+1062:CONFIG_MMCSD_BLOCK_WDATADELAY=260
+2561:CONFIG_NXWM=y
+2580:CONFIG_NXWM_BACKGROUND_IMAGE="NXWidgets::g_nuttxBitmap160x160"
+2589:CONFIG_NXWM_TASKBAR_VSPACING=2
+2590:CONFIG_NXWM_TASKBAR_HSPACING=2
+2591:CONFIG_NXWM_TASKBAR_TOP=y
+2618:CONFIG_NXWM_STARTWINDOW_VSPACING=4
+2619:CONFIG_NXWM_STARTWINDOW_HSPACING=4
+2621:CONFIG_NXWM_STARTWINDOW_MQNAME="nxwm"
+2622:CONFIG_NXWM_STARTWINDOW_MXMSGS=32
+2623:CONFIG_NXWM_STARTWINDOW_MXMPRIO=42
+2624:CONFIG_NXWM_STARTWINDOW_PRIO=100
+2625:CONFIG_NXWM_STARTWINDOW_STACKSIZE=2048
+2630:CONFIG_NXWM_NXTERM=y
+2631:CONFIG_NXWM_NXTERM_PRIO=100
+2632:CONFIG_NXWM_NXTERM_STACKSIZE=2048
+2640:CONFIG_NXWM_TOUCHSCREEN=y
+2645:CONFIG_NXWM_TOUCHSCREEN_DEVNO=0
+2646:CONFIG_NXWM_TOUCHSCREEN_DEVPATH="/dev/input0"
+2647:CONFIG_NXWM_TOUCHSCREEN_SIGNO=32
+2648:CONFIG_NXWM_TOUCHSCREEN_LISTENERPRIO=120
+2649:CONFIG_NXWM_TOUCHSCREEN_LISTENERSTACK=4096
+2659:CONFIG_NXWM_CALIBRATION_MARGIN=50
+2664:CONFIG_NXWM_CALIBRATION_SIGNO=32
+2665:CONFIG_NXWM_CALIBRATION_LISTENERPRIO=100
+2666:CONFIG_NXWM_CALIBRATION_LISTENERSTACK=2048
+=== 2. GPDMA / SDCARD HARDWARE DEFS ===
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_syscon.h:38:#if defined(LPC176x)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:23:#ifndef __ARCH_ARM_SRC_LPC17XX_40XX_HARDWARE_LPC17_40_SDCARD_H
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:24:#define __ARCH_ARM_SRC_LPC17XX_40XX_HARDWARE_LPC17_40_SDCARD_H
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:32:#define LPC17_40_SDCARD_PWR_OFFSET        0x0000 /* SD card power control register */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:33:#define LPC17_40_SDCARD_CLOCK_OFFSET      0x0004 /* SD card clock control register */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:34:#define LPC17_40_SDCARD_ARG_OFFSET        0x0008 /* SD card argument register */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:35:#define LPC17_40_SDCARD_CMD_OFFSET        0x000c /* SD card command register */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:36:#define LPC17_40_SDCARD_RESPCMD_OFFSET    0x0010 /* SD card command response register */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:37:#define LPC17_40_SDCARD_RESP_OFFSET(n)    (0x0010+4*(n))
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:38:#  define LPC17_40_SDCARD_RESP0_OFFSET    0x0014 /* SD card response 1 register */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:39:#  define LPC17_40_SDCARD_RESP1_OFFSET    0x0018 /* SD card response 2 register */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:40:#  define LPC17_40_SDCARD_RESP2_OFFSET    0x001c /* SD card response 3 register */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:41:#  define LPC17_40_SDCARD_RESP3_OFFSET    0x0020 /* SD card response 4 register */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:42:#define LPC17_40_SDCARD_DTIMER_OFFSET     0x0024 /* SD card data timer register */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:43:#define LPC17_40_SDCARD_DLEN_OFFSET       0x0028 /* SD card data length register */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:44:#define LPC17_40_SDCARD_DCTRL_OFFSET      0x002c /* SD card data control register */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:45:#define LPC17_40_SDCARD_DCOUNT_OFFSET     0x0030 /* SD card data counter register */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:46:#define LPC17_40_SDCARD_STATUS_OFFSET     0x0034 /* SD card status register */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:47:#define LPC17_40_SDCARD_CLEAR_OFFSET      0x0038 /* SD card interrupt clear register */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:48:#define LPC17_40_SDCARD_MASK0_OFFSET      0x003c /* SD card mask register */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:49:#define LPC17_40_SDCARD_FIFOCNT_OFFSET    0x0048 /* SD card FIFO counter register */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:50:#define LPC17_40_SDCARD_FIFO_OFFSET       0x0080 /* SD card data FIFO register */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:54:#define LPC17_40_SDCARD_PWR               (LPC17_40_MCI_BASE+LPC17_40_SDCARD_PWR_OFFSET)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:55:#define LPC17_40_SDCARD_CLOCK             (LPC17_40_MCI_BASE+LPC17_40_SDCARD_CLOCK_OFFSET)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:56:#define LPC17_40_SDCARD_ARG               (LPC17_40_MCI_BASE+LPC17_40_SDCARD_ARG_OFFSET)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:57:#define LPC17_40_SDCARD_CMD               (LPC17_40_MCI_BASE+LPC17_40_SDCARD_CMD_OFFSET)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:58:#define LPC17_40_SDCARD_RESPCMD           (LPC17_40_MCI_BASE+LPC17_40_SDCARD_RESPCMD_OFFSET)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:59:#define LPC17_40_SDCARD_RESP(n)           (LPC17_40_MCI_BASE+LPC17_40_SDCARD_RESP_OFFSET(n))
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:60:#define LPC17_40_SDCARD_RESP0             (LPC17_40_MCI_BASE+LPC17_40_SDCARD_RESP0_OFFSET)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:61:#define LPC17_40_SDCARD_RESP1             (LPC17_40_MCI_BASE+LPC17_40_SDCARD_RESP1_OFFSET)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:62:#define LPC17_40_SDCARD_RESP2             (LPC17_40_MCI_BASE+LPC17_40_SDCARD_RESP2_OFFSET)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:63:#define LPC17_40_SDCARD_RESP3             (LPC17_40_MCI_BASE+LPC17_40_SDCARD_RESP3_OFFSET)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:64:#define LPC17_40_SDCARD_DTIMER            (LPC17_40_MCI_BASE+LPC17_40_SDCARD_DTIMER_OFFSET)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:65:#define LPC17_40_SDCARD_DLEN              (LPC17_40_MCI_BASE+LPC17_40_SDCARD_DLEN_OFFSET)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:66:#define LPC17_40_SDCARD_DCTRL             (LPC17_40_MCI_BASE+LPC17_40_SDCARD_DCTRL_OFFSET)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:67:#define LPC17_40_SDCARD_DCOUNT            (LPC17_40_MCI_BASE+LPC17_40_SDCARD_DCOUNT_OFFSET)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:68:#define LPC17_40_SDCARD_STATUS            (LPC17_40_MCI_BASE+LPC17_40_SDCARD_STATUS_OFFSET)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:69:#define LPC17_40_SDCARD_CLEAR             (LPC17_40_MCI_BASE+LPC17_40_SDCARD_CLEAR_OFFSET)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:70:#define LPC17_40_SDCARD_MASK0             (LPC17_40_MCI_BASE+LPC17_40_SDCARD_MASK0_OFFSET)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:71:#define LPC17_40_SDCARD_FIFOCNT           (LPC17_40_MCI_BASE+LPC17_40_SDCARD_FIFOCNT_OFFSET)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:72:#define LPC17_40_SDCARD_FIFO              (LPC17_40_MCI_BASE+LPC17_40_SDCARD_FIFO_OFFSET)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:78:#define SDCARD_PWR_CTRL_SHIFT             (0)       /* Bits 0-1: Power supply control bits */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:79:#define SDCARD_PWR_CTRL_MASK              (3 << SDCARD_PWR_CTRL_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:80:#  define SDCARD_PWR_CTRL_OFF             (0 << SDCARD_PWR_CTRL_SHIFT) /* 00: Power-off: card clock stopped */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:81:#  define SDCARD_PWR_CTRL_PWRUP           (2 << SDCARD_PWR_CTRL_SHIFT) /* 10: Reserved power-up */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:82:#  define SDCARD_PWR_CTRL_ON              (3 << SDCARD_PWR_CTRL_SHIFT) /* 11: Power-on: card is clocked */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:85:#define SDCARD_PWR_OPENDRAIN              (1 << 6)  /* SD_CMD Output Control */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:86:#define SDCARD_PWR_ROD                    (1 << 7)  /* Rod Control */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:88:#define SDCARD_PWR_RESET                  (0)       /* Reset value */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:92:#define SDCARD_CLOCK_CLKDIV_SHIFT         (0)       /* Bits 7-0: Clock divide factor */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:93:#define SDCARD_CLOCK_CLKDIV_MASK          (0xff << SDCARD_CLOCK_CLKDIV_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:94:#define SDCARD_CLOCK_CLKEN                (1 << 8)  /* Bit 8: Clock enable bit */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:95:#define SDCARD_CLOCK_PWRSAV               (1 << 9)  /* Bit 9: Power saving configuration bit */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:96:#define SDCARD_CLOCK_BYPASS               (1 << 10) /* Bit 10: Clock divider bypass enable bit */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:97:#define SDCARD_CLOCK_WIDBUS               (1 << 11) /* Bit 11: Wide bus mode enable bit */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:98:#  define SDCARD_CLOCK_WIDBUS_D1          (0)       /* 0: Default (SDIO_D0) */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:100:#  define SDCARD_CLOCK_WIDBUS_D4          (SDCARD_CLOCK_WIDBUS) /* 1: 4-wide (SDIO_D[3:0]) */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:104:#define SDCARD_CLOCK_RESET                (0)       /* Reset value */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:108:#define SDCARD_ARG_RESET                  (0)       /* Reset value */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:112:#define SDCARD_CMD_INDEX_SHIFT            (0)       /* Bits 0-5: Command Index */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:113:#define SDCARD_CMD_INDEX_MASK             (0x3f << SDCARD_CMD_INDEX_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:114:#define SDCARD_CMD_WAITRESP_SHIFT         (6)       /* Bits 7-6: Wait for response bits */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:115:#define SDCARD_CMD_WAITRESP_MASK          (3 << SDCARD_CMD_WAITRESP_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:116:#  define SDCARD_CMD_NORESPONSE           (0 << SDCARD_CMD_WAITRESP_SHIFT) /* 00/01: No response */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:117:#  define SDCARD_CMD_SHORTRESPONSE        (1 << SDCARD_CMD_WAITRESP_SHIFT) /* 10: Short response */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:118:#  define SDCARD_CMD_LONGRESPONSE         (3 << SDCARD_CMD_WAITRESP_SHIFT) /* 11: Long response */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:120:#define SDCARD_CMD_WAITINT                (1 << 8)  /* Bit 8: CPSM waits for interrupt request */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:121:#define SDCARD_CMD_WAITPEND               (1 << 9)  /* Bit 9: CPSM Waits for ends of data transfer */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:122:#define SDCARD_CMD_CPSMEN                 (1 << 10) /* Bit 10: Command path state machine enable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:125:#define SDCARD_CMD_RESET                  (0)       /* Reset value */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:129:#define SDCARD_RESPCMD_SHIFT              (0)       /* Bits 0-5: Response Command index */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:130:#define SDCARD_RESPCMD_MASK               (0x3f << SDCARD_RESPCMD_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:141:#define SDCARD_DTIMER_RESET               (0)       /* Reset value */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:145:#define SDCARD_DATALENGTH_SHIFT           (0)       /* Bits 0-15: Data length value */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:146:#define SDCARD_DATALENGTH_MASK            (0xffff << SDCARD_DATALENGTH_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:149:#define SDCARD_DLEN_RESET                 (0)       /* Reset value */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:153:#define SDCARD_DCTRL_DTEN                 (1 << 0)  /* Bit 0: Data transfer enabled bit */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:154:#define SDCARD_DCTRL_DTDIR                (1 << 1)  /* Bit 1: Data transfer direction */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:155:#define SDCARD_DCTRL_DTMODE               (1 << 2)  /* Bit 2: Data transfer mode */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:156:#define SDCARD_DCTRL_DMAEN                (1 << 3)  /* Bit 3: DMA enable bit */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:157:#define SDCARD_DCTRL_DBLOCKSIZE_SHIFT     (4)       /* Bits 4-7: Data block size */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:158:#define SDCARD_DCTRL_DBLOCKSIZE_MASK      (15 << SDCARD_DCTRL_DBLOCKSIZE_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:159:#  define SDCARD_DCTRL_1BYTE              (0 << SDCARD_DCTRL_DBLOCKSIZE_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:160:#  define SDCARD_DCTRL_2BYTES             (1 << SDCARD_DCTRL_DBLOCKSIZE_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:161:#  define SDCARD_DCTRL_4BYTES             (2 << SDCARD_DCTRL_DBLOCKSIZE_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:162:#  define SDCARD_DCTRL_8BYTES             (3 << SDCARD_DCTRL_DBLOCKSIZE_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:163:#  define SDCARD_DCTRL_16BYTES            (4 << SDCARD_DCTRL_DBLOCKSIZE_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:164:#  define SDCARD_DCTRL_32BYTES            (5 << SDCARD_DCTRL_DBLOCKSIZE_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:165:#  define SDCARD_DCTRL_64BYTES            (6 << SDCARD_DCTRL_DBLOCKSIZE_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:166:#  define SDCARD_DCTRL_128BYTES           (7 << SDCARD_DCTRL_DBLOCKSIZE_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:167:#  define SDCARD_DCTRL_256BYTES           (8 << SDCARD_DCTRL_DBLOCKSIZE_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:168:#  define SDCARD_DCTRL_512BYTES           (9 << SDCARD_DCTRL_DBLOCKSIZE_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:169:#  define SDCARD_DCTRL_1KBYTE             (10 << SDCARD_DCTRL_DBLOCKSIZE_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:170:#  define SDCARD_DCTRL_2KBYTES            (11 << SDCARD_DCTRL_DBLOCKSIZE_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:173:#define SDCARD_DCTRL_RESET                (0)       /* Reset value */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:177:#define SDCARD_DATACOUNT_SHIFT            (0)        /* Bits 0-15: Remaining data */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:178:#define SDCARD_DATACOUNT_MASK             (0xffff << SDCARD_DATACOUNT_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:183:#define SDCARD_STATUS_CCRCFAIL            (1 << 0)  /* Bit 0: Command response CRC fail */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:184:#define SDCARD_STATUS_DCRCFAIL            (1 << 1)  /* Bit 1: Data block CRC fail */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:185:#define SDCARD_STATUS_CTIMEOUT            (1 << 2)  /* Bit 2: Command response timeout */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:186:#define SDCARD_STATUS_DTIMEOUT            (1 << 3)  /* Bit 3: Data timeout */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:187:#define SDCARD_STATUS_TXUNDERR            (1 << 4)  /* Bit 4: Transmit FIFO underrun error */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:188:#define SDCARD_STATUS_RXOVERR             (1 << 5)  /* Bit 5: Received FIFO overrun error */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:189:#define SDCARD_STATUS_CMDREND             (1 << 6)  /* Bit 6: Command response received  */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:190:#define SDCARD_STATUS_CMDSENT             (1 << 7)  /* Bit 7: Command sent  */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:191:#define SDCARD_STATUS_DATAEND             (1 << 8)  /* Bit 8: Data end */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:192:#define SDCARD_STATUS_STBITERR            (1 << 9)  /* Bit 9: Start bit not detected  */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:193:#define SDCARD_STATUS_DBCKEND             (1 << 10) /* Bit 10: Data block sent/received  */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:194:#define SDCARD_STATUS_CMDACT              (1 << 11) /* Bit 11: Command transfer in progress */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:195:#define SDCARD_STATUS_TXACT               (1 << 12) /* Bit 12: Data transmit in progress */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:196:#define SDCARD_STATUS_RXACT               (1 << 13) /* Bit 13: Data receive in progress */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:197:#define SDCARD_STATUS_TXFIFOHE            (1 << 14) /* Bit 14: Transmit FIFO half empty */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:198:#define SDCARD_STATUS_RXFIFOHF            (1 << 15) /* Bit 15: Receive FIFO half full */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:199:#define SDCARD_STATUS_TXFIFOF             (1 << 16) /* Bit 16: Transmit FIFO full */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:200:#define SDCARD_STATUS_RXFIFOF             (1 << 17) /* Bit 17: Receive FIFO full */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:201:#define SDCARD_STATUS_TXFIFOE             (1 << 18) /* Bit 18: Transmit FIFO empty */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:202:#define SDCARD_STATUS_RXFIFOE             (1 << 19) /* Bit 19: Receive FIFO empty */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:203:#define SDCARD_STATUS_TXDAVL              (1 << 20) /* Bit 20: Data available in transmit FIFO */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:204:#define SDCARD_STATUS_RXDAVL              (1 << 21) /* Bit 21: Data available in receive FIFO */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:209:#define SDCARD_CLEAR_CCRCFAILC            (1 << 0)  /* Bit 0: CCRCFAIL flag clear bit */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:210:#define SDCARD_CLEAR_DCRCFAILC            (1 << 1)  /* Bit 1: DCRCFAIL flag clear bit */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:211:#define SDCARD_CLEAR_CTIMEOUTC            (1 << 2)  /* Bit 2: CTIMEOUT flag clear bit */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:212:#define SDCARD_CLEAR_DTIMEOUTC            (1 << 3)  /* Bit 3: DTIMEOUT flag clear bit */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:213:#define SDCARD_CLEAR_TXUNDERRC            (1 << 4)  /* Bit 4: TXUNDERR flag clear bit */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:214:#define SDCARD_CLEAR_RXOVERRC             (1 << 5)  /* Bit 5: RXOVERR flag clear bit */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:215:#define SDCARD_CLEAR_CMDRENDC             (1 << 6)  /* Bit 6: CMDREND flag clear bit */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:216:#define SDCARD_CLEAR_CMDSENTC             (1 << 7)  /* Bit 7: CMDSENT flag clear bit */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:217:#define SDCARD_CLEAR_DATAENDC             (1 << 8)  /* Bit 8: DATAEND flag clear bit */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:218:#define SDCARD_CLEAR_STBITERRC            (1 << 9)  /* Bit 9: STBITERR flag clear bit */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:219:#define SDCARD_CLEAR_DBCKENDC             (1 << 10) /* Bit 10: DBCKEND flag clear bit */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:222:#define SDCARD_CLEAR_RESET                0x000007ff
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:223:#define SDCARD_CLEAR_STATICFLAGS          0x000005ff
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:227:#define SDCARD_MASK0_CCRCFAILIE           (1 << 0)  /* Bit 0: Command CRC fail interrupt enable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:228:#define SDCARD_MASK0_DCRCFAILIE           (1 << 1)  /* Bit 1: Data CRC fail interrupt enable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:229:#define SDCARD_MASK0_CTIMEOUTIE           (1 << 2)  /* Bit 2: Command timeout interrupt enable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:230:#define SDCARD_MASK0_DTIMEOUTIE           (1 << 3)  /* Bit 3: Data timeout interrupt enable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:231:#define SDCARD_MASK0_TXUNDERRIE           (1 << 4)  /* Bit 4: Tx FIFO underrun error interrupt enable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:232:#define SDCARD_MASK0_RXOVERRIE            (1 << 5)  /* Bit 5: Rx FIFO overrun error interrupt enable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:233:#define SDCARD_MASK0_CMDRENDIE            (1 << 6)  /* Bit 6: Command response received interrupt enable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:234:#define SDCARD_MASK0_CMDSENTIE            (1 << 7)  /* Bit 7: Command sent interrupt enable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:235:#define SDCARD_MASK0_DATAENDIE            (1 << 8)  /* Bit 8: Data end interrupt enable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:236:#define SDCARD_MASK0_STBITERRIE           (1 << 9)  /* Bit 9: Start bit error interrupt enable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:237:#define SDCARD_MASK0_DBCKENDIE            (1 << 10) /* Bit 10: Data block end interrupt enable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:238:#define SDCARD_MASK0_CMDACTIE             (1 << 11) /* Bit 11: Command acting interrupt enable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:239:#define SDCARD_MASK0_TXACTIE              (1 << 12) /* Bit 12: Data transmit acting interrupt enable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:240:#define SDCARD_MASK0_RXACTIE              (1 << 13) /* Bit 13: Data receive acting interrupt enable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:241:#define SDCARD_MASK0_TXFIFOHEIE           (1 << 14) /* Bit 14: Tx FIFO half empty interrupt enable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:242:#define SDCARD_MASK0_RXFIFOHFIE           (1 << 15) /* Bit 15: Rx FIFO half full interrupt enable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:243:#define SDCARD_MASK0_TXFIFOFIE            (1 << 16) /* Bit 16: Tx FIFO full interrupt enable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:244:#define SDCARD_MASK0_RXFIFOFIE            (1 << 17) /* Bit 17: Rx FIFO full interrupt enable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:245:#define SDCARD_MASK0_TXFIFOEIE            (1 << 18) /* Bit 18: Tx FIFO empty interrupt enable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:246:#define SDCARD_MASK0_RXFIFOEIE            (1 << 19) /* Bit 19: Rx FIFO empty interrupt enable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:247:#define SDCARD_MASK0_TXDAVLIE             (1 << 20) /* Bit 20: Data available in Tx FIFO interrupt enable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:248:#define SDCARD_MASK0_RXDAVLIE             (1 << 21) /* Bit 21: Data available in Rx FIFO interrupt enable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:250:#define SDCARD_MASK0_RESET                (0)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:254:#define SDCARD_FIFOCNT_SHIFT              (0)       /* Bits 0-14: Remaining data */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:255:#define SDCARD_FIFOCNT_MASK               (0x7fff << SDCARD_FIFOCNT_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_sdcard.h:265:#endif /* __ARCH_ARM_SRC_LPC17XX_40XX_HARDWARE_LPC17_40_SDCARD_H */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_wdt.h:46:#ifdef LPC176x
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_wdt.h:83:#ifdef LPC176x
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_wdt.h:102:#ifdef LPC176x
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_wdt.h:112:#ifdef LPC176x
+arch/arm/src/lpc17xx_40xx/hardware/lpc178x_40xx_syscon.h:108:#define LPC17_40_SYSCON_DMAREQSEL_OFFSET    0x01c4 /* Selects between UART and timer DMA requests */
+arch/arm/src/lpc17xx_40xx/hardware/lpc178x_40xx_syscon.h:194:#define LPC17_40_SYSCON_DMAREQSEL           (LPC17_40_SYSCON_BASE+LPC17_40_SYSCON_DMAREQSEL_OFFSET)
+arch/arm/src/lpc17xx_40xx/hardware/lpc178x_40xx_syscon.h:576:#define SYSCON_DMAREQSEL_INP0               (1 << 0)  /* Bit 0:  Input 0 0=unused 1=Timer 0 match 0 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc178x_40xx_syscon.h:577:#define SYSCON_DMAREQSEL_INP1               (1 << 1)  /* Bit 1:  Input 1 0=SD 1=Timer 0 match 1 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc178x_40xx_syscon.h:578:#define SYSCON_DMAREQSEL_INP2               (1 << 2)  /* Bit 2:  Input 2 0=SSP0 TX 1=Timer 1 match 0 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc178x_40xx_syscon.h:579:#define SYSCON_DMAREQSEL_INP3               (1 << 3)  /* Bit 3:  Input 3 0=SSP0 RX 1=Timer 1 match 1 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc178x_40xx_syscon.h:580:#define SYSCON_DMAREQSEL_INP4               (1 << 4)  /* Bit 4:  Input 4 0=SSP1 TX 1=Timer 2 match 0 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc178x_40xx_syscon.h:581:#define SYSCON_DMAREQSEL_INP5               (1 << 5)  /* Bit 5:  Input 5 0=SSP1 RX 1=Timer 2 match 1 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc178x_40xx_syscon.h:582:#define SYSCON_DMAREQSEL_INP6               (1 << 6)  /* Bit 6:  Input 6 0=SSP2 TX 1=I2S0 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc178x_40xx_syscon.h:583:#define SYSCON_DMAREQSEL_INP7               (1 << 7)  /* Bit 7:  Input 7 0=SSP2 RX 1=I2S1 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc178x_40xx_syscon.h:585:#define SYSCON_DMAREQSEL_INP10              (1 << 10) /* Bit 10:  Input 10 0=UART0 TX 1=UART3 TX */
+arch/arm/src/lpc17xx_40xx/hardware/lpc178x_40xx_syscon.h:586:#define SYSCON_DMAREQSEL_INP11              (1 << 11) /* Bit 11:  Input 11 0=UART0 RX 1=UART3 RX */
+arch/arm/src/lpc17xx_40xx/hardware/lpc178x_40xx_syscon.h:587:#define SYSCON_DMAREQSEL_INP12              (1 << 12) /* Bit 12:  Input 12 0=UART1 TX 1=UART4 TX */
+arch/arm/src/lpc17xx_40xx/hardware/lpc178x_40xx_syscon.h:588:#define SYSCON_DMAREQSEL_INP13              (1 << 13) /* Bit 13:  Input 13 0=UART1 RX 1=UART4 RX */
+arch/arm/src/lpc17xx_40xx/hardware/lpc178x_40xx_syscon.h:589:#define SYSCON_DMAREQSEL_INP14              (1 << 14) /* Bit 14:  Input 14 0=UART2 TX 1=Timer 3 match 0 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc178x_40xx_syscon.h:590:#define SYSCON_DMAREQSEL_INP15              (1 << 15) /* Bit 15:  Input 15 0=UART2 RX 1=Timer 3 match 1 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc178x_40xx_syscon.h:682: * for compatibility with the LPC176x family:
+arch/arm/src/lpc17xx_40xx/hardware/lpc176x_syscon.h:105:#define LPC17_40_SYSCON_DMAREQSEL_OFFSET  0x01c4      /* Selects between UART and timer DMA requests */
+arch/arm/src/lpc17xx_40xx/hardware/lpc176x_syscon.h:177:#define LPC17_40_SYSCON_DMAREQSEL         (LPC17_40_SYSCON_BASE+LPC17_40_SYSCON_DMAREQSEL_OFFSET)
+arch/arm/src/lpc17xx_40xx/hardware/lpc176x_syscon.h:496:#define SYSCON_DMAREQSEL_INP8             (1 << 0)    /* Bit 0:  Input 8 0=UART0 TX 1=Timer 0 match 0 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc176x_syscon.h:497:#define SYSCON_DMAREQSEL_INP9             (1 << 1)    /* Bit 1:  Input 8 0=UART0 RX 1=Timer 0 match 1 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc176x_syscon.h:498:#define SYSCON_DMAREQSEL_INP10            (1 << 2)    /* Bit 2:  Input 8 0=UART1 TX 1=Timer 1 match 0 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc176x_syscon.h:499:#define SYSCON_DMAREQSEL_INP11            (1 << 3)    /* Bit 3:  Input 8 0=UART1 RX 1=Timer 1 match 1 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc176x_syscon.h:500:#define SYSCON_DMAREQSEL_INP12            (1 << 4)    /* Bit 4:  Input 8 0=UART2 TX 1=Timer 2 match 0 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc176x_syscon.h:501:#define SYSCON_DMAREQSEL_INP13            (1 << 5)    /* Bit 5:  Input 8 0=UART2 RX 1=Timer 2 match 1 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc176x_syscon.h:502:#define SYSCON_DMAREQSEL_INP14            (1 << 6)    /* Bit 6:  Input 8 0=UART3 TX 1=Timer 3 match 0 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc176x_syscon.h:503:#define SYSCON_DMAREQSEL_INP15            (1 << 7)    /* Bit 7:  Input 8 0=UART3 RX 1=Timer 3 match 1 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_pinconn.h:38:#if defined(LPC176x)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_memorymap.h:38:#if defined(LPC176x)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:42: * (see also LPC17_40_SYSCON_DMAREQSEL_OFFSET in lpc17_40_syscon.h)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:123: * (see also LPC17_40_SYSCON_DMAREQSEL in lpc17_40_syscon.h)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:203:#define LPC17_40_NDMAREQ                  (16) /* The number of DMA requests */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:204:#if defined(LPC176x)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:207:#  define DMA_REQ_SSP0TX                  (0)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:208:#  define DMA_REQ_SSP0RX                  (1)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:209:#  define DMA_REQ_SSP1TX                  (2)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:210:#  define DMA_REQ_SSP1RX                  (3)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:212:#  define DMA_REQ_ADC                     (4)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:214:#  define DMA_REQ_I2SCH0                  (5)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:215:#  define DMA_REQ_I2SCH1                  (6)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:217:#  define DMA_REQ_DAC                     (7)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:219:#  define DMA_REQ_UART0TX                 (8)  /* DMASEL08=0*/
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:220:#  define DMA_REQ_UART0RX                 (9)  /* DMASEL09=0*/
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:221:#  define DMA_REQ_UART1TX                 (10) /* DMASEL010=0*/
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:222:#  define DMA_REQ_UART1RX                 (11) /* DMASEL011=0*/
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:223:#  define DMA_REQ_UART2TX                 (12) /* DMASEL012=0*/
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:224:#  define DMA_REQ_UART2RX                 (13) /* DMASEL013=0*/
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:225:#  define DMA_REQ_UART3TX                 (14) /* DMASEL014=0*/
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:226:#  define DMA_REQ_UART3RX                 (15) /* DMASEL015=0*/
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:228:#  define DMA_REQ_MAT0p0                  (8)  /* DMASEL08=1 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:229:#  define DMA_REQ_MAT0p1                  (9)  /* DMASEL09=1 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:230:#  define DMA_REQ_MAT1p0                  (10) /* DMASEL010=1 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:231:#  define DMA_REQ_MAT1p1                  (11) /* DMASEL011=1 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:232:#  define DMA_REQ_MAT2p0                  (12) /* DMASEL012=1 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:233:#  define DMA_REQ_MAT2p1                  (13) /* DMASEL013=1 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:234:#  define DMA_REQ_MAT3p0                  (14) /* DMASEL014=1 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:235:#  define DMA_REQ_MAT3p1                  (15) /* DMASEL015=1 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:237:/* DMASEL values.  For the LPC176x family, only request numbers 8-15 have
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:238: * DMASEL bits.
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:241:#  define DMA_DMASEL_SSP0TX               (0)  /* Not applicable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:242:#  define DMA_DMASEL_SSP0RX               (0)  /* Not applicable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:243:#  define DMA_DMASEL_SSP1TX               (0)  /* Not applicable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:244:#  define DMA_DMASEL_SSP1RX               (0)  /* Not applicable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:246:#  define DMA_DMASEL_ADC                  (0)  /* Not applicable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:248:#  define DMA_DMASEL_I2SCH0               (0)  /* Not applicable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:249:#  define DMA_DMASEL_I2SCH1               (0)  /* Not applicable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:251:#  define DMA_DMASEL_DAC                  (0)  /* Not applicable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:253:#  define DMA_DMASEL_UART0TX              (0)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:254:#  define DMA_DMASEL_UART0RX              (0)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:255:#  define DMA_DMASEL_UART1TX              (0)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:256:#  define DMA_DMASEL_UART1RX              (0)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:257:#  define DMA_DMASEL_UART2TX              (0)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:258:#  define DMA_DMASEL_UART2RX              (0)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:259:#  define DMA_DMASEL_UART3TX              (0)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:260:#  define DMA_DMASEL_UART3RX              (0)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:262:#  define DMA_DMASEL_MAT0p0               (1)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:263:#  define DMA_DMASEL_MAT0p1               (1)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:264:#  define DMA_DMASEL_MAT1p0               (1)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:265:#  define DMA_DMASEL_MAT1p1               (1)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:266:#  define DMA_DMASEL_MAT2p0               (1)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:267:#  define DMA_DMASEL_MAT2p1               (1)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:268:#  define DMA_DMASEL_MAT3p0               (1)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:269:#  define DMA_DMASEL_MAT3p1               (1)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:275:#  define DMA_REQ_SDCARD                  (1)  /* DMASEL01=0 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:277:#  define DMA_REQ_SSP0TX                  (2)  /* DMASEL02=0 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:278:#  define DMA_REQ_SSP0RX                  (3)  /* DMASEL03=0 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:279:#  define DMA_REQ_SSP1TX                  (4)  /* DMASEL04=0 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:280:#  define DMA_REQ_SSP1RX                  (5)  /* DMASEL05=0 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:281:#  define DMA_REQ_SSP2TX                  (6)  /* DMASEL06=0 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:282:#  define DMA_REQ_SSP2RX                  (7)  /* DMASEL07=0 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:284:#  define DMA_REQ_MAT0p0                  (0)  /* DMASEL00=1 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:285:#  define DMA_REQ_MAT0p1                  (1)  /* DMASEL01=1 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:286:#  define DMA_REQ_MAT1p0                  (2)  /* DMASEL02=1 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:287:#  define DMA_REQ_MAT1p1                  (3)  /* DMASEL03=1 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:288:#  define DMA_REQ_MAT2p0                  (4)  /* DMASEL04=1 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:289:#  define DMA_REQ_MAT2p1                  (5)  /* DMASEL05=1 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:290:#  define DMA_REQ_MAT3p0                  (14) /* DMASEL14=1 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:291:#  define DMA_REQ_MAT3p1                  (15) /* DMASEL15=1 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:293:#  define DMA_REQ_I2SCH0                  (6)  /* DMASEL06=1 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:294:#  define DMA_REQ_I2SCH1                  (7)  /* DMASEL07=1 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:296:#  define DMA_REQ_ADC                     (8)  /* Not applicable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:297:#  define DMA_REQ_DAC                     (9)  /* Not applicable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:299:#  define DMA_REQ_UART0TX                 (10)  /* DMASEL10=0 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:300:#  define DMA_REQ_UART0RX                 (11)  /* DMASEL11=0 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:301:#  define DMA_REQ_UART1TX                 (12)  /* DMASEL12=0 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:302:#  define DMA_REQ_UART1RX                 (13)  /* DMASEL13=0 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:303:#  define DMA_REQ_UART2TX                 (14)  /* DMASEL14=0 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:304:#  define DMA_REQ_UART2RX                 (15)  /* DMASEL15=0 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:305:#  define DMA_REQ_UART3TX                 (10)  /* DMASEL10=1 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:306:#  define DMA_REQ_UART3RX                 (11)  /* DMASEL11=1 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:307:#  define DMA_REQ_UART4TX                 (12)  /* DMASEL12=1 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:308:#  define DMA_REQ_UART4RX                 (13)  /* DMASEL13=1 */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:310:/* DMASEL values */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:312:#  define DMA_DMASEL_SDCARD               (0)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:314:#  define DMA_DMASEL_SSP0TX               (0)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:315:#  define DMA_DMASEL_SSP0RX               (0)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:316:#  define DMA_DMASEL_SSP1TX               (0)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:317:#  define DMA_DMASEL_SSP1RX               (0)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:318:#  define DMA_DMASEL_SSP2TX               (0)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:319:#  define DMA_DMASEL_SSP2RX               (0)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:321:#  define DMA_DMASEL_MAT0p0               (1)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:322:#  define DMA_DMASEL_MAT0p1               (1)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:323:#  define DMA_DMASEL_MAT1p0               (1)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:324:#  define DMA_DMASEL_MAT1p1               (1)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:325:#  define DMA_DMASEL_MAT2p0               (1)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:326:#  define DMA_DMASEL_MAT2p1               (1)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:327:#  define DMA_DMASEL_MAT3p0               (1)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:328:#  define DMA_DMASEL_MAT3p1               (1)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:330:#  define DMA_DMASEL_I2SCH0               (1)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:331:#  define DMA_DMASEL_I2SCH1               (1)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:333:#  define DMA_DMASEL_ADC                  (0)  /* Not applicable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:334:#  define DMA_DMASEL_DAC                  (0)  /* Not applicable */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:336:#  define DMA_DMASEL_UART0TX              (0)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:337:#  define DMA_DMASEL_UART0RX              (0)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:338:#  define DMA_DMASEL_UART1TX              (0)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:339:#  define DMA_DMASEL_UART1RX              (0)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:340:#  define DMA_DMASEL_UART2TX              (0)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:341:#  define DMA_DMASEL_UART2RX              (0)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:342:#  define DMA_DMASEL_UART3TX              (1)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:343:#  define DMA_DMASEL_UART3RX              (1)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:344:#  define DMA_DMASEL_UART4TX              (1)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:345:#  define DMA_DMASEL_UART4RX              (1)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:349: * (see also LPC17_40_SYSCON_DMAREQSEL in lpc17_40_syscon.h)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:378:#if defined(LPC176x)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:379:#  define DMA_REQ_SSP0TX_BIT              (1 << DMA_REQ_SSP0TX)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:380:#  define DMA_REQ_SSP0RX_BIT              (1 << DMA_REQ_SSP0RX)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:381:#  define DMA_REQ_SSP1TX_BIT              (1 << DMA_REQ_SSP1TX)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:382:#  define DMA_REQ_SSP1RX_BIT              (1 << DMA_REQ_SSP0RX)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:383:#  define DMA_REQ_ADC_BIT                 (1 << DMA_REQ_ADC)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:384:#  define DMA_REQ_I2SCH0_BIT              (1 << DMA_REQ_I2SCH0)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:385:#  define DMA_REQ_I2SCH1_BIT              (1 << DMA_REQ_I2SCH1)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:386:#  define DMA_REQ_DAC_BIT                 (1 << DMA_REQ_DAC)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:388:#  define DMA_REQ_UART0TX_BIT             (1 << DMA_REQ_UART0TX)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:389:#  define DMA_REQ_UART0RX_BIT             (1 << DMA_REQ_UART0RX)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:390:#  define DMA_REQ_UART1TX_BIT             (1 << DMA_REQ_UART1TX)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:391:#  define DMA_REQ_UART1RX_BIT             (1 << DMA_REQ_UART1RX)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:392:#  define DMA_REQ_UART2TX_BIT             (1 << DMA_REQ_UART2TX)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:393:#  define DMA_REQ_UART2RX_BIT             (1 << DMA_REQ_UART2RX)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:394:#  define DMA_REQ_UART3TX_BIT             (1 << DMA_REQ_UART3TX)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:395:#  define DMA_REQ_UART3RX_BIT             (1 << DMA_REQ_UART3RX)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:397:#  define DMA_REQ_MAT0p0_BIT              (1 << DMA_REQ_MAT0p0)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:398:#  define DMA_REQ_MAT0p1_BIT              (1 << DMA_REQ_MAT0p1)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:399:#  define DMA_REQ_MAT1p0_BIT              (1 << DMA_REQ_MAT1p0)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:400:#  define DMA_REQ_MAT1p1_BIT              (1 << DMA_REQ_MAT1p1)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:401:#  define DMA_REQ_MAT2p0_BIT              (1 << DMA_REQ_MAT2p0)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:402:#  define DMA_REQ_MAT2p1_BIT              (1 << DMA_REQ_MAT2p1)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:403:#  define DMA_REQ_MAT3p0_BIT              (1 << DMA_REQ_MAT3p0)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:404:#  define DMA_REQ_MAT3p1_BIT              (1 << DMA_REQ_MAT3p1)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:406:#  define DMA_REQ_SDCARD_BIT              (1 << DMA_REQ_SDCARD)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:408:#  define DMA_REQ_SSP0TX_BIT              (1 << DMA_REQ_SSP0TX)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:409:#  define DMA_REQ_SSP0RX_BIT              (1 << DMA_REQ_SSP0RX)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:410:#  define DMA_REQ_SSP1TX_BIT              (1 << DMA_REQ_SSP1TX)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:411:#  define DMA_REQ_SSP1RX_BIT              (1 << DMA_REQ_SSP1RX)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:412:#  define DMA_REQ_SSP2TX_BIT              (1 << DMA_REQ_SSP2TX)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:413:#  define DMA_REQ_SSP2RX_BIT              (1 << DMA_REQ_SSP2RX)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:415:#  define DMA_REQ_MAT0p0_BIT              (1 << DMA_REQ_MAT0p0)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:416:#  define DMA_REQ_MAT0p1_BIT              (1 << DMA_REQ_MAT0p1)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:417:#  define DMA_REQ_MAT1p0_BIT              (1 << DMA_REQ_MAT1p0)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:418:#  define DMA_REQ_MAT1p1_BIT              (1 << DMA_REQ_MAT1p1)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:419:#  define DMA_REQ_MAT2p0_BIT              (1 << DMA_REQ_MAT2p0)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:420:#  define DMA_REQ_MAT2p1_BIT              (1 << DMA_REQ_MAT2p1)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:421:#  define DMA_REQ_MAT3p0_BIT              (1 << DMA_REQ_MAT3p0)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:422:#  define DMA_REQ_MAT3p1_BIT              (1 << DMA_REQ_MAT3p1)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:424:#  define DMA_REQ_I2SCH0_BIT              (1 << DMA_REQ_I2SCH0)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:425:#  define DMA_REQ_I2SCH1_BIT              (1 << DMA_REQ_I2SCH1)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:427:#  define DMA_REQ_ADC_BIT                 (1 << DMA_REQ_ADC)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:428:#  define DMA_REQ_DAC_BIT                 (1 << DMA_REQ_DAC)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:430:#  define DMA_REQ_UART0TX_BIT             (1 << DMA_REQ_UART0TX)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:431:#  define DMA_REQ_UART0RX_BIT             (1 << DMA_REQ_UART0RX)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:432:#  define DMA_REQ_UART1TX_BIT             (1 << DMA_REQ_UART1TX)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:433:#  define DMA_REQ_UART1RX_BIT             (1 << DMA_REQ_UART1RX)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:434:#  define DMA_REQ_UART2TX_BIT             (1 << DMA_REQ_UART2TX)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:435:#  define DMA_REQ_UART2RX_BIT             (1 << DMA_REQ_UART2RX)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:436:#  define DMA_REQ_UART3TX_BIT             (1 << DMA_REQ_UART3TX)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:437:#  define DMA_REQ_UART3RX_BIT             (1 << DMA_REQ_UART3RX)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:438:#  define DMA_REQ_UART4TX_BIT             (1 << DMA_REQ_UART4TX)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:439:#  define DMA_REQ_UART4RX_BIT             (1 << DMA_REQ_UART4RX)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:512:#define DMACH_CONFIG_SRCPER_SHIFT         (1)      /* Bits 1-5: Source peripheral */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:513:#define DMACH_CONFIG_SRCPER_MASK          (31 << DMACH_CONFIG_SRCPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:514:#  define DMACH_CONFIG_SRCPER_SDCARD      (DMA_REQ_SDCARD << DMACH_CONFIG_SRCPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:515:#  define DMACH_CONFIG_SRCPER_SSP0TX      (DMA_REQ_SSP0TX << DMACH_CONFIG_SRCPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:516:#  define DMACH_CONFIG_SRCPER_SSP0RX      (DMA_REQ_SSP0RX << DMACH_CONFIG_SRCPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:517:#  define DMACH_CONFIG_SRCPER_SSP1TX      (DMA_REQ_SSP1TX << DMACH_CONFIG_SRCPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:518:#  define DMACH_CONFIG_SRCPER_SSP1RX      (DMA_REQ_SSP1RX << DMACH_CONFIG_SRCPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:519:#  define DMACH_CONFIG_SRCPER_SSP2TX      (DMA_REQ_SSP2TX << DMACH_CONFIG_SRCPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:520:#  define DMACH_CONFIG_SRCPER_SSP2RX      (DMA_REQ_SSP2RX << DMACH_CONFIG_SRCPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:521:#  define DMACH_CONFIG_SRCPER_I2SCH0      (DMA_REQ_I2SCH0 << DMACH_CONFIG_SRCPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:522:#  define DMACH_CONFIG_SRCPER_I2SCH1      (DMA_REQ_I2SCH1 << DMACH_CONFIG_SRCPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:523:#  define DMACH_CONFIG_SRCPER_ADC         (DMA_REQ_ADC << DMACH_CONFIG_SRCPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:524:#  define DMACH_CONFIG_SRCPER_DAC         (DMA_REQ_DAC << DMACH_CONFIG_SRCPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:525:#  define DMACH_CONFIG_SRCPER_UART0TX     (DMA_REQ_UART0TX << DMACH_CONFIG_SRCPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:526:#  define DMACH_CONFIG_SRCPER_UART0RX     (DMA_REQ_UART0RX << DMACH_CONFIG_SRCPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:527:#  define DMACH_CONFIG_SRCPER_UART1TX     (DMA_REQ_UART1TX << DMACH_CONFIG_SRCPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:528:#  define DMACH_CONFIG_SRCPER_UART1RX     (DMA_REQ_UART1RX << DMACH_CONFIG_SRCPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:529:#  define DMACH_CONFIG_SRCPER_UART2TX     (DMA_REQ_UART2TX << DMACH_CONFIG_SRCPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:530:#  define DMACH_CONFIG_SRCPER_UART2RX     (DMA_REQ_UART2RX << DMACH_CONFIG_SRCPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:531:#  define DMACH_CONFIG_SRCPER_UART3TX     (DMA_REQ_UART3TX << DMACH_CONFIG_SRCPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:532:#  define DMACH_CONFIG_SRCPER_UART3RX     (DMA_REQ_UART3RX << DMACH_CONFIG_SRCPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:533:#  define DMACH_CONFIG_SRCPER_UART4TX     (DMA_REQ_UART4TX << DMACH_CONFIG_SRCPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:534:#  define DMACH_CONFIG_SRCPER_UART4RX     (DMA_REQ_UART4RX << DMACH_CONFIG_SRCPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:535:#  define DMACH_CONFIG_SRCPER_MAT0p0      (DMA_REQ_MAT0p0 << DMACH_CONFIG_SRCPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:536:#  define DMACH_CONFIG_SRCPER_MAT0p1      (DMA_REQ_MAT0p1 << DMACH_CONFIG_SRCPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:537:#  define DMACH_CONFIG_SRCPER_MAT1p0      (DMA_REQ_MAT1p0 << DMACH_CONFIG_SRCPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:538:#  define DMACH_CONFIG_SRCPER_MAT1p1      (DMA_REQ_MAT1p1 << DMACH_CONFIG_SRCPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:539:#  define DMACH_CONFIG_SRCPER_MAT2p0      (DMA_REQ_MAT2p0 << DMACH_CONFIG_SRCPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:540:#  define DMACH_CONFIG_SRCPER_MAT2p1      (DMA_REQ_MAT2p1 << DMACH_CONFIG_SRCPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:541:#  define DMACH_CONFIG_SRCPER_MAT3p0      (DMA_REQ_MAT3p0 << DMACH_CONFIG_SRCPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:542:#  define DMACH_CONFIG_SRCPER_MAT3p1      (DMA_REQ_MAT3p1 << DMACH_CONFIG_SRCPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:543:#define DMACH_CONFIG_DSTPER_SHIFT         (6)      /* Bits 6-10: Destination peripheral */
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:544:#define DMACH_CONFIG_DSTPER_MASK          (31 << DMACH_CONFIG_DSTPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:545:#  define DMACH_CONFIG_DSTPER_SDCARD      (DMA_REQ_SDCARD << DMACH_CONFIG_DSTPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:546:#  define DMACH_CONFIG_DSTPER_SSP0TX      (DMA_REQ_SSP0TX << DMACH_CONFIG_DSTPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:547:#  define DMACH_CONFIG_DSTPER_SSP0RX      (DMA_REQ_SSP0RX << DMACH_CONFIG_DSTPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:548:#  define DMACH_CONFIG_DSTPER_SSP1TX      (DMA_REQ_SSP1TX << DMACH_CONFIG_DSTPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:549:#  define DMACH_CONFIG_DSTPER_SSP1RX      (DMA_REQ_SSP1RX << DMACH_CONFIG_DSTPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:550:#  define DMACH_CONFIG_DSTPER_SSP2TX      (DMA_REQ_SSP2TX << DMACH_CONFIG_DSTPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:551:#  define DMACH_CONFIG_DSTPER_SSP2RX      (DMA_REQ_SSP2RX << DMACH_CONFIG_DSTPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:552:#  define DMACH_CONFIG_DSTPER_I2SCH0      (DMA_REQ_I2SCH0 << DMACH_CONFIG_DSTPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:553:#  define DMACH_CONFIG_DSTPER_I2SCH1      (DMA_REQ_I2SCH1 << DMACH_CONFIG_DSTPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:554:#  define DMACH_CONFIG_DSTPER_ADC         (DMA_REQ_ADC << DMACH_CONFIG_DSTPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:555:#  define DMACH_CONFIG_DSTPER_DAC         (DMA_REQ_DAC << DMACH_CONFIG_DSTPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:556:#  define DMACH_CONFIG_DSTPER_UART0TX     (DMA_REQ_UART0TX << DMACH_CONFIG_DSTPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:557:#  define DMACH_CONFIG_DSTPER_UART0RX     (DMA_REQ_UART0RX << DMACH_CONFIG_DSTPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:558:#  define DMACH_CONFIG_DSTPER_UART1TX     (DMA_REQ_UART1TX << DMACH_CONFIG_DSTPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:559:#  define DMACH_CONFIG_DSTPER_UART1RX     (DMA_REQ_UART1RX << DMACH_CONFIG_DSTPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:560:#  define DMACH_CONFIG_DSTPER_UART2TX     (DMA_REQ_UART2TX << DMACH_CONFIG_DSTPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:561:#  define DMACH_CONFIG_DSTPER_UART2RX     (DMA_REQ_UART2RX << DMACH_CONFIG_DSTPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:562:#  define DMACH_CONFIG_DSTPER_UART3TX     (DMA_REQ_UART3TX << DMACH_CONFIG_DSTPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:563:#  define DMACH_CONFIG_DSTPER_UART3RX     (DMA_REQ_UART3RX << DMACH_CONFIG_DSTPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:564:#  define DMACH_CONFIG_DSTPER_UART4TX     (DMA_REQ_UART4TX << DMACH_CONFIG_DSTPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:565:#  define DMACH_CONFIG_DSTPER_UART4RX     (DMA_REQ_UART4RX << DMACH_CONFIG_DSTPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:566:#  define DMACH_CONFIG_DSTPER_MAT0p0      (DMA_REQ_MAT0p0 << DMACH_CONFIG_DSTPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:567:#  define DMACH_CONFIG_DSTPER_MAT0p1      (DMA_REQ_MAT0p1 << DMACH_CONFIG_DSTPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:568:#  define DMACH_CONFIG_DSTPER_MAT1p0      (DMA_REQ_MAT1p0 << DMACH_CONFIG_DSTPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:569:#  define DMACH_CONFIG_DSTPER_MAT1p1      (DMA_REQ_MAT1p1 << DMACH_CONFIG_DSTPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:570:#  define DMACH_CONFIG_DSTPER_MAT2p0      (DMA_REQ_MAT2p0 << DMACH_CONFIG_DSTPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:571:#  define DMACH_CONFIG_DSTPER_MAT2p1      (DMA_REQ_MAT2p1 << DMACH_CONFIG_DSTPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:572:#  define DMACH_CONFIG_DSTPER_MAT3p0      (DMA_REQ_MAT3p0 << DMACH_CONFIG_DSTPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_gpdma.h:573:#  define DMACH_CONFIG_DSTPER_MAT3p1      (DMA_REQ_MAT3p1 << DMACH_CONFIG_DSTPER_SHIFT)
+arch/arm/src/lpc17xx_40xx/hardware/lpc17_40_pinconfig.h:38:#if defined(LPC176x)
+=== 3. CURRENT DIFFS (NUTTX + APPS) ===
+diff --git a/arch/arm/src/lpc17xx_40xx/lpc17_40_sdcard.c b/arch/arm/src/lpc17xx_40xx/lpc17_40_sdcard.c
+index 75ff5e9868..558e40fc77 100644
+--- a/arch/arm/src/lpc17xx_40xx/lpc17_40_sdcard.c
++++ b/arch/arm/src/lpc17xx_40xx/lpc17_40_sdcard.c
+@@ -931,7 +931,7 @@ static void lpc17_40_sendfifo(struct lpc17_40_dev_s *priv)
+            * padding with zero as necessary to extend to a full word.
+            */
+ 
+-          uint8_t *ptr = (uint8_t *)priv->remaining;
++          uint8_t *ptr = (uint8_t *)priv->buffer;
+           int i;
+ 
+           data.w = 0;
+@@ -1561,7 +1561,7 @@ static void lpc17_40_clock(struct sdio_dev_s *dev,
+       default:
+       case CLOCK_SDIO_DISABLED:
+         clkcr = LPC17_40_CLCKCR_INIT;
+-        return;
++        break;
+ 
+       /* Enable in initial ID mode clocking (<400KHz) */
+ 
+@@ -1573,7 +1573,7 @@ static void lpc17_40_clock(struct sdio_dev_s *dev,
+ 
+       case CLOCK_MMC_TRANSFER:
+         clkcr = (SDCARD_CLOCK_MMCXFR | SDCARD_CLOCK_CLKEN);
+-        lpc17_40_setpwrctrl(SDCARD_PWR_OPENDRAIN);
++        lpc17_40_setpwrctrl(SDCARD_PWR_CTRL_ON | SDCARD_PWR_OPENDRAIN);
+         break;
+ 
+       /* SD normal operation clocking (wide 4-bit mode) */
+@@ -1757,7 +1757,7 @@ static int lpc17_40_recvsetup(struct sdio_dev_s *dev,
+ 
+   /* Then set up the SD card data path */
+ 
+-  dblocksize = lpc17_40_log2(nbytes) << SDCARD_DCTRL_DBLOCKSIZE_SHIFT;
++  dblocksize = lpc17_40_log2((nbytes > 512 && (nbytes & 511) == 0) ? 512 : nbytes) << SDCARD_DCTRL_DBLOCKSIZE_SHIFT;
+   lpc17_40_dataconfig(SDCARD_DTIMER_DATATIMEOUT, nbytes,
+                    dblocksize | SDCARD_DCTRL_DTDIR);
+ 
+@@ -1814,7 +1814,7 @@ static int lpc17_40_sendsetup(struct sdio_dev_s *dev,
+ 
+   /* Then set up the SD card data path */
+ 
+-  dblocksize = lpc17_40_log2(nbytes) << SDCARD_DCTRL_DBLOCKSIZE_SHIFT;
++  dblocksize = lpc17_40_log2((nbytes > 512 && (nbytes & 511) == 0) ? 512 : nbytes) << SDCARD_DCTRL_DBLOCKSIZE_SHIFT;
+   lpc17_40_dataconfig(SDCARD_DTIMER_DATATIMEOUT, nbytes, dblocksize);
+ 
+   /* Enable TX interrupts */
+@@ -2474,7 +2474,7 @@ static int lpc17_40_dmarecvsetup(struct sdio_dev_s *dev,
+ 
+       /* Then set up the SD card data path */
+ 
+-      dblocksize = lpc17_40_log2(buflen) << SDCARD_DCTRL_DBLOCKSIZE_SHIFT;
++      dblocksize = lpc17_40_log2((buflen > 512 && (buflen & 511) == 0) ? 512 : buflen) << SDCARD_DCTRL_DBLOCKSIZE_SHIFT;
+       lpc17_40_dataconfig(SDCARD_DTIMER_DATATIMEOUT, buflen,
+                        dblocksize | SDCARD_DCTRL_DTDIR);
+ 
+@@ -2498,6 +2498,10 @@ static int lpc17_40_dmarecvsetup(struct sdio_dev_s *dev,
+           lpc17_40_sample(priv, SAMPLENDX_AFTER_SETUP);
+         }
+     }
++  else
++    {
++      ret = lpc17_40_recvsetup(dev, buffer, buflen);
++    }
+ 
+   return ret;
+ }
+@@ -2555,7 +2559,7 @@ static int lpc17_40_dmasendsetup(struct sdio_dev_s *dev,
+ 
+       /* Then set up the SD card data path */
+ 
+-      dblocksize = lpc17_40_log2(buflen) << SDCARD_DCTRL_DBLOCKSIZE_SHIFT;
++      dblocksize = lpc17_40_log2((buflen > 512 && (buflen & 511) == 0) ? 512 : buflen) << SDCARD_DCTRL_DBLOCKSIZE_SHIFT;
+       lpc17_40_dataconfig(SDCARD_DTIMER_DATATIMEOUT, buflen, dblocksize);
+ 
+       /* Configure the TX DMA */
+@@ -2581,6 +2585,10 @@ static int lpc17_40_dmasendsetup(struct sdio_dev_s *dev,
+           lpc17_40_configxfrints(priv, SDCARD_DMASEND_MASK);
+         }
+     }
++  else
++    {
++      ret = lpc17_40_sendsetup(dev, buffer, buflen);
++    }
+ 
+   return ret;
+ }
+diff --git a/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_touchscreen.c b/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_touchscreen.c
+index 2b3447638a..03b644707a 100644
+--- a/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_touchscreen.c
++++ b/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_touchscreen.c
+@@ -34,11 +34,15 @@
+ 
+ #include <nuttx/arch.h>
+ #include <nuttx/irq.h>
++#include <nuttx/wdog.h>
++#include <nuttx/clock.h>
+ #include <nuttx/spi/spi.h>
+ #include <nuttx/input/touchscreen.h>
+ #include <nuttx/input/ads7843e.h>
+ 
++#include "arm_internal.h"
+ #include "lpc17_40_gpio.h"
++#include "hardware/lpc17_40_gpio.h"
+ #include "lpc17_40_ssp.h"
+ #include "open1788.h"
+ 
+@@ -54,8 +58,8 @@
+ #  error "Touchscreen support requires CONFIG_INPUT"
+ #endif
+ 
+-#ifndef CONFIG_LPC17_40_SSP1
+-#  error "Touchscreen support requires CONFIG_LPC17_40_SSP1"
++#ifndef CONFIG_LPC17_40_SSP0
++#  error "Touchscreen support requires CONFIG_LPC17_40_SSP0"
+ #endif
+ 
+ #ifndef CONFIG_LPC17_40_GPIOIRQ
+@@ -67,10 +71,10 @@
+ #endif
+ 
+ #ifndef CONFIG_ADS7843E_SPIDEV
+-#  define CONFIG_ADS7843E_SPIDEV 1
++#  define CONFIG_ADS7843E_SPIDEV 0
+ #endif
+ 
+-#if CONFIG_ADS7843E_SPIDEV != 1
++#if CONFIG_ADS7843E_SPIDEV != 0
+ #  error "CONFIG_ADS7843E_SPIDEV must be one"
+ #endif
+ 
+@@ -128,12 +132,13 @@ static bool tsc_pendown(struct ads7843e_config_s *state);
+ 
+ static struct ads7843e_config_s g_tscinfo =
+ {
+-  .frequency = CONFIG_ADS7843E_FREQUENCY,
+-  .attach    = tsc_attach,
+-  .enable    = tsc_enable,
+-  .clear     = tsc_clear,
+-  .busy      = tsc_busy,
+-  .pendown   = tsc_pendown,
++  .frequency         = CONFIG_ADS7843E_FREQUENCY,
++  .xplate_resistance = 630,
++  .attach            = tsc_attach,
++  .enable            = tsc_enable,
++  .clear             = tsc_clear,
++  .busy              = tsc_busy,
++  .pendown           = tsc_pendown,
+ };
+ 
+ /****************************************************************************
+@@ -152,11 +157,19 @@ static struct ads7843e_config_s g_tscinfo =
+  * pendown - Return the state of the pen down GPIO input
+  */
+ 
+-static int tsc_attach(struct ads7843e_config_s *state, xcpt_t handler)
++static xcpt_t g_tsc_upper_isr = NULL;
++static volatile bool g_tsc_irq_fired = false;
++
++static int tsc_isr_wrapper(int irq, void *context, void *arg)
+ {
+-  /* Attach then enable the touchscreen interrupt handler */
++  g_tsc_irq_fired = true;
++  return g_tsc_upper_isr ? g_tsc_upper_isr(irq, context, arg) : OK;
++}
+ 
+-  irq_attach(LPC17_40_IRQ_PENIRQ, handler, NULL);
++static int tsc_attach(struct ads7843e_config_s *state, xcpt_t handler)
++{
++  g_tsc_upper_isr = handler;
++  irq_attach(LPC17_40_IRQ_PENIRQ, tsc_isr_wrapper, NULL);
+   return OK;
+ }
+ 
+@@ -170,6 +183,9 @@ static void tsc_enable(struct ads7843e_config_s *state, bool enable)
+        * logic after completion of processing of the touchscreen interrupt.
+        */
+ 
++      up_udelay(100);
++      g_tsc_irq_fired = false;
++      putreg32((1 << 15), LPC17_40_GPIOINT2_INTCLR);
+       up_enable_irq(LPC17_40_IRQ_PENIRQ);
+     }
+   else
+@@ -185,9 +201,7 @@ static void tsc_enable(struct ads7843e_config_s *state, bool enable)
+ 
+ static void tsc_clear(struct ads7843e_config_s *state)
+ {
+-  /* Does nothing.  The interrupt is cleared automatically in the GPIO
+-   * logic for the LPC17xx/LPC40xx family.
+-   */
++  putreg32((1 << 15), LPC17_40_GPIOINT2_INTCLR);
+ }
+ 
+ static bool tsc_busy(struct ads7843e_config_s *state)
+@@ -196,6 +210,7 @@ static bool tsc_busy(struct ads7843e_config_s *state)
+  * between sending the command, then reading the returned data.
+  */
+ 
++#define XPT2046_NO_BUSY 1
+ #ifdef XPT2046_NO_BUSY
+ /* REVISIT:  Currently, XPT2046 reports BUSY all of the time.  This is
+  * probably GPIO setting issues.  But there is this cryptic statement in
+@@ -233,7 +248,8 @@ static bool tsc_pendown(struct ads7843e_config_s *state)
+    * initiates an interrupt to the processor via TP_INT.
+    */
+ 
+-  bool pendown = !lpc17_40_gpioread(GPIO_TC_PENIRQ);
++  bool pendown = !lpc17_40_gpioread(GPIO_TC_PENIRQ) || g_tsc_irq_fired;
++  g_tsc_irq_fired = false;
+   iinfo("pendown:%d\n", pendown);
+   return pendown;
+ }
+@@ -270,6 +286,7 @@ int open1788_tsc_setup(int minor)
+   /* Configure and enable the XPT2046 PENIRQ pin as an interrupting input. */
+ 
+   lpc17_40_configgpio(GPIO_TC_PENIRQ);
++  lpc17_40_configgpio(GPIO_TC_CS);
+ 
+   /* Configure the XPT2046 BUSY pin as a normal input. */
+ 
+diff --git a/drivers/input/ads7843e.c b/drivers/input/ads7843e.c
+index 5c0ecebec5..3b753070db 100644
+--- a/drivers/input/ads7843e.c
++++ b/drivers/input/ads7843e.c
+@@ -40,6 +40,7 @@
+ #include <sys/types.h>
+ 
+ #include <stdbool.h>
++#include <stdint.h>
+ #include <stdio.h>
+ #include <unistd.h>
+ #include <string.h>
+@@ -262,18 +263,83 @@ static uint16_t ads7843e_sendcmd(FAR struct ads7843e_dev_s *priv,
+ 
+   up_udelay(3); /* 3 microseconds */
+ 
+-  /* Read the 12-bit data (LS 4 bits will be padded with zero) */
++  /* The 12-bit result follows a leading null bit in the 16-bit response. */
+ 
+-  SPI_RECVBLOCK(priv->spi, buffer, 2);
++  buffer[0] = (uint8_t)SPI_SEND(priv->spi, 0x00);
++  buffer[1] = (uint8_t)SPI_SEND(priv->spi, 0x00);
+   SPI_SELECT(priv->spi, SPIDEV_TOUCHSCREEN(0), false);
+ 
+   result = ((uint16_t)buffer[0] << 8) | (uint16_t)buffer[1];
+-  result = result >> 4;
++  result = (result >> 3) & 0x0fff;
+ 
+-  iinfo("cmd:%02x response:%04x\n", cmd, result);
++  iinfo("cmd:%02x rx:%02x %02x response:%04x\n",
++        cmd, buffer[0], buffer[1], result);
+   return result;
+ }
+ 
++/****************************************************************************
++ * Name: ads7843e_filtered_value
++ ****************************************************************************/
++
++static uint16_t ads7843e_filtered_value(FAR struct ads7843e_dev_s *priv,
++                                        uint8_t cmd)
++{
++  uint16_t values[7];
++  uint16_t value;
++  int      i;
++  int      j;
++
++  for (i = 0; i < 7; i++)
++    {
++      values[i] = ads7843e_sendcmd(priv, cmd);
++    }
++
++  for (i = 1; i < 7; i++)
++    {
++      value = values[i];
++      for (j = i; j > 0 && values[j - 1] > value; j--)
++        {
++          values[j] = values[j - 1];
++        }
++
++      values[j] = value;
++    }
++
++  return ((uint32_t)values[2] + values[3] + values[4]) / 3;
++}
++
++/****************************************************************************
++ * Name: ads7843e_touch_resistance
++ ****************************************************************************/
++
++#define ADS7843E_MAX_TOUCH_RESISTANCE 3000
++
++static bool ads7843e_touch_resistance(uint16_t x, uint16_t z1, uint16_t z2,
++                                      uint16_t xplate_resistance,
++                                      uint16_t *resistance)
++{
++  uint64_t numerator;
++  uint64_t denominator;
++  uint64_t result;
++
++  if (xplate_resistance == 0 || z1 < 16 || z2 < z1)
++    {
++      return false;
++    }
++
++  numerator   = (uint64_t)x * xplate_resistance * (z2 - z1);
++  denominator = (uint64_t)4096 * z1;
++  result      = numerator / denominator;
++
++  if (result > ADS7843E_MAX_TOUCH_RESISTANCE)
++    {
++      return false;
++    }
++
++  *resistance = (uint16_t)result;
++  return true;
++}
++
+ /****************************************************************************
+  * Name: ads7843e_notify
+  ****************************************************************************/
+@@ -487,6 +553,12 @@ static void ads7843e_worker(FAR void *arg)
+   FAR struct ads7843e_config_s *config;
+   uint16_t                      x;
+   uint16_t                      y;
++  uint16_t                      rawx = 0;
++  uint16_t                      rawy = 0;
++  uint16_t                      z1;
++  uint16_t                      z2;
++  uint16_t                      pressure = 0;
++  bool                          pressure_valid = false;
+   uint16_t                      xdiff;
+   uint16_t                      ydiff;
+   bool                          pendown;
+@@ -518,6 +590,23 @@ static void ads7843e_worker(FAR void *arg)
+ 
+   pendown = config->pendown(config);
+ 
++  if (pendown && priv->sample.contact != CONTACT_UP &&
++      config->xplate_resistance != 0)
++    {
++      rawx = ads7843e_filtered_value(priv, ADS7843_CMD_XPOSITION);
++      rawy = ads7843e_filtered_value(priv, ADS7843_CMD_YPOSITION);
++      z1   = ads7843e_filtered_value(priv, ADS7843_CMD_Z1POSITION);
++      z2   = ads7843e_filtered_value(priv, ADS7843_CMD_Z2POSITION);
++
++      pressure_valid = ads7843e_touch_resistance(rawx, z1, z2,
++                                                 config->xplate_resistance,
++                                                 &pressure);
++      if (!pressure_valid)
++        {
++          pendown = false;
++        }
++    }
++
+   /* Handle the change from pen down to pen up */
+ 
+   if (!pendown)
+@@ -526,6 +615,8 @@ static void ads7843e_worker(FAR void *arg)
+ 
+       priv->threshx = INVALID_THRESHOLD;
+       priv->threshy = INVALID_THRESHOLD;
++      priv->sample.pressure_valid = false;
++      priv->sample.pressure       = 0;
+ 
+       /* Ignore the interrupt if the pen was already up (CONTACT_NONE ==
+        * pen up and already reported; CONTACT_UP == pen up, but not
+@@ -569,13 +660,26 @@ static void ads7843e_worker(FAR void *arg)
+        * that these commands have the side-effect of disabling the PENIRQ.
+        */
+ 
++      if (config->xplate_resistance != 0)
++        {
++#ifdef CONFIG_ADS7843E_SWAPXY
++          x = rawy;
++          y = rawx;
++#else
++          x = rawx;
++          y = rawy;
++#endif
++        }
++      else
++        {
+ #ifdef CONFIG_ADS7843E_SWAPXY
+-      x = ads7843e_sendcmd(priv, ADS7843_CMD_YPOSITION);
+-      y = ads7843e_sendcmd(priv, ADS7843_CMD_XPOSITION);
++          x = ads7843e_sendcmd(priv, ADS7843_CMD_YPOSITION);
++          y = ads7843e_sendcmd(priv, ADS7843_CMD_XPOSITION);
+ #else
+-      x = ads7843e_sendcmd(priv, ADS7843_CMD_XPOSITION);
+-      y = ads7843e_sendcmd(priv, ADS7843_CMD_YPOSITION);
++          x = ads7843e_sendcmd(priv, ADS7843_CMD_XPOSITION);
++          y = ads7843e_sendcmd(priv, ADS7843_CMD_YPOSITION);
+ #endif
++        }
+ 
+       add_ui_randomness((x << 16) | y);
+ 
+@@ -618,9 +722,11 @@ static void ads7843e_worker(FAR void *arg)
+       priv->sample.x      = priv->threshx;
+       priv->sample.y      = priv->threshy;
+ 
+-      /* The X/Y positional data is now valid */
++      /* Commit positional and pressure validity together */
+ 
+-      priv->sample.valid = true;
++      priv->sample.pressure       = pressure;
++      priv->sample.pressure_valid = pressure_valid;
++      priv->sample.valid          = true;
+ 
+       /* If this is the first (acknowledged) pen down report, then report
+        * this as the first contact.  If contact == CONTACT_DOWN, it will be
+@@ -878,6 +984,7 @@ static ssize_t ads7843e_read(FAR struct file *filep, FAR char *buffer,
+   report->point[0].id        = sample.id;
+   report->point[0].x         = sample.x;
+   report->point[0].y         = sample.y;
++  report->point[0].pressure  = sample.pressure;
+ 
+   /* Report the appropriate flags */
+ 
+@@ -904,6 +1011,10 @@ static ssize_t ads7843e_read(FAR struct file *filep, FAR char *buffer,
+ 
+       report->point[0].flags  = TOUCH_DOWN | TOUCH_ID_VALID |
+                                 TOUCH_POS_VALID;
++      if (sample.pressure_valid)
++        {
++          report->point[0].flags |= TOUCH_PRESSURE_VALID;
++        }
+     }
+   else /* if (sample->contact == CONTACT_MOVE) */
+     {
+@@ -911,6 +1022,10 @@ static ssize_t ads7843e_read(FAR struct file *filep, FAR char *buffer,
+ 
+       report->point[0].flags  = TOUCH_MOVE | TOUCH_ID_VALID |
+                                 TOUCH_POS_VALID;
++      if (sample.pressure_valid)
++        {
++          report->point[0].flags |= TOUCH_PRESSURE_VALID;
++        }
+     }
+ 
+   iinfo("  id:      %d\n", report->point[0].id);
+diff --git a/graphics/nxwm/src/ccalibration.cxx b/graphics/nxwm/src/ccalibration.cxx
+index 262a9d567..a8e003c4f 100644
+--- a/graphics/nxwm/src/ccalibration.cxx
++++ b/graphics/nxwm/src/ccalibration.cxx
+@@ -581,7 +581,9 @@ FAR void *CCalibration::calibration(FAR void *arg)
+       gerr("ERROR: failed to create widgets\n");
+       return (FAR void *)0;
+     }
++#endif
+ 
++#ifdef CONFIG_NXWM_CALIBRATION_AVERAGE
+   // No samples have yet been collected
+ 
+   This->m_nsamples = 0;
+diff --git a/graphics/nxwm/src/ctouchscreen.cxx b/graphics/nxwm/src/ctouchscreen.cxx
+index b7807c710..22ea0a1ff 100644
+--- a/graphics/nxwm/src/ctouchscreen.cxx
++++ b/graphics/nxwm/src/ctouchscreen.cxx
+@@ -78,6 +78,9 @@ CTouchscreen::CTouchscreen(NXWidgets::CNxServer *server, struct nxgl_size_s *win
+   // Use the default touch data buffer
+ 
+   m_touch       = &m_sample;
++  m_lastX       = 0;
++  m_lastY       = 0;
++  m_haveLastPosition = false;
+ 
+   // Initialize the m_waitSem semaphore so that any waits for data will block
+ 
+@@ -188,7 +191,25 @@ void CTouchscreen::setCalibrationData(const struct SCalibrationData &caldata)
+   // Wake up the listener thread so that it will use our buffer
+   // to receive data
+ 
+-  pthread_kill(m_thread, CONFIG_NXWM_TOUCHSCREEN_SIGNO);
++  wakeListener();
++}
++
++void CTouchscreen::setEnabled(bool enable)
++{
++  m_enabled = enable;
++  wakeListener();
++}
++
++void CTouchscreen::wakeListener(void)
++{
++  if (m_state == LISTENER_RUNNING)
++    {
++      int ret = pthread_kill(m_thread, CONFIG_NXWM_TOUCHSCREEN_SIGNO);
++      if (ret != 0)
++        {
++          gerr("ERROR: Failed to wake touchscreen listener: %d\n", ret);
++        }
++    }
+ }
+ 
+ /**
+@@ -356,7 +377,7 @@ FAR void *CTouchscreen::listener(FAR void *arg)
+ 
+ void CTouchscreen::handleMouseInput(struct touch_sample_s *sample)
+ {
+-  _info("Touch id: %d flags: %02x x: %d y: %d h: %d w: %d pressure: %d\n",
++  _info("Touch id: %d flags: %02x x: %d y: %d h: %d w: %d Rtouch: %d ohms\n",
+        sample->point[0].id, sample->point[0].flags, sample->point[0].x,
+        sample->point[0].y,  sample->point[0].h,     sample->point[0].w,
+        sample->point[0].pressure);
+@@ -383,6 +404,7 @@ void CTouchscreen::handleMouseInput(struct touch_sample_s *sample)
+ 
+       m_touch   = &m_sample;
+       m_capture = false;
++      m_haveLastPosition = false;
+       sem_post(&m_waitSem);
+       return;
+     }
+@@ -430,12 +452,7 @@ void CTouchscreen::handleMouseInput(struct touch_sample_s *sample)
+   nxgl_coord_t x;
+   nxgl_coord_t y;
+ 
+-  if ((sample->point[0].flags & TOUCH_POS_VALID) == 0)
+-    {
+-       x = 0;
+-       y = 0;
+-    }
+-  else
++  if ((sample->point[0].flags & TOUCH_POS_VALID) != 0)
+     {
+ #ifdef CONFIG_NXWM_CALIBRATION_ANISOTROPIC
+       // We have valid coordinates.  Get the raw touch
+@@ -547,10 +564,36 @@ void CTouchscreen::handleMouseInput(struct touch_sample_s *sample)
+       _info("raw: (%" PRId32 ", %" PRId32 ") scaled: (%d, %d)\n",
+             rawX, rawY, x, y);
+ #endif
++
++      m_lastX = x;
++      m_lastY = y;
++      m_haveLastPosition = true;
++    }
++  else if ((sample->point[0].flags & TOUCH_UP) != 0 &&
++           m_haveLastPosition)
++    {
++      // Some controllers do not include coordinates in the release sample.
++      // Release at the last valid position so widgets can complete the click.
++
++      x = m_lastX;
++      y = m_lastY;
++    }
++  else
++    {
++      return;
+     }
+ 
+   // Get the server handle and "inject the mouse data
+ 
+   NXHANDLE handle = m_server->getServer();
+-  nx_mousein(handle, x, y, buttons);
++  int ret = nx_mousein(handle, x, y, buttons);
++  if (ret < 0)
++    {
++      gerr("ERROR: nx_mousein failed: %d\n", ret);
++    }
++
++  if (buttons == NX_MOUSE_NOBUTTONS)
++    {
++      m_haveLastPosition = false;
++    }
+ }
+diff --git a/graphics/nxwm/src/nxwm_main.cxx b/graphics/nxwm/src/nxwm_main.cxx
+index 6b6a3ca1d..8c20cf3e6 100644
+--- a/graphics/nxwm/src/nxwm_main.cxx
++++ b/graphics/nxwm/src/nxwm_main.cxx
+@@ -78,6 +78,7 @@ struct SNxWmTest
+ /////////////////////////////////////////////////////////////////////////////
+ 
+ static struct SNxWmTest g_nxwmtest;
++static volatile bool g_nxwmStarted;
+ 
+ /////////////////////////////////////////////////////////////////////////////
+ // Public Function Prototypes
+@@ -119,6 +120,8 @@ static void testCleanUpAndExit(int exitCode)
+       delete g_nxwmtest.startwindow;
+     }
+ 
++  g_nxwmStarted = false;
++
+   // And exit
+ 
+   exit(exitCode);
+@@ -220,10 +223,11 @@ static bool createStartWindow(void)
+       return false;
+     }
+ 
+-  // Add the CStartWindow application to the task bar (minimized)
++  // Keep the start window available as the fallback once startup
++  // calibration completes.
+ 
+   printf("createStartWindow: Start the start window application\n");
+-  if (!g_nxwmtest.taskbar->startApplication(g_nxwmtest.startwindow, true))
++  if (!g_nxwmtest.taskbar->startApplication(g_nxwmtest.startwindow, false))
+     {
+       printf("createStartWindow: ERROR: Failed to start the start window application\n");
+       return false;
+@@ -485,6 +489,14 @@ static bool createMediaPlayer(void)
+ 
+ int main(int argc, char *argv[])
+ {
++  if (g_nxwmStarted)
++    {
++      printf("nxwm_main: Already running; ignoring duplicate launch\n");
++      return EXIT_SUCCESS;
++    }
++
++  g_nxwmStarted = true;
++
+ #ifdef CONFIG_NXWM_NXTERM
+   // Initialize the NSH library
+ 
+@@ -492,6 +504,7 @@ int main(int argc, char *argv[])
+   if (!NxWM::nshlibInitialize())
+     {
+       printf("nxwm_main: ERROR: Failed to initialize the NSH library\n");
++      g_nxwmStarted = false;
+       return EXIT_FAILURE;
+     }
+ #endif
+@@ -628,6 +641,9 @@ int main(int argc, char *argv[])
+         }
+     }
+ #endif
+-
+-  return EXIT_SUCCESS;
++  printf("nxwm_main: Window manager active\n");
++  for (;;)
++    {
++      sleep(1);
++    }
+ }
+diff --git a/include/graphics/nxwm/ctouchscreen.hxx b/include/graphics/nxwm/ctouchscreen.hxx
+index 7808f21ba..dce99c180 100644
+--- a/include/graphics/nxwm/ctouchscreen.hxx
++++ b/include/graphics/nxwm/ctouchscreen.hxx
+@@ -85,6 +85,9 @@ namespace NxWM
+     struct SCalibrationData      m_calibData;  /**< Calibration data */
+     struct touch_sample_s        m_sample;     /**< In normal mode, touch data is collected here */
+     struct touch_sample_s       *m_touch;      /**< Points to the current touch data buffer */
++    nxgl_coord_t                 m_lastX;      /**< Last valid pointer position */
++    nxgl_coord_t                 m_lastY;      /**< Last valid pointer position */
++    bool                         m_haveLastPosition;
+ 
+     /**
+      * The touchscreen listener thread.  This is the entry point of a thread that
+@@ -105,6 +108,8 @@ namespace NxWM
+ 
+     void handleMouseInput(struct touch_sample_s *sample);
+ 
++    void wakeListener(void);
++
+   public:
+ 
+     /**
+@@ -145,13 +150,7 @@ namespace NxWM
+      * @param capture.  True enables capture mode; false disables.
+      */
+ 
+-    inline void setEnabled(bool enable)
+-    {
+-      // Set the capture flag.  m_calibrated must also be set to get to normal
+-      // mode where touchscreen data is forwarded to NX.
+-
+-      m_enabled = enable;
+-    }
++    void setEnabled(bool enable);
+ 
+     /**
+      * Is the touchscreen calibrated?
+=== 4. LPC17_40_SDCARD DMA / XFR FUNCTIONS ===
+323:static void lpc17_40_dmacallback(DMA_HANDLE handle, void *arg, int status);
+334:static void lpc17_40_eventtimeout(wdparm_t arg);
+337:static void lpc17_40_endtransfer(struct lpc17_40_dev_s *priv,
+366:static int  lpc17_40_recvsetup(struct sdio_dev_s *dev,
+368:static int  lpc17_40_sendsetup(struct sdio_dev_s *dev,
+395:static int  lpc17_40_dmarecvsetup(struct sdio_dev_s *dev,
+397:static int  lpc17_40_dmasendsetup(struct sdio_dev_s *dev,
+759:static void lpc17_40_dmacallback(DMA_HANDLE handle, void *arg, int status)
+1030:static void lpc17_40_eventtimeout(wdparm_t arg)
+1104:static void lpc17_40_endtransfer(struct lpc17_40_dev_s *priv,
+1732:static int lpc17_40_recvsetup(struct sdio_dev_s *dev,
+1791:static int lpc17_40_sendsetup(struct sdio_dev_s *dev,
+2444:static int lpc17_40_dmarecvsetup(struct sdio_dev_s *dev,
+2530:static int lpc17_40_dmasendsetup(struct sdio_dev_s *dev,
+
+              /* Otherwise, Is the transmit FIFO half empty or less?  If so
+               * we must be processing a send transaction. NOTE: We can't be
+               * processing both!
+               */
+
+              else if ((pending & SDCARD_STATUS_TXFIFOHE) != 0)
+                {
+                  /* Send data via the TX FIFO */
+
+                  lpc17_40_sendfifo(priv);
+                }
+            }
+
+          /* Handle data end events */
+
+          if ((pending & SDCARD_STATUS_DATAEND) != 0)
+            {
+              /* Handle any data remaining the RX FIFO.  If the RX FIFO is
+               * less than half full at the end of the transfer, then no
+               * half-full interrupt will be received.
+               */
+
+              /* Was this transfer performed in DMA mode? */
+
+#ifdef CONFIG_LPC17_40_SDCARD_DMA
+              if (priv->dmamode)
+                {
+                  /* Yes.. Terminate the transfers only if the DMA has also
+                   * finished.
+                   */
+
+                  priv->xfrflags |= SDCARD_XFRDONE_FLAG;
+                  if (priv->xfrflags == SDCARD_ALLDONE)
+                    {
+                      lpc17_40_endtransfer(priv, SDIOWAIT_TRANSFERDONE);
+                    }
+
+                  /* Otherwise, just disable further transfer interrupts and
+                   * wait for the DMA complete event.
+                   */
+
+                  else
+                    {
+                      lpc17_40_configxfrints(priv, 0);
+                    }
+                }
+              else
+#endif
+                {
+                  /* Receive data from the RX FIFO */
+
+                  lpc17_40_recvfifo(priv);
+
+                  /* Then terminate the transfer */
+
+                  lpc17_40_endtransfer(priv, SDIOWAIT_TRANSFERDONE);
+                }
+            }
+
+          /* Handle data block send/receive CRC failure */
+
+          else if ((pending & SDCARD_STATUS_DCRCFAIL) != 0)
+            {
+              /* Terminate the transfer with an error */
+
+              mcerr("ERROR: Data block CRC failure, remaining: %d\n",
+                    priv->remaining);
+              lpc17_40_endtransfer(priv, SDIOWAIT_TRANSFERDONE |
+                                         SDIOWAIT_ERROR);
+            }
+
+          /* Handle data timeout error */
+
+          else if ((pending & SDCARD_STATUS_DTIMEOUT) != 0)
+            {
+              /* Terminate the transfer with an error */
+
+              mcerr("ERROR: Data timeout, remaining: %d\n", priv->remaining);
+              lpc17_40_endtransfer(priv, SDIOWAIT_TRANSFERDONE |
+                                         SDIOWAIT_TIMEOUT);
+            }
+
+          /* Handle RX FIFO overrun error */
+
+          else if ((pending & SDCARD_STATUS_RXOVERR) != 0)
+            {
+              /* Terminate the transfer with an error */
+
+              mcerr("ERROR: RX FIFO overrun, remaining: %d\n",
+                    priv->remaining);
+              lpc17_40_endtransfer(priv, SDIOWAIT_TRANSFERDONE |
+                                         SDIOWAIT_ERROR);
+            }
+
+          /* Handle TX FIFO underrun error */
+
+          else if ((pending & SDCARD_STATUS_TXUNDERR) != 0)
+            {
+              /* Terminate the transfer with an error */
+
+              mcerr("ERROR: TX FIFO underrun, remaining: %d\n",
+                    priv->remaining);
+              lpc17_40_endtransfer(priv, SDIOWAIT_TRANSFERDONE |
+                                         SDIOWAIT_ERROR);
+            }
+
+          /* Handle start bit error */
+
+          else if ((pending & SDCARD_STATUS_STBITERR) != 0)
+            {
+              /* Terminate the transfer with an error */
+
+              mcerr("ERROR: Start bit, remaining: %d\n", priv->remaining);
+              lpc17_40_endtransfer(priv, SDIOWAIT_TRANSFERDONE |
+                                         SDIOWAIT_ERROR);
+            }
+        }
+
+      /* Handle wait events *************************************************/
+
+      pending  = enabled & priv->waitmask;
+      if (pending != 0)
+        {
+          /* Is this a response completion event? */
+
+          if ((pending & SDCARD_RESPDONE_STA) != 0)
+            {
+              /* Yes.. Is their a thread waiting for response done? */
+
+              if ((priv->waitevents & SDIOWAIT_RESPONSEDONE) != 0)
+                {
+                  /* Yes.. wake the thread up */
+
+                  putreg32(SDCARD_RESPDONE_ICR | SDCARD_CMDDONE_ICR,
+                           LPC17_40_SDCARD_CLEAR);
+                  lpc17_40_endwait(priv, SDIOWAIT_RESPONSEDONE);
+                }
+            }
+
+          /* Is this a command completion event? */
+
+          if ((pending & SDCARD_CMDDONE_STA) != 0)
+            {
+              /* Yes.. Is their a thread waiting for command done? */
+
+              if ((priv->waitevents & SDIOWAIT_RESPONSEDONE) != 0)
+                {
+                  /* Yes.. wake the thread up */
+
+                  putreg32(SDCARD_CMDDONE_ICR, LPC17_40_SDCARD_CLEAR);
+                  lpc17_40_endwait(priv, SDIOWAIT_CMDDONE);
+                }
+            }
+        }
+    }
+
+  return OK;
+}
+
+/****************************************************************************
+ * SD card Interface Methods
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: lpc17_40_lock
+ *
+ * Description:
+ *   Locks the bus. Function calls low-level multiplexed bus routines to
+ *   resolve bus requests and acknowledgment issues.
+ *
+ * Input Parameters:
+ *   dev    - An instance of the SD card device interface
+ *   lock   - TRUE to lock, FALSE to unlock.
+ *
+ * Returned Value:
+   */
+
+  priv->buffer    = (uint32_t *)buffer;
+  priv->remaining = nbytes;
+#ifdef CONFIG_LPC17_40_SDCARD_DMA
+  priv->dmamode   = false;
+#endif
+
+  /* Then set up the SD card data path */
+
+  dblocksize = lpc17_40_log2((nbytes > 512 && (nbytes & 511) == 0) ? 512 : nbytes) << SDCARD_DCTRL_DBLOCKSIZE_SHIFT;
+  lpc17_40_dataconfig(SDCARD_DTIMER_DATATIMEOUT, nbytes,
+                   dblocksize | SDCARD_DCTRL_DTDIR);
+
+  /* And enable interrupts */
+
+  lpc17_40_configxfrints(priv, SDCARD_RECV_MASK);
+  lpc17_40_sample(priv, SAMPLENDX_AFTER_SETUP);
+  return OK;
+}
+
+/****************************************************************************
+ * Name: lpc17_40_sendsetup
+ *
+ * Description:
+ *   Setup hardware in preparation for data transfer from the card.
+ *   This method will do whatever controller setup is necessary.
+ *   This would be called for SD memory just AFTER sending
+ *   CMD24 (WRITE_BLOCK), CMD25 (WRITE_MULTIPLE_BLOCK), ... and before
+ *   SDCARD_SENDDATA is called.
+ *
+ * Input Parameters:
+ *   dev    - An instance of the SD card device interface
+ *   buffer - Address of the buffer containing the data to send
+ *   nbytes - The number of bytes in the transfer
+ *
+ * Returned Value:
+ *   Number of bytes sent on success; a negated errno on failure
+ *
+ ****************************************************************************/
+
+static int lpc17_40_sendsetup(struct sdio_dev_s *dev,
+                              const uint8_t *buffer,
+                              size_t nbytes)
+{
+  struct lpc17_40_dev_s *priv = (struct lpc17_40_dev_s *)dev;
+  uint32_t dblocksize;
+
+  DEBUGASSERT(priv != NULL && buffer != NULL && nbytes > 0);
+  DEBUGASSERT(((uint32_t)buffer & 3) == 0);
+
+  /* Reset the DPSM configuration */
+
+  lpc17_40_datadisable();
+  lpc17_40_sampleinit();
+  lpc17_40_sample(priv, SAMPLENDX_BEFORE_SETUP);
+
+  /* Save the source buffer information for use by the interrupt handler */
+
+  priv->buffer    = (uint32_t *)buffer;
+  priv->remaining = nbytes;
+#ifdef CONFIG_LPC17_40_SDCARD_DMA
+  priv->dmamode   = false;
+#endif
+
+  /* Then set up the SD card data path */
+
+  dblocksize = lpc17_40_log2((nbytes > 512 && (nbytes & 511) == 0) ? 512 : nbytes) << SDCARD_DCTRL_DBLOCKSIZE_SHIFT;
+  lpc17_40_dataconfig(SDCARD_DTIMER_DATATIMEOUT, nbytes, dblocksize);
+
+  /* Enable TX interrupts */
+
+  lpc17_40_configxfrints(priv, SDCARD_SEND_MASK);
+  lpc17_40_sample(priv, SAMPLENDX_AFTER_SETUP);
+  return OK;
+}
+
+/****************************************************************************
+ * Name: lpc17_40_cancel
+ *
+ * Description:
+ *   Cancel the data transfer setup of SDCARD_RECVSETUP, SDCARD_SENDSETUP,
+ *   SDCARD_DMARECVSETUP or SDCARD_DMASENDSETUP.  This must be called to
+ *   cancel the data transfer setup if, for some reason, you cannot perform
+ *   the transfer.
+ *
+ * Input Parameters:
+ *   dev  - An instance of the SD card device interface
+ *
+ * Returned Value:
+ *   OK is success; a negated errno on failure
+ *
+ ****************************************************************************/
+
+static int lpc17_40_cancel(struct sdio_dev_s *dev)
+{
+  struct lpc17_40_dev_s *priv = (struct lpc17_40_dev_s *)dev;
+
+  /* Disable all transfer- and event- related interrupts */
+
+  lpc17_40_configxfrints(priv, 0);
+  lpc17_40_configwaitints(priv, 0, 0, 0);
+
+  /* Clearing pending interrupt status on all transfer- and event- related
+   * interrupts
+   */
+
+  putreg32(SDCARD_WAITALL_ICR, LPC17_40_SDCARD_CLEAR);
+
+  /* Cancel any watchdog timeout */
+
+  wd_cancel(&priv->waitwdog);
+
+  /* If this was a DMA transfer, make sure that DMA is stopped */
+
+#ifdef CONFIG_LPC17_40_SDCARD_DMA
+  if (priv->dmamode)
+    {
+      /* Make sure that the DMA is stopped (it will be stopped automatically
+       * on normal transfers, but not necessarily when the transfer
+       * terminates on an error condition.
+       */
+
+      lpc17_40_dmastop(priv->dma);
+    }
+#endif
+
+  /* Mark no transfer in progress */
+
+  priv->remaining = 0;
+  return OK;
+}
+
+/****************************************************************************
+ * Name: lpc17_40_waitresponse
+ *
+ * Description:
+ *   Poll-wait for the response to the last command to be ready.
+ *
+ * Input Parameters:
+ *   dev  - An instance of the SD card device interface
+ *   cmd  - The command that was sent.  See 32-bit command definitions above.
+ *
+ * Returned Value:
+ *   OK is success; a negated errno on failure
+ *
+ ****************************************************************************/
+
+static int lpc17_40_waitresponse(struct sdio_dev_s *dev, uint32_t cmd)
+{
+  int32_t timeout;
+  uint32_t events;
+
+  switch (cmd & MMCSD_RESPONSE_MASK)
+    {
+    case MMCSD_NO_RESPONSE:
+      events  = SDCARD_CMDDONE_STA;
+      timeout = SDCARD_CMDTIMEOUT;
+      break;
+
+    case MMCSD_R1_RESPONSE:
+    case MMCSD_R1B_RESPONSE:
+    case MMCSD_R2_RESPONSE:
+    case MMCSD_R6_RESPONSE:
+      events  = SDCARD_RESPDONE_STA;
+      timeout = SDCARD_LONGTIMEOUT;
+      break;
+
+    case MMCSD_R4_RESPONSE:
+    case MMCSD_R5_RESPONSE:
+      return -ENOSYS;
+ *   Events are automatically disabled once the callback is performed and no
+ *   further callback events will occur until they are again enabled by
+ *   calling this method.
+ *
+ * Input Parameters:
+ *   dev      - An instance of the SD card device interface
+ *   eventset - A bitset of events to enable or disable (see SDIOMEDIA_*
+ *              definitions). 0=disable; 1=enable.
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+static void lpc17_40_callbackenable(struct sdio_dev_s *dev,
+                                    sdio_eventset_t eventset)
+{
+  struct lpc17_40_dev_s *priv = (struct lpc17_40_dev_s *)dev;
+
+  mcinfo("eventset: %02x\n", eventset);
+  DEBUGASSERT(priv != NULL);
+
+  priv->cbevents = eventset;
+  lpc17_40_callback(priv);
+}
+
+/****************************************************************************
+ * Name: lpc17_40_registercallback
+ *
+ * Description:
+ *   Register a callback that that will be invoked on any media status
+ *   change.  Callbacks should not be made from interrupt handlers, rather
+ *   interrupt level events should be handled by calling back on the work
+ *   thread.
+ *
+ *   When this method is called, all callbacks should be disabled until they
+ *   are enabled via a call to SDCARD_CALLBACKENABLE
+ *
+ * Input Parameters:
+ *   dev -      Device-specific state data
+ *   callback - The function to call on the media change
+ *   arg -      A caller provided value to return with the callback
+ *
+ * Returned Value:
+ *   0 on success; negated errno on failure.
+ *
+ ****************************************************************************/
+
+static int lpc17_40_registercallback(struct sdio_dev_s *dev,
+                                     worker_t callback, void *arg)
+{
+  struct lpc17_40_dev_s *priv = (struct lpc17_40_dev_s *)dev;
+
+  /* Disable callbacks and register this callback and is argument */
+
+  mcinfo("Register %p(%p)\n", callback, arg);
+  DEBUGASSERT(priv != NULL);
+
+  priv->cbevents = 0;
+  priv->cbarg    = arg;
+  priv->callback = callback;
+  return OK;
+}
+
+/****************************************************************************
+ * Name: lpc17_40_dmarecvsetup
+ *
+ * Description:
+ *   Setup to perform a read DMA.  If the processor supports a data cache,
+ *   then this method will also make sure that the contents of the DMA memory
+ *   and the data cache are coherent.  For read transfers this may mean
+ *   invalidating the data cache.
+ *
+ * Input Parameters:
+ *   dev    - An instance of the SD card device interface
+ *   buffer - The memory to DMA from
+ *   buflen - The size of the DMA transfer in bytes
+ *
+ * Returned Value:
+ *   OK on success; a negated errno on failure
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_LPC17_40_SDCARD_DMA
+static int lpc17_40_dmarecvsetup(struct sdio_dev_s *dev,
+                                 uint8_t *buffer,
+                                 size_t buflen)
+{
+  struct lpc17_40_dev_s *priv = (struct lpc17_40_dev_s *)dev;
+  uint32_t dblocksize;
+  uint32_t regval;
+  int ret = -EINVAL;
+
+  DEBUGASSERT(priv != NULL && buffer != NULL && buflen > 0);
+  DEBUGASSERT(((uint32_t)buffer & 3) == 0);
+
+  /* Reset the DPSM configuration */
+
+  lpc17_40_datadisable();
+
+  /* Wide bus operation is required for DMA */
+
+  if (priv->widebus)
+    {
+      lpc17_40_sampleinit();
+      lpc17_40_sample(priv, SAMPLENDX_BEFORE_SETUP);
+
+      /* Save the destination buffer information for use by the interrupt
+       * handler.
+       */
+
+      priv->buffer    = (uint32_t *)buffer;
+      priv->remaining = buflen;
+      priv->dmamode   = true;
+
+      /* Then set up the SD card data path */
+
+      dblocksize = lpc17_40_log2((buflen > 512 && (buflen & 511) == 0) ? 512 : buflen) << SDCARD_DCTRL_DBLOCKSIZE_SHIFT;
+      lpc17_40_dataconfig(SDCARD_DTIMER_DATATIMEOUT, buflen,
+                       dblocksize | SDCARD_DCTRL_DTDIR);
+
+      /* Configure the RX DMA */
+
+      lpc17_40_configxfrints(priv, SDCARD_DMARECV_MASK);
+
+      regval  = getreg32(LPC17_40_SDCARD_DCTRL);
+      regval |= SDCARD_DCTRL_DMAEN;
+      putreg32(regval, LPC17_40_SDCARD_DCTRL);
+
+      ret = lpc17_40_dmasetup(priv->dma, SDCARD_RXDMA32_CONTROL,
+                           SDCARD_RXDMA32_CONFIG, LPC17_40_SDCARD_FIFO,
+                           (uint32_t)buffer, (buflen + 3) >> 2);
+      if (ret == OK)
+        {
+          /* Start the DMA */
+
+          lpc17_40_sample(priv, SAMPLENDX_BEFORE_ENABLE);
+          lpc17_40_dmastart(priv->dma, lpc17_40_dmacallback, priv);
+          lpc17_40_sample(priv, SAMPLENDX_AFTER_SETUP);
+        }
+    }
+  else
+    {
+      ret = lpc17_40_recvsetup(dev, buffer, buflen);
+    }
+
+  return ret;
+}
+#endif
+
+/****************************************************************************
+ * Name: lpc17_40_dmasendsetup
+ *
+ * Description:
+ *   Setup to perform a write DMA.  If the processor supports a data cache,
+ *   then this method will also make sure that the contents of the DMA memory
+ *   and the data cache are coherent.  For write transfers, this may mean
+ *   flushing the data cache.
+ *
+ * Input Parameters:
+ *   dev    - An instance of the SD card device interface
+ *   buffer - The memory to DMA into
+ *   buflen - The size of the DMA transfer in bytes
+ *
+ * Returned Value:
+ *   OK on success; a negated errno on failure
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_LPC17_40_SDCARD_DMA
+static int lpc17_40_dmasendsetup(struct sdio_dev_s *dev,
+                                 const uint8_t *buffer, size_t buflen)
+{
+  struct lpc17_40_dev_s *priv = (struct lpc17_40_dev_s *)dev;
+  uint32_t dblocksize;
+  uint32_t regval;
+  int ret = -EINVAL;
+
+  DEBUGASSERT(priv != NULL && buffer != NULL && buflen > 0);
+  DEBUGASSERT(((uint32_t)buffer & 3) == 0);
+
+  /* Reset the DPSM configuration */
+
+  lpc17_40_datadisable();
+
+  /* Wide bus operation is required for DMA */
+
+  if (priv->widebus)
+    {
+      lpc17_40_sampleinit();
+      lpc17_40_sample(priv, SAMPLENDX_BEFORE_SETUP);
+
+      /* Save the source buffer information for use by the interrupt
+       * handler.
+       */
+
+      priv->buffer    = (uint32_t *)buffer;
+      priv->remaining = buflen;
+      priv->dmamode   = true;
+
+      /* Then set up the SD card data path */
+
+      dblocksize = lpc17_40_log2((buflen > 512 && (buflen & 511) == 0) ? 512 : buflen) << SDCARD_DCTRL_DBLOCKSIZE_SHIFT;
+      lpc17_40_dataconfig(SDCARD_DTIMER_DATATIMEOUT, buflen, dblocksize);
+
+      /* Configure the TX DMA */
+
+      ret = lpc17_40_dmasetup(priv->dma, SDCARD_TXDMA32_CONTROL,
+                           SDCARD_TXDMA32_CONFIG, (uint32_t)buffer,
+                           LPC17_40_SDCARD_FIFO, (buflen + 3) >> 2);
+      if (ret == OK)
+        {
+          lpc17_40_sample(priv, SAMPLENDX_BEFORE_ENABLE);
+
+          regval  = getreg32(LPC17_40_SDCARD_DCTRL);
+          regval |= SDCARD_DCTRL_DMAEN;
+          putreg32(regval, LPC17_40_SDCARD_DCTRL);
+
+          /* Start the DMA */
+
+          lpc17_40_dmastart(priv->dma, lpc17_40_dmacallback, priv);
+          lpc17_40_sample(priv, SAMPLENDX_AFTER_SETUP);
+
+          /* Enable TX interrupts */
+
+          lpc17_40_configxfrints(priv, SDCARD_DMASEND_MASK);
+        }
+    }
+  else
+    {
+      ret = lpc17_40_sendsetup(dev, buffer, buflen);
+    }
+
+  return ret;
+}
+#endif
+
+/****************************************************************************
+ * Initialization/uninitialization/reset
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: lpc17_40_callback
+ *
+ * Description:
+ *   Perform callback.
+ *
+ * Assumptions:
+ *   This function does not execute in the context of an interrupt handler.
+ *   It may be invoked on any user thread or scheduled on the work thread
+ *   from an interrupt handler.
+ *
+ ****************************************************************************/
+
+static void lpc17_40_callback(void *arg)
+{
+=== 5. CCALIBRATION HEADER ===
+/****************************************************************************
+ * apps/include/graphics/nxwm/ccalibration.hxx
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ ****************************************************************************/
+
+#ifndef __APPS_INCLUDE_GRAPHICS_NXWM_CCALIBRATION_HXX
+#define __APPS_INCLUDE_GRAPHICS_NXWM_CCALIBRATION_HXX
+
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
+#include <nuttx/nx/nxglib.h>
+
+#include <pthread.h>
+#include <fixedmath.h>
+
+#include "graphics/nxwidgets/cnxstring.hxx"
+#include "graphics/nxwidgets/cwidgeteventhandler.hxx"
+#include "graphics/nxwidgets/cwidgetcontrol.hxx"
+#include "graphics/nxwidgets/clabel.hxx"
+#include "graphics/nxwidgets/cnxfont.hxx"
+
+#include "graphics/nxwm/ctaskbar.hxx"
+#include "graphics/nxwm/iapplication.hxx"
+#include "graphics/nxwm/cfullscreenwindow.hxx"
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+/**
+ * Calibration indices
+ */
+
+#define CALIB_UPPER_LEFT_INDEX  0
+#define CALIB_UPPER_RIGHT_INDEX 1
+#define CALIB_LOWER_RIGHT_INDEX 2
+#define CALIB_LOWER_LEFT_INDEX  3
+
+#define CALIB_DATA_POINTS       4
+
+/****************************************************************************
+ * Implementation Classes
+ ****************************************************************************/
+
+namespace NxWM
+{
+  /**
+   * Forward references
+   */
+
+  class CTouchscreen;
+
+  /**
+   * Touchscreen calibration data
+   */
+
+#ifdef CONFIG_NXWM_CALIBRATION_ANISOTROPIC
+  struct SCalibrationLine
+  {
+    float slope;                     /**< The slope of a line */
+    float offset;                    /**< The offset of a line */
+  };
+
+  struct SCalibrationData
+  {
+    struct SCalibrationLine left;    /**< Describes Y values along left edge */
+    struct SCalibrationLine right;   /**< Describes Y values along right edge */
+    struct SCalibrationLine top;     /**< Describes X values along top */
+    struct SCalibrationLine bottom;  /**< Describes X values along bottom edge */
+    nxgl_coord_t leftX;              /**< Left X value used in calibration */
+    nxgl_coord_t rightX;             /**< Right X value used in calibration */
+    nxgl_coord_t topY;               /**< Top Y value used in calibration */
+    nxgl_coord_t bottomY;            /**< Bottom Y value used in calibration */
+  };
+
+#else
+  struct SCalibrationData
+  {
+    b16_t xSlope;                    /**< X conversion: xSlope*(x) + xOffset */
+    b16_t xOffset;
+    b16_t ySlope;                    /**< Y conversion: ySlope*(y) + yOffset */
+    b16_t yOffset;
+  };
+
+#endif
+
+  /**
+   * The CCalibration class provides the the calibration window and obtains
+   * calibration data.
+   */
+
+  class CCalibration : public IApplication
+  {
+  private:
+    /**
+     * The state of the calibration thread.
+     */
+
+    enum ECalThreadState
+    {
+      CALTHREAD_NOTRUNNING = 0,                  /**< The calibration thread has not yet been started */
+      CALTHREAD_STARTED,                         /**< The calibration thread has been started, but is not yet running */
+      CALTHREAD_RUNNING,                         /**< The calibration thread is running normally */
+      CALTHREAD_STOPREQUESTED,                   /**< The calibration thread has been requested to stop */
+      CALTHREAD_HIDE,                            /**< The hide() called by calibration thread running */
+      CALTHREAD_SHOW,                            /**< The redraw() called by calibration thread running */
+      CALTHREAD_TERMINATED                       /**< The calibration thread terminated normally */
+    };
+
+    /**
+     * Identifies the current display state
+     */
+
+    enum ECalibrationPhase
+    {
+      CALPHASE_NOT_STARTED = 0,                  /**< Constructed, but not yet started */
+      CALPHASE_UPPER_LEFT,                       /**< Touch point is in the upper left corner */
+      CALPHASE_UPPER_RIGHT,                      /**< Touch point is in the upper right corner */
+      CALPHASE_LOWER_RIGHT,                      /**< Touch point is in the lower left corner */
+      CALPHASE_LOWER_LEFT,                       /**< Touch point is in the lower right corner */
+      CALPHASE_COMPLETE                          /**< Calibration is complete */
+    };
+
+    /**
+     * Characterizes one calibration screen
+     */
+
+    struct SCalibScreenInfo
+    {
+      struct nxgl_point_s      pos;               /**< The position of the touch point */
+      nxgl_mxpixel_t           lineColor;         /**< The color of the cross-hair lines */
+      nxgl_mxpixel_t           circleFillColor;   /**< The color of the circle */
+    };
+
+    /**
+     * CCalibration state data
+     */
+
+    CTaskbar                  *m_taskbar;         /**< The taskbar (used to terminate calibration) */
+    CFullScreenWindow         *m_window;          /**< The window for the calibration display */
+    CTouchscreen              *m_touchscreen;     /**< The touchscreen device */
+#ifdef CONFIG_NXWM_CALIBRATION_MESSAGES
+    NXWidgets::CLabel         *m_text;            /**< Calibration message */
+    NXWidgets::CNxFont        *m_font;            /**< The font used in the message */
+#endif
+    pthread_t                  m_thread;          /**< The calibration thread ID */
+    struct SCalibScreenInfo    m_screenInfo;      /**< Describes the current calibration display */
+    struct nxgl_point_s        m_touchPos;        /**< This is the last touch position */
+    volatile uint8_t           m_calthread;       /**< Current calibration display state (See ECalibThreadState)*/
+    uint8_t                    m_calphase;        /**< Current calibration display state (See ECalibrationPhase)*/
+    bool                       m_touched;         /**< True: The screen is touched */
+    uint8_t                    m_touchId;         /**< The ID of the touch */
+#ifdef CONFIG_NXWM_CALIBRATION_AVERAGE
+    uint8_t                    m_nsamples;        /**< Number of samples collected so far at this position */
+    struct nxgl_point_s        m_sampleData[CONFIG_NXWM_CALIBRATION_NSAMPLES];
+#endif
+    struct nxgl_point_s        m_calibData[CALIB_DATA_POINTS];
+
+    /**
+     * Accept raw touchscreen input.
+     *
+     * @param sample Touchscreen input sample
+     */
+
+    void touchscreenInput(struct touch_sample_s &sample);
+
+#ifdef CONFIG_NXWM_CALIBRATION_MESSAGES
+    /**
+     * Create widgets need by the calibration thread.
+     *
+     * @return True if the widgets were successfully created.
+     */
+
+    bool createWidgets(void);
+
+    /**
+     * Destroy widgets created for the calibration thread.
+     */
+
+    void destroyWidgets(void);
+#endif
+
+    /**
+     * Start the calibration thread.
+     *
+     * @param initialState.  The initial state of the calibration thread
+     * @return True if the thread was successfully started.
+     */
+
+    bool startCalibration(enum ECalThreadState initialState);
+
+    /**
+     *  Return true if the calibration thread is running normally.  There are
+     *  lots of potential race conditions.  There are also two ambiguous
+     *  states:
+     *
+     *  1) The thread may have been started but not yet running
+     *     (CALTHREAD_STARTED), or the
+     *  2) The thread may been requested to terminate, but has not yet
+     *     terminated (CALTHREAD_STOPREQUESTED)
+     *
+     *  Both of those states will cause isRunning() to return false.
+                                                          
