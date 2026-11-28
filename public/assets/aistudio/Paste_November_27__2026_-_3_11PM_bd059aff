@@ -1,0 +1,1299 @@
+┌──(bg9211014🎃kali)-[~]
+└─$ bash << 'EOF'
+WS="/home/bg9211014/lpc1788_workspace"
+
+echo "=== 1. _MQ_OPEN / _MQ_SEND / NXBE_ISBLOCKED / NX_RAMBACKED macros ==="
+grep -rnE "_MQ_OPEN|_MQ_SEND|_NX_SETERRNO|NXBE_ISBLOCKED|NXBE_WINDOW_BLOCKED|NXBE_ISRAMBACKED" \
+  "$WS/nuttx/include/" "$WS/nuttx/libs/libnx/" "$WS/nuttx/graphics/"
+
+echo "=== 2. nx_block.c & nx_synch.c ==="
+sed -n '60,120p' "$WS/nuttx/libs/libnx/nxmu/nx_block.c"
+echo "--- nx_synch.c ---"
+sed -n '60,120p' "$WS/nuttx/libs/libnx/nxmu/nx_synch.c" 2>/dev/null
+
+echo "=== 3. nxmu_server.c (1-265) ==="
+sed -n '1,265p' "$WS/nuttx/graphics/nxmu/nxmu_server.c"
+
+echo "=== 4. nxtk_openwindow.c & nxmu_openwindow.c (RAMBACKED / bounds) ==="
+grep -rn -C 12 "RAMBACKED\|pwfb" "$WS/nuttx/libs/libnx/nxtk/" "$WS/nuttx/graphics/nxmu/" "$WS/nuttx/graphics/nxbe/nxbe_openwindow.c" 2>/dev/null
+
+echo "=== 5. cwindowmessenger.cxx (full) ==="
+nl -ba "$WS/apps/graphics/nxwm/src/cwindowmessenger.cxx"
+
+echo "=== 6. cstartwindow.cxx (1-250) & ctaskbar.cxx startApplication ==="
+sed -n '1,250p' "$WS/apps/graphics/nxwm/src/cstartwindow.cxx"
+grep -n -A 45 "startApplication(" "$WS/apps/graphics/nxwm/src/ctaskbar.cxx"
+
+echo "=== 7. backup .config diff & MM/RAM config ==="
+ls -la "$WS/nuttx/build_backups/stage_20261127_143254" 2>/dev/null
+diff -u "$WS/nuttx/build_backups/stage_20261127_143254/.config" "$WS/nuttx/.config" 2>/dev/null | head -n 80
+grep -nE "^CONFIG_(MM_REGIONS|RAM_|HEAP|LPC17_40_EMC|NX_)" "$WS/nuttx/.config"
+EOF
+=== 1. _MQ_OPEN / _MQ_SEND / NXBE_ISBLOCKED / NX_RAMBACKED macros ===
+/home/bg9211014/lpc1788_workspace/nuttx/include/limits.h:76:#define _POSIX_MQ_OPEN_MAX                      8
+/home/bg9211014/lpc1788_workspace/nuttx/include/nuttx/nx/nxbe.h:56: * NXBE_WINDOW_BLOCKED   - Window input is blocked (internal use only)
+/home/bg9211014/lpc1788_workspace/nuttx/include/nuttx/nx/nxbe.h:63:#define NXBE_WINDOW_BLOCKED   (1 << 0) /* Bit 0: The window is blocked and will
+/home/bg9211014/lpc1788_workspace/nuttx/include/nuttx/nx/nxbe.h:94:#define NXBE_ISBLOCKED(wnd) \
+/home/bg9211014/lpc1788_workspace/nuttx/include/nuttx/nx/nxbe.h:95:  (((wnd)->flags & NXBE_WINDOW_BLOCKED) != 0)
+/home/bg9211014/lpc1788_workspace/nuttx/include/nuttx/nx/nxbe.h:97:  do { (wnd)->flags |= NXBE_WINDOW_BLOCKED; } while (0)
+/home/bg9211014/lpc1788_workspace/nuttx/include/nuttx/nx/nxbe.h:99:  do { (wnd)->flags &= ~NXBE_WINDOW_BLOCKED; } while (0)
+/home/bg9211014/lpc1788_workspace/nuttx/include/nuttx/nx/nxbe.h:108:#define NXBE_ISRAMBACKED(wnd) \
+/home/bg9211014/lpc1788_workspace/nuttx/include/nuttx/fs/fs.h:90:#  define _NX_SETERRNO(r)      set_errno(-(r))
+/home/bg9211014/lpc1788_workspace/nuttx/include/nuttx/fs/fs.h:99:#  define _NX_SETERRNO(r)      ((void)(r))
+/home/bg9211014/lpc1788_workspace/nuttx/include/nuttx/mqueue.h:66:#  define _MQ_OPEN                    nxmq_open
+/home/bg9211014/lpc1788_workspace/nuttx/include/nuttx/mqueue.h:69:#  define _MQ_SEND(d,m,l,p)           nxmq_send(d,m,l,p)
+/home/bg9211014/lpc1788_workspace/nuttx/include/nuttx/mqueue.h:74:#  define _MQ_OPEN                    mq_open
+/home/bg9211014/lpc1788_workspace/nuttx/include/nuttx/mqueue.h:77:#  define _MQ_SEND(d,m,l,p)           mq_send(d,m,l,p)
+/home/bg9211014/lpc1788_workspace/nuttx/include/unistd.h:278:#define _SC_MQ_OPEN_MAX                  0x0032
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_closetoolbar.c:77:  if (NXBE_ISRAMBACKED(&fwnd->wnd))
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_setsize.c:91:  if (ret >= 0 && NXBE_ISRAMBACKED(&fwnd->wnd))
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_opentoolbar.c:91:  if (NXBE_ISRAMBACKED(&fwnd->wnd))
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxmu/nx_eventhandler.c:143:                  _NX_SETERRNO(nbytes);
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxmu/nx_eventhandler.c:153:      _NX_SETERRNO(EBADMSG);
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxmu/nxmu_sendwindow.c:74:  if (!NXBE_ISBLOCKED(wnd))
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxmu/nx_connect.c:130:  conn->crdmq = _MQ_OPEN(climqname, O_RDONLY | O_CREAT, 0666, &attr);
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxmu/nx_connect.c:132:  conn->crdmq = _MQ_OPEN(climqname, O_RDONLY | O_CREAT | O_NONBLOCK,
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxmu/nx_connect.c:137:      _NX_SETERRNO(conn->crdmq);
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxmu/nx_connect.c:138:      gerr("ERROR: _MQ_OPEN(%s) failed: %d\n", climqname,
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxmu/nx_connect.c:149:  conn->cwrmq = _MQ_OPEN(svrmqname, O_WRONLY | O_CREAT, 0666, &attr);
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxmu/nx_connect.c:152:      _NX_SETERRNO(conn->cwrmq);
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxmu/nx_connect.c:153:      gerr("ERROR: _MQ_OPEN(%s) failed: %d\n", svrmqname,
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxmu/nx_block.c:85:  if (!NXBE_ISBLOCKED(wnd))
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxmu/nxmu_sendserver.c:73:  ret = _MQ_SEND(conn->cwrmq, msg, msglen, NX_SVRMSG_PRIO);
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxmu/nxmu_sendserver.c:76:      _NX_SETERRNO(ret);
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxmu/nxmu_sendserver.c:77:      gerr("ERROR: _MQ_SEND failed: %d\n", _NX_GETERRNO(ret));
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c:166:      if (NXBE_ISRAMBACKED(wnd))
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c:93:  if (NXBE_ISRAMBACKED(wnd))
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_sendclientwindow.c:65:  if (!NXBE_ISBLOCKED(wnd))
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_getrectangle.c:187:      if (NXBE_ISRAMBACKED(wnd))
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_fill.c:220:      if (NXBE_ISRAMBACKED(wnd))
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_move.c:452:          if (NXBE_ISRAMBACKED(wnd))
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_setpixel.c:183:  DEBUGASSERT(!NXBE_ISRAMBACKED(wnd));
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_bitmap.c:312:  if (NXBE_ISRAMBACKED(wnd))
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_setsize.c:95:  if (NXBE_ISRAMBACKED(wnd))
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_filltrapezoid.c:314:      if (NXBE_ISRAMBACKED(wnd))
+=== 2. nx_block.c & nx_synch.c ===
+ *   wnd - The window to be blocked
+ *   arg - An argument that will accompany the block messages (This is arg2
+ *         in the blocked callback).
+ *
+ * Returned Value:
+ *   OK on success; ERROR on failure with errno set appropriately
+ *
+ ****************************************************************************/
+
+int nx_block(NXWINDOW hwnd, FAR void *arg)
+{
+  FAR struct nxbe_window_s *wnd = (FAR struct nxbe_window_s *)hwnd;
+  struct nxsvrmsg_blocked_s outmsg;
+  int ret = OK;
+
+#ifdef CONFIG_DEBUG_FEATURES
+  if (!hwnd)
+    {
+      set_errno(EINVAL);
+      return ERROR;
+    }
+#endif
+
+  /* Ignore additional attempts to block messages (no errors reported) */
+
+  if (!NXBE_ISBLOCKED(wnd))
+    {
+      /* Mark the window as blocked.  This will stop all messages to the
+       * window (EXCEPT the NX_SVRMSG_BLOCKED).
+       * Blocking the messages before sending the blocked message
+       * is awkward but assures that no other messages sneak into
+       * the message queue before we can set the blocked state.
+       */
+
+      NXBE_SETBLOCKED(wnd);
+
+      /* Send the message indicating that the window is blocked
+       * (and because of queue also that there are no additional queue
+       * messages for the window)
+       */
+
+      outmsg.msgid = NX_SVRMSG_BLOCKED;
+      outmsg.wnd   = wnd;
+      outmsg.arg   = arg;
+
+      /* Send the window message via nxmu_sendserver (vs. nxmu_sendwindow) so
+       * that it will not be blocked.
+       */
+
+      ret = nxmu_sendserver(wnd->conn, &outmsg,
+                            sizeof(struct nxsvrmsg_blocked_s));
+    }
+
+  return ret;
+}
+--- nx_synch.c ---
+ *     if (ret < 0)
+ *       {
+ *          -- Handle the error --
+ *       }
+ *
+ *     while (!g_synched)
+ *       {
+ *         ret = sem_wait(&g_sync_sem);
+ *         if (ret < 0)
+ *           {
+ *              -- Handle the error --
+ *           }
+ *       }
+ *
+ *   When the window listener thread receives the NXEVENT_SYNCHED event, it
+ *   would set g_synched to true and post g_synch_sem, waking up the above
+ *   loop.
+ *
+ * Input Parameters:
+ *   wnd - The window to be synched
+ *   arg - An argument that will accompany the block messages (This is arg2
+ *         in the event callback).
+ *
+ * Returned Value:
+ *   OK on success; ERROR on failure with errno set appropriately
+ *
+ ****************************************************************************/
+
+int nx_synch(NXWINDOW hwnd, FAR void *arg)
+{
+  struct nxsvrmsg_synch_s outmsg;
+
+#ifdef CONFIG_DEBUG_FEATURES
+  if (hwnd == NULL)
+    {
+      set_errno(EINVAL);
+      return ERROR;
+    }
+#endif
+
+  /* Send the synchronization request message. */
+
+  outmsg.msgid = NX_SVRMSG_SYNCH;
+  outmsg.wnd   = (FAR struct nxbe_window_s *)hwnd;
+  outmsg.arg   = arg;
+
+  return nxmu_sendwindow(hwnd, &outmsg, sizeof(struct nxsvrmsg_synch_s));
+}
+=== 3. nxmu_server.c (1-265) ===
+/****************************************************************************
+ * graphics/nxmu/nxmu_server.c
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ ****************************************************************************/
+
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
+#include <nuttx/config.h>
+
+#include <inttypes.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+#include <mqueue.h>
+#include <fcntl.h>
+#include <assert.h>
+#include <errno.h>
+#include <nuttx/debug.h>
+
+#include <nuttx/mqueue.h>
+#include <nuttx/nx/nx.h>
+
+#include "nxmu.h"
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: nxmu_disconnect
+ ****************************************************************************/
+
+static inline void nxmu_disconnect(FAR struct nxmu_conn_s *conn)
+{
+  struct nxclimsg_disconnected_s outmsg;
+  int ret;
+
+  /* Send the handshake message back to the client */
+
+  outmsg.msgid = NX_CLIMSG_DISCONNECTED;
+
+  ret = nxmu_sendclient(conn, &outmsg,
+                        sizeof(struct nxclimsg_disconnected_s));
+  if (ret < 0)
+    {
+      gerr("ERROR: nxmu_sendclient failed: %d\n", ret);
+    }
+
+  /* Close the outgoing client message queue */
+
+  nxmq_close(conn->swrmq);
+}
+
+/****************************************************************************
+ * Name: nxmu_connect
+ ****************************************************************************/
+
+static inline void nxmu_connect(FAR struct nxmu_conn_s *conn)
+{
+  char mqname[NX_CLIENT_MXNAMELEN];
+  struct nxclimsg_connected_s outmsg;
+  int ret;
+
+  /* Create the client MQ name */
+
+  snprintf(mqname, sizeof(mqname), NX_CLIENT_MQNAMEFMT, conn->cid);
+
+  /* Open the client MQ -- this should have already been created by the
+   * client
+   */
+
+  conn->swrmq = nxmq_open(mqname, O_WRONLY);
+  if (conn->swrmq < 0)
+    {
+      gerr("ERROR: nxmq_open(%s) failed: %d\n", mqname, conn->swrmq);
+      outmsg.msgid = NX_CLIMSG_DISCONNECTED;
+    }
+
+  /* Send the handshake message back to the client */
+
+  outmsg.msgid = NX_CLIMSG_CONNECTED;
+  ret = nxmu_sendclient(conn, &outmsg, sizeof(struct nxclimsg_connected_s));
+  if (ret < 0)
+    {
+      gerr("ERROR: nxmu_sendclient failed: %d\n", ret);
+    }
+}
+
+/****************************************************************************
+ * Name: nxmu_shutdown
+ ****************************************************************************/
+
+static inline void nxmu_shutdown(FAR struct nxmu_state_s *nxmu)
+{
+  FAR struct nxbe_window_s *wnd;
+
+  /* Inform all of the clients in the window list that the server is
+   * exit-ting.  Notes: (1) that the following loop will probably attempt to
+   * disconnect clients multiple times because one client may have multiple
+   * windows:  The first disconnect will fail; subsequent will return errors
+   * that are ignored.  (2) The final window to be disconnected will be the
+   * background window, thus close all of the servers message queues.
+   */
+
+  for (wnd = nxmu->be.topwnd; wnd; wnd = wnd->below)
+    {
+       nxmu_disconnect(wnd->conn);
+    }
+}
+
+/****************************************************************************
+ * Name: nxmu_event
+ ****************************************************************************/
+
+static void nxmu_event(FAR struct nxbe_window_s *wnd, enum nx_event_e event,
+                       FAR void *arg)
+{
+  struct nxclimsg_event_s outmsg;
+  int ret;
+
+  outmsg.msgid = NX_CLIMSG_EVENT;
+  outmsg.wnd   = wnd;
+  outmsg.arg   = arg;
+  outmsg.event = event;
+
+  ret = nxmu_sendclient(wnd->conn, &outmsg,
+                        sizeof(struct nxclimsg_event_s));
+  if (ret < 0)
+    {
+      gerr("ERROR: nxmu_sendclient failed: %d\n", ret);
+    }
+}
+
+/****************************************************************************
+ * Name: nxmu_setup
+ ****************************************************************************/
+
+static inline int nxmu_setup(FAR const char *mqname, FAR NX_DRIVERTYPE *dev,
+                             FAR struct nxmu_state_s *nxmu)
+{
+  struct mq_attr attr;
+  int            ret;
+
+  memset(nxmu, 0, sizeof(struct nxmu_state_s));
+
+  /* Configure the framebuffer/LCD device */
+
+  ret = nxbe_configure(dev, &nxmu->be);
+  if (ret < 0)
+    {
+      gerr("ERROR: nxbe_configure failed: %d\n", ret);
+      return ret;
+    }
+
+#ifdef CONFIG_FB_CMAP
+  ret = nxbe_colormap(dev);
+  if (ret < 0)
+    {
+      gerr("ERROR: nxbe_colormap failed: %d\n", ret);
+      return ret;
+    }
+#endif /* CONFIG_FB_CMAP */
+
+  /* Initialize the non-NULL elements of the server connection structure.
+   * Oddly, this structure represents the connection between the server and
+   * itself.
+   *
+   * Open the incoming server MQ.  The server receives messages on the
+   * background window's incoming message queue.
+   */
+
+  attr.mq_maxmsg  = CONFIG_NX_MXSERVERMSGS;
+  attr.mq_msgsize = NX_MXSVRMSGLEN;
+  attr.mq_flags   = 0;
+
+  nxmu->conn.crdmq = nxmq_open(mqname, O_RDONLY | O_CREAT, 0666, &attr);
+  if (nxmu->conn.crdmq < 0)
+    {
+      gerr("ERROR: nxmq_open(%s) failed: %d\n", mqname, nxmu->conn.crdmq);
+      return nxmu->conn.crdmq;
+    }
+
+  /* NOTE that the outgoing client MQ (cwrmq) is not initialized.  The
+   * background window never initiates messages.
+   */
+
+  /* Open the outgoing server MQ.  This is used to send messages to the
+   * background window which will, of course, be received and handled by
+   * the server message loop.
+   */
+
+  nxmu->conn.swrmq = nxmq_open(mqname, O_WRONLY);
+  if (nxmu->conn.swrmq < 0)
+    {
+      gerr("ERROR: nxmq_open(%s) failed: %d\n", mqname, nxmu->conn.swrmq);
+      nxmq_close(nxmu->conn.crdmq);
+      return nxmu->conn.swrmq;
+    }
+
+  /* The server is now "connected" to itself via the background window */
+
+  nxmu->conn.state = NX_CLISTATE_CONNECTED;
+
+  /* Initialize the non-NULL elements of the background window */
+
+  nxmu->be.bkgd.conn = &nxmu->conn;
+  nxmu->be.bkgd.be   = (FAR struct nxbe_state_s *)nxmu;
+
+  nxmu->be.bkgd.bounds.pt2.x = nxmu->be.vinfo.xres - 1;
+  nxmu->be.bkgd.bounds.pt2.y = nxmu->be.vinfo.yres - 1;
+
+  /* Complete initialization of the server state structure.  The
+   * window list contains only one element:  The background window
+   * with nothing else above or below it
+   */
+
+  nxmu->be.topwnd = &nxmu->be.bkgd;
+
+  /* Initialize the mouse position */
+
+#ifdef CONFIG_NX_XYINPUT
+  nxmu_mouseinit(nxmu->be.vinfo.xres, nxmu->be.vinfo.yres);
+#endif
+  return OK;
+}
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: nx_runinstance
+ *
+ * Description:
+ *   This is the server entry point.  It does not return; the calling thread
+ *   is dedicated to supporting NX server.
+ *
+ *   NOTE that multiple instances of the NX server may run at the same time,
+ *   each with different callback and message queue names.
+ *
+ * Input Parameters:
+ *   mqname - The name for the server incoming message queue
+ *   dev    - Vtable "object" of the framebuffer/LCD "driver" to use
+ *
+ * Returned Value:
+ *   This function usually does not return.  If it does return, it will
+=== 4. nxtk_openwindow.c & nxmu_openwindow.c (RAMBACKED / bounds) ===
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_openwindow.c-67- * Public Functions
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_openwindow.c-68- ****************************************************************************/
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_openwindow.c-69-
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_openwindow.c-70-/****************************************************************************
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_openwindow.c-71- * Name: nxtk_openwindow
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_openwindow.c-72- *
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_openwindow.c-73- * Description:
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_openwindow.c-74- *   Create a new, framed window.
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_openwindow.c-75- *
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_openwindow.c-76- * Input Parameters:
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_openwindow.c-77- *   handle - The handle returned by nx_connect
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_openwindow.c-78- *   flags  - Optional flags.  These include:
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_openwindow.c:79: *            NXBE_WINDOW_RAMBACKED:  Creates a RAM backed window.  This
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_openwindow.c:80: *              option is only valid if CONFIG_NX_RAMBACKED is enabled.
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_openwindow.c-81- *            NXBE_WINDOW_HIDDEN:  The window is create in the HIDDEN state
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_openwindow.c-82- *             and can be made visible later with nxtk_setvisibility().
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_openwindow.c-83- *   cb     - Callbacks used to process window events
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_openwindow.c-84- *   arg    - User provided value that will be returned with NXTK callbacks.
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_openwindow.c-85- *
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_openwindow.c-86- * Returned Value:
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_openwindow.c-87- *   Success: A non-NULL handle used with subsequent NXTK window accesses
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_openwindow.c-88- *   Failure:  NULL is returned and errno is set appropriately
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_openwindow.c-89- *
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_openwindow.c-90- ****************************************************************************/
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_openwindow.c-91-
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_openwindow.c-92-NXTKWINDOW nxtk_openwindow(NXHANDLE handle, uint8_t flags,
+--
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_closetoolbar.c-59-    (FAR struct nxtk_framedwindow_s *)hfwnd;
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_closetoolbar.c-60-
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_closetoolbar.c-61-  /* Un-initialize the toolbar info */
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_closetoolbar.c-62-
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_closetoolbar.c-63-  fwnd->tbheight = 0;
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_closetoolbar.c-64-  fwnd->tbcb     = NULL;
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_closetoolbar.c-65-  fwnd->tbarg    = NULL;
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_closetoolbar.c-66-
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_closetoolbar.c-67-  /* Calculate the new dimensions of the client window */
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_closetoolbar.c-68-
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_closetoolbar.c-69-  nxtk_setsubwindows(fwnd);
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_closetoolbar.c-70-
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_closetoolbar.c:71:#ifdef CONFIG_NX_RAMBACKED
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_closetoolbar.c-72-  /* The redraw request has no effect if a framebuffer is used with the
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_closetoolbar.c-73-   * window.  For that type of window, the application must perform the
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_closetoolbar.c-74-   * window update itself and not rely on a redraw notification.
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_closetoolbar.c-75-   */
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_closetoolbar.c-76-
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_closetoolbar.c:77:  if (NXBE_ISRAMBACKED(&fwnd->wnd))
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_closetoolbar.c-78-    {
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_closetoolbar.c-79-      struct nxgl_rect_s relbounds;
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_closetoolbar.c-80-
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_closetoolbar.c-81-      /* Convert to a window-relative bounding box */
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_closetoolbar.c-82-
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_closetoolbar.c-83-      nxgl_rectoffset(&relbounds, &fwnd->wnd.bounds,
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_closetoolbar.c-84-                      -fwnd->wnd.bounds.pt1.x, -fwnd->wnd.bounds.pt1.y);
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_closetoolbar.c-85-
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_closetoolbar.c-86-      /* Then re-draw the frame */
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_closetoolbar.c-87-
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_closetoolbar.c-88-      nxtk_drawframe(fwnd, &relbounds); /* Does not fail */
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_closetoolbar.c-89-    }
+--
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_setsize.c-72-
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_setsize.c-73-  fwnd = (FAR struct nxtk_framedwindow_s *)hfwnd;
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_setsize.c-74-
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_setsize.c-75-  /* Add the sizes need for the toolbar and the borders */
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_setsize.c-76-
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_setsize.c-77-  newsize.w = size->w + 2 * CONFIG_NXTK_BORDERWIDTH;
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_setsize.c-78-  newsize.h = size->h + fwnd->tbheight + 2 * CONFIG_NXTK_BORDERWIDTH;
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_setsize.c-79-
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_setsize.c-80-  /* Then set the window size */
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_setsize.c-81-
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_setsize.c-82-  ret = nx_setsize((NXWINDOW)hfwnd, &newsize);
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_setsize.c-83-
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_setsize.c:84:#ifdef CONFIG_NX_RAMBACKED
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_setsize.c-85-  /* Windows backed with per-window framebuffers do not get redraw
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_setsize.c-86-   * callbacks.  Normally the frame is updated with every redraw callback.
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_setsize.c-87-   * However, as a minimum, the frame only has to but updated after the
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_setsize.c-88-   * window or toolbar sizes change.
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_setsize.c-89-   */
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_setsize.c-90-
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_setsize.c:91:  if (ret >= 0 && NXBE_ISRAMBACKED(&fwnd->wnd))
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_setsize.c-92-    {
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_setsize.c-93-      struct nxgl_rect_s relbounds;
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_setsize.c-94-
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_setsize.c-95-      /* Convert to a window-relative bounding box */
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_setsize.c-96-
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_setsize.c-97-      nxgl_rectoffset(&relbounds, &fwnd->wnd.bounds,
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_setsize.c-98-                      -fwnd->wnd.bounds.pt1.x, -fwnd->wnd.bounds.pt1.y);
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_setsize.c-99-
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_setsize.c-100-      /* Then re-draw the frame */
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_setsize.c-101-
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_setsize.c-102-      nxtk_drawframe(fwnd, &relbounds); /* Does not fail */
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_setsize.c-103-    }
+--
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_opentoolbar.c-73-#endif
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_opentoolbar.c-74-
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_opentoolbar.c-75-  /* Initialize the toolbar info */
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_opentoolbar.c-76-
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_opentoolbar.c-77-  fwnd->tbheight = height;
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_opentoolbar.c-78-  fwnd->tbcb     = cb;
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_opentoolbar.c-79-  fwnd->tbarg    = arg;
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_opentoolbar.c-80-
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_opentoolbar.c-81-  /* Calculate the new dimensions of the toolbar and client windows */
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_opentoolbar.c-82-
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_opentoolbar.c-83-  nxtk_setsubwindows(fwnd);
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_opentoolbar.c-84-
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_opentoolbar.c:85:#ifdef CONFIG_NX_RAMBACKED
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_opentoolbar.c-86-  /* The redraw request has no effect if a framebuffer is used with the
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_opentoolbar.c-87-   * window.  For that type of window, the application must perform the
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_opentoolbar.c-88-   * toolbar update itself and not rely on a redraw notification.
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_opentoolbar.c-89-   */
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_opentoolbar.c-90-
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_opentoolbar.c:91:  if (NXBE_ISRAMBACKED(&fwnd->wnd))
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_opentoolbar.c-92-    {
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_opentoolbar.c-93-      struct nxgl_rect_s relbounds;
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_opentoolbar.c-94-
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_opentoolbar.c-95-      /* Convert to a window-relative bounding box */
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_opentoolbar.c-96-
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_opentoolbar.c-97-      nxgl_rectoffset(&relbounds, &fwnd->wnd.bounds,
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_opentoolbar.c-98-                      -fwnd->wnd.bounds.pt1.x, -fwnd->wnd.bounds.pt1.y);
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_opentoolbar.c-99-
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_opentoolbar.c-100-      /* Then re-draw the frame */
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_opentoolbar.c-101-
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_opentoolbar.c-102-      nxtk_drawframe(fwnd, &relbounds); /* Does not fail */
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_opentoolbar.c-103-    }
+--
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-29-#include <stdbool.h>
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-30-#include <errno.h>
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-31-#include <nuttx/debug.h>
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-32-
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-33-#include <nuttx/nx/nx.h>
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-34-#include "nxmu.h"
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-35-
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-36-/****************************************************************************
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-37- * Private Functions
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-38- ****************************************************************************/
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-39-
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-40-/****************************************************************************
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c:41: * Name: nxmu_redraw_pwfb
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-42- *
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-43- * Description:
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-44- *   Redraw into the per-window framebuffer
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-45- *
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-46- ****************************************************************************/
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-47-
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c:48:#ifdef CONFIG_NX_RAMBACKED
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c:49:static inline void nxmu_redraw_pwfb(FAR struct nxbe_window_s *wnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-50-                                    FAR const struct nxgl_rect_s *rect)
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-51-{
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-52-  FAR const void *src[CONFIG_NX_NPLANES];
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-53-  struct nxgl_rect_s wndrect;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-54-  struct nxgl_point_s origin;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-55-  unsigned int bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-56-
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-57-  /* Put the rectangle back relative to the window */
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-58-
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-59-  nxgl_rectoffset(&wndrect, rect,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-60-                  -wnd->bounds.pt1.x, -wnd->bounds.pt1.y);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-61-
+--
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-149- *   the base that the window supports a per-window framebuffer, this might
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-150- *   amount to an immediate redraw from the framebuffer.
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-151- *
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-152- ****************************************************************************/
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-153-
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-154-void nxmu_redraw(FAR struct nxbe_window_s *wnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-155-                 FAR const struct nxgl_rect_s *rect)
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-156-{
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-157-  /* Don't update hidden windows */
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-158-
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-159-  if (!NXBE_ISHIDDEN(wnd))
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-160-    {
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c:161:#ifdef CONFIG_NX_RAMBACKED
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-162-      /* If this window supports a pre-window frame buffer, then we can just
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-163-       * update the device content from that framebuffer.
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-164-       */
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-165-
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c:166:      if (NXBE_ISRAMBACKED(wnd))
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-167-        {
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c:168:          nxmu_redraw_pwfb(wnd, rect);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-169-        }
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-170-
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-171-      /* Otherwise, send a message to the client requesting an update of the
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-172-       * affected region in the window.
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-173-       */
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-174-
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-175-      else
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-176-#endif
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-177-        {
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-178-          nxmu_redrawreq(wnd, rect);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-179-        }
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c-180-    }
+--
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-19- * under the License.
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-20- *
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-21- ****************************************************************************/
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-22-
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-23-/****************************************************************************
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-24- * Included Files
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-25- ****************************************************************************/
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-26-
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-27-#include <nuttx/config.h>
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-28-#include <nuttx/debug.h>
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-29-#include <errno.h>
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-30-
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c:31:#ifdef CONFIG_NX_RAMBACKED
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-32-#ifdef CONFIG_BUILD_KERNEL
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-33-#  include "nuttx/pgalloc.h"
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-34-#else
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-35-#  include "nuttx/kmalloc.h"
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-36-#endif
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-37-#  include <nuttx/nx/nxbe.h>
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-38-#endif
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-39-
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-40-#include <nuttx/nx/nx.h>
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-41-#include "nxmu.h"
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-42-
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-43-/****************************************************************************
+--
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-53- * Input Parameters:
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-54- *   be  - The back-end status structure
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-55- *   wnd  - The pre-allocated window structure to be initialized [IN/OUT]
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-56- *
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-57- * Returned Value:
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-58- *   None
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-59- *
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-60- ****************************************************************************/
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-61-
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-62-void nxmu_openwindow(FAR struct nxbe_state_s *be,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-63-                     FAR struct nxbe_window_s *wnd)
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-64-{
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c:65:#ifdef CONFIG_NX_RAMBACKED
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-66-  nxgl_coord_t width;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-67-  nxgl_coord_t height;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-68-  size_t fbsize;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-69-  unsigned int bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-70-#endif
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-71-
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-72-  /* The window structure was allocated in nx_openwindow and all fields have
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-73-   * been set to zero; conn, flags, cb, and arg which were initialized on
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-74-   * the client side.  On the server side, we need only initialize a few
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-75-   * more the non zero fields and insert the new window at the top of the
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-76-   * display.
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-77-   */
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-78-
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-79-  wnd->be           = be;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-80-
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c:81:#ifdef CONFIG_NX_RAMBACKED
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-82-  /* Allocate framebuffer memory if the per-window framebuffer feature has
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-83-   * been selected.
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-84-   *
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-85-   * REVISIT:  This initial state of the framebuffer is uninitialized and
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-86-   * not synchronized with the graphic device content.  It will take a full
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-87-   * screen update from the application to force the framebuffer and device
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-88-   * to be consistent.
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-89-   *
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-90-   * REVISIT:  Assumes a single color plane.
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-91-   */
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-92-
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c:93:  if (NXBE_ISRAMBACKED(wnd))
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-94-    {
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-95-      width         = wnd->bounds.pt2.x - wnd->bounds.pt1.x + 1;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-96-      height        = wnd->bounds.pt2.y - wnd->bounds.pt1.y + 1;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-97-      bpp           = wnd->be->plane[0].pinfo.bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-98-      wnd->stride   = (bpp * width + 7) >> 3;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-99-      fbsize        = wnd->stride * height;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-100-
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-101-#ifdef CONFIG_BUILD_KERNEL
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-102-      /* Allocate memory from the page pool because:
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-103-       *
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-104-       *   1) The page pool is the largest memory pool and best for
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-105-       *      framebuffers.
+--
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-114-      /* Allocate the pages */
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-115-
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-116-      wnd->fbmem = (FAR nxgl_mxpixel_t *)mm_pgalloc(wnd->npages);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-117-      if (wnd->fbmem == NULL)
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-118-        {
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-119-          /* Fall back to no RAM back up */
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-120-
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-121-          gerr("ERROR: mm_pgalloc() failed for fbsize=%lu, npages=%u\n",
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-122-               (unsigned long)fbsize, wnd->npages);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-123-
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-124-          wnd->stride = 0;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-125-          wnd->npages = 0;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c:126:          NXBE_CLRRAMBACKED(wnd);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-127-        }
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-128-#else
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-129-      /* Allocate memory from the user space heap because:
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-130-       *
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-131-       *   1) The  user space heap is the larger memory pool and best for
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-132-       *      framebuffers (protected mode).
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-133-       *   2) The user space heap is openly accessible at all privilege
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-134-       *      levels.
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-135-       */
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-136-
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-137-      wnd->fbmem = kumm_malloc(fbsize);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-138-      if (wnd->fbmem == NULL)
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-139-        {
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-140-          /* Fall back to no RAM back up */
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-141-
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-142-          gerr("ERROR: kumm_malloc() failed for fbsize=%lu\n",
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-143-               (unsigned long)fbsize);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-144-
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-145-          wnd->stride = 0;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c:146:          NXBE_CLRRAMBACKED(wnd);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-147-        }
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-148-#endif
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-149-    }
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-150-#endif
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-151-
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-152-  /* Is the window being created in the hidden state? */
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-153-
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-154-  if (!NXBE_ISHIDDEN(wnd))
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-155-    {
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-156-      /* No.. Insert the new window at the correct position in the
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-157-       * hierarchy.  topwnd is never NULL (it may point only at the
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_openwindow.c-158-       * background window, however).  If we are in a modal state, then we
+=== 5. cwindowmessenger.cxx (full) ===
+     1  /********************************************************************************************
+     2   * apps/graphics/nxwm/src/cwindowmessenger.cxx
+     3   *
+     4   * SPDX-License-Identifier: Apache-2.0
+     5   *
+     6   * Licensed to the Apache Software Foundation (ASF) under one or more
+     7   * contributor license agreements.  See the NOTICE file distributed with
+     8   * this work for additional information regarding copyright ownership.  The
+     9   * ASF licenses this file to you under the Apache License, Version 2.0 (the
+    10   * "License"); you may not use this file except in compliance with the
+    11   * License.  You may obtain a copy of the License at
+    12   *
+    13   *   http://www.apache.org/licenses/LICENSE-2.0
+    14   *
+    15   * Unless required by applicable law or agreed to in writing, software
+    16   * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+    17   * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+    18   * License for the specific language governing permissions and limitations
+    19   * under the License.
+    20   *
+    21   ********************************************************************************************/
+    22
+    23  /********************************************************************************************
+    24   * Included Files
+    25   ********************************************************************************************/
+    26
+    27  #include <nuttx/config.h>
+    28
+    29  #include <cerrno>
+    30  #include <stdio.h>
+    31
+    32  #include <nuttx/debug.h>
+    33  #include <fcntl.h>
+    34
+    35  #include "graphics/nxwm/nxwmconfig.hxx"
+    36  #include "graphics/nxwm/cstartwindow.hxx"
+    37  #include "graphics/nxwm/cwindowmessenger.hxx"
+    38
+    39  /********************************************************************************************
+    40   * Pre-Processor Definitions
+    41   ********************************************************************************************/
+    42
+    43  /********************************************************************************************
+    44   * CWindowMessenger Method Implementations
+    45   ********************************************************************************************/
+    46
+    47  using namespace NxWM;
+    48
+    49  /**
+    50   * CWindowMessenger Constructor
+    51   *
+    52   * @param style The default style that all widgets on this display
+    53   *   should use.  If this is not specified, the widget will use the
+    54   *   values stored in the defaultCWidgetStyle object.
+    55   */
+    56
+    57  CWindowMessenger::CWindowMessenger(FAR const NXWidgets::CWidgetStyle *style)
+    58  : NXWidgets::CWidgetControl(style)
+    59  {
+    60    // Add ourself to the list of window event handlers
+    61
+    62    addWindowEventHandler(this);
+    63  }
+    64
+    65  /**
+    66   * CWindowMessenger Destructor.
+    67   */
+    68
+    69  CWindowMessenger::~CWindowMessenger(void)
+    70  {
+    71    // Remove ourself from the list of the window event handlers
+    72
+    73    removeWindowEventHandler(this);
+    74  }
+    75
+    76  #ifdef CONFIG_NX_XYINPUT
+    77  /**
+    78   * Handle an NX window mouse input event.
+    79   */
+    80
+    81  void CWindowMessenger::handleMouseEvent(FAR const struct nxgl_point_s *pos,
+    82                                          uint8_t buttons)
+    83  {
+    84    printf("NX callback: local=(%d,%d) buttons=%02x\n",
+    85           pos->x, pos->y, buttons);
+    86
+    87    // The logic path here is tortuous but flexible:
+    88    //
+    89    //  1. A listener thread receives mouse or touchscreen input and injects
+    90    //     that into NX via nx_mousein
+    91    //  2. In the multi-user mode, this will send a message to the NX server
+    92    //  3. The NX server will determine which window gets the mouse input
+    93    //     and send a window event message to the NX listener thread.
+    94    //  4. The NX listener thread receives a windows event.  The NX listener thread
+    95    //     is part of CTaskBar and was created when NX server connection was
+    96    //     established.  This event may be a positional change notification, a
+    97    //     redraw request, or mouse or keyboard input.  In this case, mouse input.
+    98    //  5. The NX listener thread handles the message by calling nx_eventhandler().
+    99    //     nx_eventhandler() dispatches the message by calling a method in the
+   100    //     NXWidgets::CCallback instance associated with the window.
+   101    //     NXWidgets::CCallback is a part of the CWidgetControl.
+   102    //  6. NXWidgets::CCallback calls into NXWidgets::CWidgetControl to process
+   103    //     the event.
+   104    //  7. NXWidgets::CWidgetControl records the new state data and raises a
+   105    //     window event.
+   106    //  8. NXWidgets::CWindowEventHandlerList will give the event to this method
+   107    //     NxWM::CWindowMessenger.
+   108    //  9. This NxWM::CWindowMessenger method will schedule an entry on the work
+   109    //     queue.
+   110    // 10. The work queue callback will finally call pollEvents() to execute whatever
+   111    //     actions the input event should trigger.
+   112
+   113    work_state_t *state = new work_state_t;
+   114    state->windowMessenger = this;
+   115    int ret = work_queue(USRWORK, &state->work, &inputWorkCallback, state, 0);
+   116    printf("NX queue: state=%p result=%d at=(%d,%d) buttons=%02x\n",
+   117           state, ret, pos->x, pos->y, buttons);
+   118    if (ret < 0)
+   119      {
+   120        gerr("ERROR: work_queue failed: %d\n", ret);
+   121        delete state;
+   122      }
+   123  }
+   124  #endif
+   125
+   126  #ifdef CONFIG_NX_KBD
+   127  /**
+   128   * Handle a NX window keyboard input event.
+   129   */
+   130
+   131  void CWindowMessenger::handleKeyboardEvent(void)
+   132  {
+   133    work_state_t *state = new work_state_t;
+   134    state->windowMessenger = this;
+   135
+   136    int ret = work_queue(USRWORK, &state->work, &inputWorkCallback, state, 0);
+   137    if (ret < 0)
+   138      {
+   139        gerr("ERROR: work_queue failed: %d\n", ret);
+   140      }
+   141  }
+   142  #endif
+   143
+   144  /**
+   145   * Handle a NX window blocked event.  This handler is called when we
+   146   * receive the BLOCKED message meaning that there are no further pending
+   147   * actions on the window.  It is now safe to delete the window.
+   148   *
+   149   * This is handled by sending a message to the start window thread (vs just
+   150   * calling the destructors) because in the case where an application
+   151   * destroys itself (because of pressing the stop button), then we need to
+   152   * unwind and get out of the application logic before destroying all of its
+   153   * objects.
+   154   *
+   155   * @param arg - User provided argument (see nx_block or nxtk_block)
+   156   */
+   157
+   158  void CWindowMessenger::handleBlockedEvent(FAR void *arg)
+   159  {
+   160    // Send a message to destroy the window instance.
+   161
+   162    work_state_t *state = new work_state_t;
+   163    state->windowMessenger = this;
+   164    state->instance = arg;
+   165
+   166    int ret = work_queue(USRWORK, &state->work, &destroyWorkCallback, state, 0);
+   167    if (ret < 0)
+   168      {
+   169        gerr("ERROR: work_queue failed: %d\n", ret);
+   170      }
+   171  }
+   172
+   173  /** Work queue callback functions */
+   174
+   175  void CWindowMessenger::inputWorkCallback(FAR void *arg)
+   176  {
+   177    work_state_t *state = (work_state_t*)arg;
+   178    printf("NX worker begin: state=%p press=%d release=%d held=%d pressAt=(%d,%d) releaseAt=(%d,%d)\n",
+   179           state,
+   180           state->windowMessenger->m_xyinput.leftPressed,
+   181           state->windowMessenger->m_xyinput.leftReleased,
+   182           state->windowMessenger->m_xyinput.leftHeld,
+   183           state->windowMessenger->m_xyinput.pressX,
+   184           state->windowMessenger->m_xyinput.pressY,
+   185           state->windowMessenger->m_xyinput.releaseX,
+   186           state->windowMessenger->m_xyinput.releaseY);
+   187    bool handled = state->windowMessenger->pollEvents();
+   188    printf("NX worker end: state=%p handled=%d\n", state, handled);
+   189    delete state;
+   190  }
+   191
+   192  void CWindowMessenger::destroyWorkCallback(FAR void *arg)
+   193  {
+   194    work_state_t *state = (work_state_t*)arg;
+   195
+   196    // First make sure any pending input events have been handled.
+   197
+   198    state->windowMessenger->pollEvents();
+   199
+   200    // Then release the memory.
+   201
+   202    ginfo("Deleting app=%p\n", state->instance);
+   203    IApplication *app = (IApplication *)state->instance;
+   204    delete app;
+   205    delete state;
+   206  }
+=== 6. cstartwindow.cxx (1-250) & ctaskbar.cxx startApplication ===
+/********************************************************************************************
+ * apps/graphics/nxwm/src/cstartwindow.cxx
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ ********************************************************************************************/
+
+/********************************************************************************************
+ * Included Files
+ ********************************************************************************************/
+
+#include <nuttx/config.h>
+
+#include <cstdlib>
+#include <cerrno>
+#include <stdio.h>
+
+#include <fcntl.h>
+#include <sched.h>
+
+#include "graphics/nxwidgets/cwidgetcontrol.hxx"
+
+#include "graphics/nxwm/nxwmconfig.hxx"
+#include "graphics/nxglyphs.hxx"
+#include "graphics/nxwm/ctaskbar.hxx"
+#include "graphics/nxwm/cstartwindow.hxx"
+
+/********************************************************************************************
+ * Pre-Processor Definitions
+ ********************************************************************************************/
+
+#define STARTWINDOW_MIN_SPACING 12
+
+/********************************************************************************************
+ * Global Data
+ ********************************************************************************************/
+
+/**
+ * The well-known name for the Start Window's message queue.
+ */
+
+FAR const char *NxWM::g_startWindowMqName = CONFIG_NXWM_STARTWINDOW_MQNAME;
+
+/********************************************************************************************
+ * CStartWindow Method Implementations
+ ********************************************************************************************/
+
+extern const struct NXWidgets::SRlePaletteBitmap CONFIG_NXWM_STARTWINDOW_ICON;
+
+using namespace NxWM;
+
+/**
+ * CStartWindow Constructor
+ *
+ * @param taskbar.  A pointer to the parent task bar instance
+ * @param window.  The window to be used by this application.
+ */
+
+CStartWindow::CStartWindow(CTaskbar *taskbar, CApplicationWindow *window)
+{
+  // Save the constructor data
+
+  m_taskbar = taskbar;
+  m_window  = window;
+
+  // Add our personalized window label
+
+  NXWidgets::CNxString myName = getName();
+  window->setWindowLabel(myName);
+
+  // Add our callbacks to the application window
+
+  window->registerCallbacks(static_cast<IApplicationCallback *>(this));
+}
+
+/**
+ * CStartWindow Constructor
+ */
+
+CStartWindow::~CStartWindow(void)
+{
+  // There would be a problem if we were stopped with the start window task
+  // running... that should never happen but we'll check anyway:
+
+  stop();
+
+  // Although we didn't create it, we are responsible for deleting the
+  // application window
+
+  delete m_window;
+
+  // Then stop and delete all applications
+
+  removeAllApplications();
+}
+
+/**
+ * Each implementation of IApplication must provide a method to recover
+ * the contained IApplicationWindow instance.
+ */
+
+IApplicationWindow *CStartWindow::getWindow(void) const
+{
+  return static_cast<IApplicationWindow*>(m_window);
+}
+
+/**
+ * Get the icon associated with the application
+ *
+ * @return An instance if IBitmap that may be used to rend the
+ *   application's icon.  This is an new IBitmap instance that must
+ *   be deleted by the caller when it is no long needed.
+ */
+
+NXWidgets::IBitmap *CStartWindow::getIcon(void)
+{
+  NXWidgets::CRlePaletteBitmap *bitmap =
+    new NXWidgets::CRlePaletteBitmap(&CONFIG_NXWM_STARTWINDOW_ICON);
+
+  return bitmap;
+}
+
+/**
+ * Get the name string associated with the application
+ *
+ * @return A copy if CNxString that contains the name of the application.
+ */
+
+NXWidgets::CNxString CStartWindow::getName(void)
+{
+  return NXWidgets::CNxString("Start Window");
+}
+
+/**
+ * Start the application.
+ *
+ * @return True if the application was successfully started.
+ */
+
+bool CStartWindow::run(void)
+{
+  return true;
+}
+
+/**
+ * Stop the application.
+ */
+
+void CStartWindow::stop(void)
+{
+}
+
+/**
+ * Destroy the application and free all of its resources.  This method
+ * will initiate blocking of messages from the NX server.  The server
+ * will flush the window message queue and reply with the blocked
+ * message.  When the block message is received by CWindowMessenger,
+ * it will send the destroy message to the start window task which
+ * will, finally, safely delete the application.
+ */
+
+void CStartWindow::destroy(void)
+{
+  // What are we doing?  This should never happen because the start
+  // window task is persistent!
+
+  // Block any further window messages
+
+  m_window->block(this);
+
+  // Make sure that the application is stopped
+
+  stop();
+}
+
+/**
+ * The application window is hidden (either it is minimized or it is
+ * maximized, but not at the top of the hierarchy
+ */
+
+void CStartWindow::hide(void)
+{
+  // Disable drawing and events on all icons
+
+  for (int i = 0; i < m_slots.size(); i++)
+    {
+      NXWidgets::CImage *image = m_slots.at(i).image;
+      image->disableDrawing();
+      image->setRaisesEvents(false);
+    }
+}
+
+/**
+ * Redraw the entire window.  The application has been maximized or
+ * otherwise moved to the top of the hierarchy
+ */
+
+void CStartWindow::redraw(void)
+{
+  // Recover the NXTK window instance contained in the application window
+
+  NXWidgets::INxWindow *window = m_window->getWindow();
+
+  // Get the widget control associated with the NXTK window
+
+  NXWidgets::CWidgetControl *control =  window->getWidgetControl();
+
+  // Get the graphics port for drawing on the widget control
+
+  NXWidgets::CGraphicsPort *port = control->getGraphicsPort();
+
+  // Get the size of the application window
+
+  struct nxgl_size_s windowSize;
+  if (!window->getSize(&windowSize))
+    {
+      return;
+    }
+
+  // Fill the entire window with the background color
+
+  port->drawFilledRect(0, 0, windowSize.w, windowSize.h,
+                       CONFIG_NXWM_DEFAULT_BACKGROUNDCOLOR);
+
+  // Begin adding icons in the upper left corner
+
+  struct nxgl_point_s iconPos;
+  nxgl_coord_t horizontalSpacing = CONFIG_NXWM_STARTWINDOW_HSPACING;
+  nxgl_coord_t verticalSpacing = CONFIG_NXWM_STARTWINDOW_VSPACING;
+
+  if (horizontalSpacing < STARTWINDOW_MIN_SPACING)
+    {
+      horizontalSpacing = STARTWINDOW_MIN_SPACING;
+    }
+
+437:bool CTaskbar::startApplication(IApplication *app, bool minimized)
+438-{
+439-  // Get the widget control associated with the task bar window
+440-
+441-  NXWidgets::CWidgetControl *control = m_taskbar->getWidgetControl();
+442-
+443-  // Get the bitmap icon that goes with this application
+444-
+445-  NXWidgets::IBitmap *bitmap = app->getIcon();
+446-
+447-#ifdef CONFIG_NXWM_TASKBAR_ICONSCALE
+448-  // Create a CScaledBitmap to scale the bitmap icon
+449-
+450-  NXWidgets::CScaledBitmap *scaler = (NXWidgets::CScaledBitmap *)0;
+451-  if (bitmap)
+452-    {
+453-      // Create a CScaledBitmap to scale the bitmap icon
+454-
+455-      struct nxgl_size_s iconSize;
+456-      iconSize.w = CONFIG_NXWM_TASKBAR_ICONWIDTH;
+457-      iconSize.h = CONFIG_NXWM_TASKBAR_ICONHEIGHT;
+458-
+459-      scaler = new NXWidgets::CScaledBitmap(bitmap, iconSize);
+460-      if (!scaler)
+461-        {
+462-          return false;
+463-        }
+464-    }
+465-#endif
+466-
+467-  // Create a CImage instance to manage the applications icon.  Assume the
+468-  // minimum size in case no bitmap is provided (bitmap == NULL)
+469-
+470-  int w = 1;
+471-  int h = 1;
+472-
+473-#ifdef CONFIG_NXWM_TASKBAR_ICONSCALE
+474-  if (scaler)
+475-    {
+476-      w = scaler->getWidth();
+477-      h = scaler->getHeight();
+478-    }
+479-
+480-  NXWidgets::CImage *image =
+481-    new NXWidgets::CImage(control, 0, 0, w, h, scaler, 0);
+482-
+=== 7. backup .config diff & MM/RAM config ===
+total 2844
+drwxrwxr-x 3 bg9211014 bg9211014    4096 Nov 27 14:32 .
+drwxrwxr-x 3 bg9211014 bg9211014    4096 Nov 27 14:32 ..
+drwxrwxr-x 3 bg9211014 bg9211014    4096 Nov 27 14:32 apps
+-rw-rw-r-- 1 bg9211014 bg9211014   90357 Nov 27 12:49 .config.bak
+-rwxrwxr-x 1 bg9211014 bg9211014  895708 Nov 27 14:12 nuttx.bak
+-rwxrwxr-x 1 bg9211014 bg9211014  470440 Nov 27 14:12 nuttx.bin.bak
+-rw-rw-r-- 1 bg9211014 bg9211014 1323285 Nov 27 14:12 nuttx.hex.bak
+-rw-rw-r-- 1 bg9211014 bg9211014   88505 Nov 27 14:34 stage.log
+-rw-rw-r-- 1 bg9211014 bg9211014  131466 Nov 27 14:12 System.map.bak
+373:CONFIG_LPC17_40_EMC=y
+616:CONFIG_RAM_START=0x10000000
+617:CONFIG_RAM_SIZE=65536
+1799:CONFIG_NX_NDISPLAYS=1
+1800:CONFIG_NX_NPLANES=1
+1801:CONFIG_NX_RAMBACKED=y
+1802:CONFIG_NX_NOCURSOR=y
+1804:CONFIG_NX_BGCOLOR=0x0
+1812:CONFIG_NX_DISABLE_1BPP=y
+1813:CONFIG_NX_DISABLE_2BPP=y
+1814:CONFIG_NX_DISABLE_4BPP=y
+1815:CONFIG_NX_DISABLE_8BPP=y
+1817:CONFIG_NX_DISABLE_24BPP=y
+1818:CONFIG_NX_DISABLE_32BPP=y
+1819:CONFIG_NX_PACKEDMSFIRST=y
+1824:CONFIG_NX_XYINPUT=y
+1827:CONFIG_NX_XYINPUT_TOUCHSCREEN=y
+1828:CONFIG_NX_KBD=y
+1858:CONFIG_NX_BLOCKING=y
+1859:CONFIG_NX_MXSERVERMSGS=32
+1860:CONFIG_NX_MXCLIENTMSGS=16
+1939:CONFIG_MM_REGIONS=3

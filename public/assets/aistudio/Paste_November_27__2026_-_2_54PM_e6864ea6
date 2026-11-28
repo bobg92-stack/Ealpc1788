@@ -1,0 +1,1322 @@
+┌──(bg9211014🎃kali)-[~]
+└─$ >....
+echo "--- backups ---"
+ls -la "$WS/nuttx/build_backups" 2>/dev/null
+
+echo "=== 2. CNxTkWindow / CNxWindow bitmap() & drawBitmap() ==="
+grep -n -A 30 -E "::(bitmap|drawBitmap)\(" \
+  "$WS/apps/graphics/nxwidgets/src/cnxtkwindow.cxx" \
+  "$WS/apps/graphics/nxwidgets/src/cnxwindow.cxx"
+
+echo "=== 3. nxmu_sendserver.c & conn->cw_svrmq setup ==="
+sed -n '45,140p' "$WS/nuttx/libs/libnx/nxmu/nxmu_sendserver.c"
+grep -rn -C 10 "cw_svrmq" "$WS/nuttx/libs/libnx/" "$WS/nuttx/include/nuttx/nx/"
+
+echo "=== 4. nxbe_bitmap.c (135-end) ==="
+sed -n '135,320p' "$WS/nuttx/graphics/nxbe/nxbe_bitmap.c"
+
+echo "=== 5. NXBE_ISBLOCKED / BLOCKED / RAMBACKED / PWFBS ==="
+grep -rnE "NXBE_ISBLOCKED|WINDOW_BLOCKED|nxtk_block|nx_block|pwfb" \
+  "$WS/nuttx/graphics/" "$WS/nuttx/libs/libnx/" "$WS/apps/graphics/nxwm/src/"
+
+echo "=== 6. nxsem_init / nxsem_post / nxsem_wait (header + core) ==="
+grep -rn -A 25 -E "int (nxsem_init|nxsem_post|nxsem_wait)\(" \
+  "$WS/nuttx/sched/semaphore/sem_init.c" \
+  "$WS/nuttx/sched/semaphore/sem_post.c" \
+  "$WS/nuttx/sched/semaphore/sem_wait.c" 2>/dev/null
+
+echo "=== 7. CStartWindow & CTouchscreen diffs ==="
+git --no-pager -C "$WS/apps" diff -- \
+  graphics/nxwm/src/cstartwindow.cxx \
+  graphics/nxwm/src/ctouchscreen.cxx \
+  graphics/nxwidgets/src/cnxwidget.cxx
+
+echo "=== 8. CStartWindow launch/action code ==="
+grep -n -A 45 -E "(handleActionEvent|createHexCalculator|startApplication|launch)\(" \
+  "$WS/apps/graphics/nxwm/src/cstartwindow.cxx"
+
+echo "=== 9. ea_gui defconfig vs active .config NX/SCHED diffs ==="
+grep -nE "CONFIG_(NX|SCHED_|MM_|PRIORITY_INHERITANCE)" \
+  "$WS/nuttx/boards/arm/lpc17xx_40xx/open1788/configs/ea_gui/defconfig"
+EOF
+=== 1. GIT STATUS & BACKUPS ===
+Refresh index: 100% (29184/29184), done.
+
+
+
+
+
+
+
+
+
+
+
+ M arch/arm/src/lpc17xx_40xx/lpc17_40_adc.c
+ M arch/arm/src/lpc17xx_40xx/lpc17_40_can.c
+ M arch/arm/src/lpc17xx_40xx/lpc17_40_dac.c
+ M arch/arm/src/lpc17xx_40xx/lpc17_40_ethernet.c
+ M arch/arm/src/lpc17xx_40xx/lpc17_40_i2c.c
+ M arch/arm/src/lpc17xx_40xx/lpc17_40_lcd.c
+ M arch/arm/src/lpc17xx_40xx/lpc17_40_sdcard.c
+ M boards/arm/lpc17xx_40xx/open1788/include/board.h
+ M boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_bringup.c
+ M boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_buttons.c
+ M boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_djoystick.c
+ M boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_lcd.c
+ M boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_sdraminitialize.c
+ M boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_ssp.c
+ M boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_touchscreen.c
+ M boards/arm/lpc17xx_40xx/open1788/src/open1788.h
+ M drivers/input/ads7843e.c
+ M drivers/input/ads7843e.h
+ M graphics/nxmu/nxmu_server.c
+ M include/nuttx/input/ads7843e.h
+ M libs/libnx/nxmu/nx_bitmap.c
+?? add_advanced_features.sh
+?? boards/arm/lpc17xx_40xx/open1788/configs/ea_gui/
+?? finish_production_build.sh
+?? fix_lua_math_and_build.sh
+?? full_production_rebuild.sh
+--- apps ---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ M graphics/nxwidgets/src/cimage.cxx
+ M graphics/nxwidgets/src/cnxwidget.cxx
+ M graphics/nxwidgets/src/cwidgetcontrol.cxx
+ M graphics/nxwm/src/capplicationwindow.cxx
+ M graphics/nxwm/src/ccalibration.cxx
+ M graphics/nxwm/src/cstartwindow.cxx
+ M graphics/nxwm/src/ctouchscreen.cxx
+ M graphics/nxwm/src/cwindowmessenger.cxx
+ M graphics/nxwm/src/nxwm_main.cxx
+ M include/graphics/nxwidgets/cwidgetcontrol.hxx
+ M include/graphics/nxwm/ctouchscreen.hxx
+--- backups ---
+
+
+total 12
+drwxrwxr-x  3 bg9211014 bg9211014 4096 Nov 27 14:32 .
+drwxrwxr-x 29 bg9211014 bg9211014 4096 Nov 27 14:34 ..
+drwxrwxr-x  3 bg9211014 bg9211014 4096 Nov 27 14:32 stage_20261127_143254
+=== 2. CNxTkWindow / CNxWindow bitmap() & drawBitmap() ===
+/home/bg9211014/lpc1788_workspace/apps/graphics/nxwidgets/src/cnxtkwindow.cxx:485:bool CNxTkWindow::bitmap(FAR const struct nxgl_rect_s *pDest,
+/home/bg9211014/lpc1788_workspace/apps/graphics/nxwidgets/src/cnxtkwindow.cxx-486-                         FAR const void *pSrc,
+/home/bg9211014/lpc1788_workspace/apps/graphics/nxwidgets/src/cnxtkwindow.cxx-487-                         FAR const struct nxgl_point_s *pOrigin,
+/home/bg9211014/lpc1788_workspace/apps/graphics/nxwidgets/src/cnxtkwindow.cxx-488-                         unsigned int stride)
+/home/bg9211014/lpc1788_workspace/apps/graphics/nxwidgets/src/cnxtkwindow.cxx-489-{
+/home/bg9211014/lpc1788_workspace/apps/graphics/nxwidgets/src/cnxtkwindow.cxx-490-  // Copy a rectangular bitmap image in a region on the display
+/home/bg9211014/lpc1788_workspace/apps/graphics/nxwidgets/src/cnxtkwindow.cxx-491-
+/home/bg9211014/lpc1788_workspace/apps/graphics/nxwidgets/src/cnxtkwindow.cxx-492-  return nxtk_bitmapwindow(m_hNxTkWindow, pDest, &pSrc, pOrigin, stride) == OK;
+/home/bg9211014/lpc1788_workspace/apps/graphics/nxwidgets/src/cnxtkwindow.cxx-493-}
+--
+/home/bg9211014/lpc1788_workspace/apps/graphics/nxwidgets/src/cnxwindow.cxx:336:bool CNxWindow::bitmap(FAR const struct nxgl_rect_s *pDest,
+/home/bg9211014/lpc1788_workspace/apps/graphics/nxwidgets/src/cnxwindow.cxx-337-                       FAR const void *pSrc,
+/home/bg9211014/lpc1788_workspace/apps/graphics/nxwidgets/src/cnxwindow.cxx-338-                       FAR const struct nxgl_point_s *pOrigin,
+/home/bg9211014/lpc1788_workspace/apps/graphics/nxwidgets/src/cnxwindow.cxx-339-                       unsigned int stride)
+/home/bg9211014/lpc1788_workspace/apps/graphics/nxwidgets/src/cnxwindow.cxx-340-{
+/home/bg9211014/lpc1788_workspace/apps/graphics/nxwidgets/src/cnxwindow.cxx-341-  // Copy a rectangular bitmap image in a region on the display
+/home/bg9211014/lpc1788_workspace/apps/graphics/nxwidgets/src/cnxwindow.cxx-342-
+/home/bg9211014/lpc1788_workspace/apps/graphics/nxwidgets/src/cnxwindow.cxx-343-  return nx_bitmap(m_hNxWindow, pDest, &pSrc, pOrigin, stride) == OK;
+/home/bg9211014/lpc1788_workspace/apps/graphics/nxwidgets/src/cnxwindow.cxx-344-}
+=== 3. nxmu_sendserver.c & conn->cw_svrmq setup ===
+ *
+ * Input Parameters:
+ *   conn   - A pointer to the server connection structure
+ *   msg    - A pointer to the message to send
+ *   msglen - The length of the message in bytes.
+ *
+ * Returned Value:
+ *   OK on success; ERROR on failure with errno set appropriately
+ *
+ ****************************************************************************/
+
+int nxmu_sendserver(FAR struct nxmu_conn_s *conn, FAR const void *msg,
+                    size_t msglen)
+{
+  int ret;
+
+  /* Sanity checking */
+
+#ifdef CONFIG_DEBUG_FEATURES
+  if (!conn || !conn->cwrmq)
+    {
+      set_errno(EINVAL);
+      return ERROR;
+    }
+#endif
+
+  /* Send the message to the server */
+
+  ret = _MQ_SEND(conn->cwrmq, msg, msglen, NX_SVRMSG_PRIO);
+  if (ret < 0)
+    {
+      _NX_SETERRNO(ret);
+      gerr("ERROR: _MQ_SEND failed: %d\n", _NX_GETERRNO(ret));
+      ret = ERROR;
+    }
+
+  return ret;
+}
+
+
+
+
+
+
+
+=== 4. nxbe_bitmap.c (135-end) ===
+
+  /* Offset the rectangle and image origin by the window origin.  This
+   * converts the rectangle in the device absolute coordinates.
+   */
+
+  nxgl_rectoffset(&destrect, dest, wnd->bounds.pt1.x, wnd->bounds.pt1.y);
+
+  /* Clip to the limits of the window and of the background screen (in
+   * device coordinates.
+   */
+
+  nxgl_rectintersect(&destrect, &destrect, &wnd->bounds);
+  nxgl_rectintersect(&destrect, &destrect, &wnd->be->bkgd.bounds);
+
+  if (!nxgl_nullrect(&destrect))
+    {
+      /* Restore the destination rectangle to relative window coordinates. */
+
+      nxgl_rectoffset(&destrect, &destrect,
+                      -wnd->bounds.pt1.x, -wnd->bounds.pt1.y);
+
+      /* Copy the rectangular region to the framebuffer (no clipping).
+       * REVISIT:  Assumes a single color plane.
+       */
+
+      DEBUGASSERT(wnd->be->plane[0].pwfb.copyrectangle != NULL);
+      wnd->be->plane[0].pwfb.copyrectangle(wnd, &destrect, src[0],
+                                           origin, stride);
+    }
+}
+#endif
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: nxbe_bitmap_dev
+ *
+ * Description:
+ *   Copy a rectangular region of a larger image into the rectangle in the
+ *   specified window.  The graphics output is written to the graphics
+ *   device unconditionally.
+ *
+ * Input Parameters:
+ *   wnd    - The window that will receive the bitmap image
+ *   dest   - Describes the rectangular region on the display that will
+ *            receive the bit map (window coordinate frame).
+ *   src    - The start of the source image.
+ *   origin - The origin of the upper, left-most corner of the full bitmap.
+ *            Both dest and origin are in window coordinates, however, origin
+ *            may lie outside of the display.
+ *   stride - The width of the full source image in bytes.
+ *
+ * Returned Value:
+ *   OK on success; ERROR on failure with errno set appropriately
+ *
+ ****************************************************************************/
+
+void nxbe_bitmap_dev(FAR struct nxbe_window_s *wnd,
+                     FAR const struct nxgl_rect_s *dest,
+                     FAR const void *src[CONFIG_NX_NPLANES],
+                     FAR const struct nxgl_point_s *origin,
+                     unsigned int stride)
+{
+  struct nx_bitmap_s info;
+  struct nxgl_rect_s bounds;
+  struct nxgl_point_s offset;
+  struct nxgl_rect_s remaining;
+  unsigned int deststride;
+  int i;
+
+  DEBUGASSERT(wnd != NULL && dest != NULL && src != NULL && origin != NULL);
+  DEBUGASSERT(wnd->be != NULL && wnd->be->plane != NULL);
+
+  /* Don't update hidden windows */
+
+  if (NXBE_ISHIDDEN(wnd))
+    {
+      return;
+    }
+
+  /* Verify that the destination rectangle begins "below" and to the "right"
+   * of the origin
+   */
+
+  if (dest->pt1.x < origin->x || dest->pt1.y < origin->y)
+    {
+      gerr("ERROR: Bad dest start position\n");
+      return;
+    }
+
+  /* Verify that the width of the destination rectangle does not exceed the
+   * width of the source bitmap data (taking into account the bitmap origin)
+   */
+
+  deststride = (((dest->pt2.x - origin->x + 1) *
+                 wnd->be->plane[0].pinfo.bpp + 7) >> 3);
+  if (deststride > stride)
+    {
+      gerr("ERROR: Bad dest width\n");
+      return;
+    }
+
+  /* Offset the rectangle and image origin by the window origin */
+
+  nxgl_rectoffset(&bounds, dest, wnd->bounds.pt1.x, wnd->bounds.pt1.y);
+  nxgl_vectoradd(&offset, origin, &wnd->bounds.pt1);
+
+  /* Clip to the limits of the window and of the background screen */
+
+  nxgl_rectintersect(&remaining, &bounds, &wnd->bounds);
+  nxgl_rectintersect(&remaining, &remaining, &wnd->be->bkgd.bounds);
+
+  if (nxgl_nullrect(&remaining))
+    {
+      return;
+    }
+
+  /* Then perform the clipped fill */
+
+#if CONFIG_NX_NPLANES > 1
+  for (i = 0; i < wnd->be->vinfo.nplanes; i++)
+#else
+  i = 0;
+#endif
+    {
+      DEBUGASSERT(wnd->be->plane[i].dev.copyrectangle != NULL);
+
+      info.cops.visible  = bitmap_clipcopy;
+      info.cops.obscured = nxbe_clipnull;
+      info.src           = src[i];
+      info.origin.x      = offset.x;
+      info.origin.y      = offset.y;
+      info.stride        = stride;
+
+      nxbe_clipper(wnd->above, &remaining, NX_CLIPORDER_DEFAULT,
+                   &info.cops, &wnd->be->plane[i]);
+    }
+}
+
+/****************************************************************************
+ * Name: nxbe_bitmap
+ *
+ * Description:
+ *   Copy a rectangular region of a larger image into the rectangle in the
+ *   specified window.  This is a front end to nxbe_bitmap_dev() that is
+ *   used only if CONFIG_NX_RAMBACKED=y.  If the per-window frame buffer is
+ *   selected, then the bit map will be written to both the graphics device
+ *   and shadowed in the per-window framebuffer.
+ *
+ * Input Parameters:
+ *   wnd    - The window that will receive the bitmap image
+ *   dest   - Describes the rectangular region on the display that will
+ *            receive the bit map (window coordinate frame).
+ *   src    - The start of the source image.
+ *   origin - The origin of the upper, left-most corner of the full bitmap.
+ *            Both dest and origin are in window coordinates, however, origin
+ *            may lie outside of the display.
+ *   stride - The width of the full source image in bytes.
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+void nxbe_bitmap(FAR struct nxbe_window_s *wnd,
+                 FAR const struct nxgl_rect_s *dest,
+                 FAR const void *src[CONFIG_NX_NPLANES],
+                 FAR const struct nxgl_point_s *origin,
+                 unsigned int stride)
+{
+#ifdef CONFIG_NX_RAMBACKED
+  /* If this window supports a pre-window frame buffer then shadow the full,
+   * unclipped bitmap in that framebuffer.
+   */
+
+  if (NXBE_ISRAMBACKED(wnd))
+    {
+      /* Update the per-window framebuffer */
+
+      nxbe_bitmap_pwfb(wnd, dest, src, origin, stride);
+    }
+#endif
+
+  /* Don't update hidden windows */
+=== 5. NXBE_ISBLOCKED / BLOCKED / RAMBACKED / PWFBS ===
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_fillrectangle_16bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_setpixel_16bpp.o: binary file matches
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c:41: * Name: nxmu_redraw_pwfb
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c:49:static inline void nxmu_redraw_pwfb(FAR struct nxbe_window_s *wnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_redraw.c:168:          nxmu_redraw_pwfb(wnd, rect);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxmu/nxmu_sendclientwindow.c:65:  if (!NXBE_ISBLOCKED(wnd))
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_moverectangle_24bpp.o: binary file matches
+
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_getrectangle.c:86: * Name: nxbe_getrectangle_pwfb
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_getrectangle.c:105:static inline void nxbe_getrectangle_pwfb(FAR struct nxbe_window_s *wnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_getrectangle.c:114:  DEBUGASSERT(pplane != NULL && pplane->pwfb.getrectangle != NULL);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_getrectangle.c:124:  pplane->pwfb.getrectangle(wnd, &relrect, dest, deststride);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_getrectangle.c:189:          nxbe_getrectangle_pwfb(wnd, &remaining, plane, dest, deststride);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe.h:110:struct nxbe_pwfb_vtable_s
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe.h:167:  struct nxbe_pwfb_vtable_s pwfb;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_fill.c:132: * Name: nxbe_fill_pwfb
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_fill.c:149:static inline void nxbe_fill_pwfb(FAR struct nxbe_window_s *wnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_fill.c:155:  DEBUGASSERT(wnd->be->plane[0].pwfb.fillrectangle != NULL);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_fill.c:167:  wnd->be->plane[0].pwfb.fillrectangle(wnd, &relrect, color[0]);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_fill.c:222:          nxbe_fill_pwfb(wnd, &remaining, color);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_move.c:300: * Name: nxbe_move_pwfb
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_move.c:316:static inline void nxbe_move_pwfb(FAR struct nxbe_window_s *wnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_move.c:343:  DEBUGASSERT(wnd->be->plane[0].pwfb.moverectangle != NULL);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_move.c:344:  wnd->be->plane[0].pwfb.moverectangle(wnd, &srcrect, &destpos);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_move.c:454:              nxbe_move_pwfb(wnd, &srcrect, offset);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:130:          be->plane[i].pwfb.setpixel      = pwfb_setpixel_1bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:131:          be->plane[i].pwfb.fillrectangle = pwfb_fillrectangle_1bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:132:          be->plane[i].pwfb.getrectangle  = pwfb_getrectangle_1bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:133:          be->plane[i].pwfb.filltrapezoid = pwfb_filltrapezoid_1bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:134:          be->plane[i].pwfb.moverectangle = pwfb_moverectangle_1bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:135:          be->plane[i].pwfb.copyrectangle = pwfb_copyrectangle_1bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:151:          be->plane[i].pwfb.setpixel      = pwfb_setpixel_2bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:152:          be->plane[i].pwfb.fillrectangle = pwfb_fillrectangle_2bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:153:          be->plane[i].pwfb.getrectangle  = pwfb_getrectangle_2bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:154:          be->plane[i].pwfb.filltrapezoid = pwfb_filltrapezoid_2bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:155:          be->plane[i].pwfb.moverectangle = pwfb_moverectangle_2bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:156:          be->plane[i].pwfb.copyrectangle = pwfb_copyrectangle_2bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:172:          be->plane[i].pwfb.setpixel      = pwfb_setpixel_4bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:173:          be->plane[i].pwfb.fillrectangle = pwfb_fillrectangle_4bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:174:          be->plane[i].pwfb.getrectangle  = pwfb_getrectangle_4bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:175:          be->plane[i].pwfb.filltrapezoid = pwfb_filltrapezoid_4bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:176:          be->plane[i].pwfb.moverectangle = pwfb_moverectangle_4bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:177:          be->plane[i].pwfb.copyrectangle = pwfb_copyrectangle_4bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:193:          be->plane[i].pwfb.setpixel      = pwfb_setpixel_8bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:194:          be->plane[i].pwfb.fillrectangle = pwfb_fillrectangle_8bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:195:          be->plane[i].pwfb.getrectangle  = pwfb_getrectangle_8bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:196:          be->plane[i].pwfb.filltrapezoid = pwfb_filltrapezoid_8bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:197:          be->plane[i].pwfb.moverectangle = pwfb_moverectangle_8bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:198:          be->plane[i].pwfb.copyrectangle = pwfb_copyrectangle_8bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:220:          be->plane[i].pwfb.setpixel      = pwfb_setpixel_16bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:221:          be->plane[i].pwfb.fillrectangle = pwfb_fillrectangle_16bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:222:          be->plane[i].pwfb.getrectangle  = pwfb_getrectangle_16bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:223:          be->plane[i].pwfb.filltrapezoid = pwfb_filltrapezoid_16bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:224:          be->plane[i].pwfb.moverectangle = pwfb_moverectangle_16bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:225:          be->plane[i].pwfb.copyrectangle = pwfb_copyrectangle_16bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:247:          be->plane[i].pwfb.setpixel      = pwfb_setpixel_24bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:248:          be->plane[i].pwfb.fillrectangle = pwfb_fillrectangle_24bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:249:          be->plane[i].pwfb.getrectangle  = pwfb_getrectangle_24bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:250:          be->plane[i].pwfb.filltrapezoid = pwfb_filltrapezoid_24bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:251:          be->plane[i].pwfb.moverectangle = pwfb_moverectangle_24bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:252:          be->plane[i].pwfb.copyrectangle = pwfb_copyrectangle_24bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:274:          be->plane[i].pwfb.setpixel      = pwfb_setpixel_1bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:275:          be->plane[i].pwfb.fillrectangle = pwfb_fillrectangle_32bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:276:          be->plane[i].pwfb.getrectangle  = pwfb_getrectangle_32bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:277:          be->plane[i].pwfb.filltrapezoid = pwfb_filltrapezoid_32bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:278:          be->plane[i].pwfb.moverectangle = pwfb_moverectangle_32bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_configure.c:279:          be->plane[i].pwfb.copyrectangle = pwfb_copyrectangle_32bpp;
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_bitmap.c:80: * Name: nxbe_bitmap_pwfb
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_bitmap.c:102:static inline void nxbe_bitmap_pwfb(FAR struct nxbe_window_s *wnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_bitmap.c:160:      DEBUGASSERT(wnd->be->plane[0].pwfb.copyrectangle != NULL);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_bitmap.c:161:      wnd->be->plane[0].pwfb.copyrectangle(wnd, &destrect, src[0],
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_bitmap.c:316:      nxbe_bitmap_pwfb(wnd, dest, src, origin, stride);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_filltrapezoid.c:152: * Name: nxbe_filltrapezoid_pwfb
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_filltrapezoid.c:170:nxbe_filltrapezoid_pwfb(FAR struct nxbe_window_s *wnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_filltrapezoid.c:194:  DEBUGASSERT(wnd->be->plane[0].pwfb.filltrapezoid != NULL);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_filltrapezoid.c:195:  wnd->be->plane[0].pwfb.filltrapezoid(wnd, &reltrap, &relbounds,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe/nxbe_filltrapezoid.c:316:          nxbe_filltrapezoid_pwfb(wnd, &remaining, &devtrap, color);
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_moverectangle_2bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_filltrapezoid_16bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_setpixel_2bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_setpixel_4bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_copyrectangle_1bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_setpixel_32bpp.o: binary file matches
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_filltrapezoid_4bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_filltrapezoid_4bpp.c:2431:void pwfb_filltrapezoid_4bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_getrectangle_1bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_getrectangle_1bpp.c:2431:static inline void pwfb_lowresmemcpy( uint8_t *dline,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_getrectangle_1bpp.c:2464:void pwfb_getrectangle_1bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_getrectangle_1bpp.c:2488:      pwfb_lowresmemcpy(dline, sline, width, leadmask, tailmask);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_fillrectangle_2bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_fillrectangle_2bpp.c:2431:void pwfb_fillrectangle_2bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:53: * Name: nxgl_setpixel_*bpp / pwfb_setpixel_*bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:84:void pwfb_setpixel_1bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:86:void pwfb_setpixel_2bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:88:void pwfb_setpixel_4bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:90:void pwfb_setpixel_8bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:92:void pwfb_setpixel_16bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:94:void pwfb_setpixel_24bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:96:void pwfb_setpixel_32bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:101: * Name: nxgl_fillrectangle_*bpp / pwfb_fillrectangle_*bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:135:void pwfb_fillrectangle_1bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:138:void pwfb_fillrectangle_2bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:141:void pwfb_fillrectangle_4bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:144:void pwfb_fillrectangle_8bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:147:void pwfb_fillrectangle_16bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:150:void pwfb_fillrectangle_24bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:153:void pwfb_fillrectangle_32bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:159: * Name: nxgl_getrectangle_*bpp / pwfb_getrectangle_*bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:194:void pwfb_getrectangle_1bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:197:void pwfb_getrectangle_2bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:200:void pwfb_getrectangle_4bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:203:void pwfb_getrectangle_8bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:206:void pwfb_getrectangle_16bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:209:void pwfb_getrectangle_24bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:212:void pwfb_getrectangle_32bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:218: * Name: nxglib_filltrapezoid_*bpp / pwfb_filltrapezoid_*bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:261:void pwfb_filltrapezoid_1bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:265:void pwfb_filltrapezoid_2bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:269:void pwfb_filltrapezoid_4bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:273:void pwfb_filltrapezoid_8bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:277:void pwfb_filltrapezoid_16bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:281:void pwfb_filltrapezoid_24bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:285:void pwfb_filltrapezoid_32bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:292: * Name: nxgl_moverectangle_*bpp / pwfb_moverectangle_*bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:329:void pwfb_moverectangle_1bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:332:void pwfb_moverectangle_2bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:335:void pwfb_moverectangle_4bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:338:void pwfb_moverectangle_8bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:341:void pwfb_moverectangle_16bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:344:void pwfb_moverectangle_24bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:347:void pwfb_moverectangle_32bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:353: * Name: nxgl_copyrectangle_*bpp / pwfb_copyrectangle_*bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:402:void pwfb_copyrectangle_1bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:407:void pwfb_copyrectangle_2bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:412:void pwfb_copyrectangle_4bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:417:void pwfb_copyrectangle_8bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:422:void pwfb_copyrectangle_16bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:427:void pwfb_copyrectangle_24bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/nxglib.h:432:void pwfb_copyrectangle_32bpp(FAR struct nxbe_window_s *bwnd,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_fillrectangle_24bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_fillrectangle_24bpp.c:2431:void pwfb_fillrectangle_24bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_getrectangle_2bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_getrectangle_2bpp.c:2431:static inline void pwfb_lowresmemcpy( uint8_t *dline,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_getrectangle_2bpp.c:2464:void pwfb_getrectangle_2bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_getrectangle_2bpp.c:2488:      pwfb_lowresmemcpy(dline, sline, width, leadmask, tailmask);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_getrectangle_16bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_getrectangle_16bpp.c:2431:void pwfb_getrectangle_16bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_fillrectangle_8bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_fillrectangle_8bpp.c:2431:void pwfb_fillrectangle_8bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_moverectangle_32bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_moverectangle_32bpp.c:2431:void pwfb_moverectangle_32bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_copyrectangle_16bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_copyrectangle_16bpp.c:2431:void pwfb_copyrectangle_16bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_copyrectangle_2bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_copyrectangle_2bpp.c:2431:void pwfb_copyrectangle_2bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_setpixel_24bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_setpixel_24bpp.c:2431:void pwfb_setpixel_24bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_getrectangle_8bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_getrectangle_8bpp.c:2431:void pwfb_getrectangle_8bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_getrectangle_24bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_getrectangle_24bpp.c:2431:void pwfb_getrectangle_24bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_copyrectangle_8bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_copyrectangle_8bpp.c:2431:void pwfb_copyrectangle_8bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_copyrectangle_24bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_copyrectangle_24bpp.c:2431:void pwfb_copyrectangle_24bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_getrectangle_4bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_getrectangle_4bpp.c:2431:static inline void pwfb_lowresmemcpy( uint8_t *dline,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_getrectangle_4bpp.c:2464:void pwfb_getrectangle_4bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_getrectangle_4bpp.c:2488:      pwfb_lowresmemcpy(dline, sline, width, leadmask, tailmask);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_filltrapezoid_8bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_filltrapezoid_8bpp.c:2431:void pwfb_filltrapezoid_8bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_filltrapezoid_24bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_filltrapezoid_24bpp.c:2431:void pwfb_filltrapezoid_24bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_filltrapezoid_32bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_filltrapezoid_32bpp.c:2431:void pwfb_filltrapezoid_32bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_setpixel_4bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_setpixel_4bpp.c:2431:void pwfb_setpixel_4bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_setpixel_8bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_setpixel_8bpp.c:2431:void pwfb_setpixel_8bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/.gitignore:7:/pwfb_setpixel_*bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/.gitignore:8:/pwfb_fillrectangle_*bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/.gitignore:9:/pwfb_getrectangle_*bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/.gitignore:10:/pwfb_filltrapezoid_*bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/.gitignore:11:/pwfb_moverectangle_*bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/.gitignore:12:/pwfb_copyrectangle_*bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_fillrectangle_16bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_fillrectangle_16bpp.c:2431:void pwfb_fillrectangle_16bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_moverectangle_16bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_moverectangle_16bpp.c:2431:void pwfb_moverectangle_16bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb/pwfb_copyrectangle.c:2: * graphics/nxglib/pwfb/pwfb_copyrectangle.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb/pwfb_copyrectangle.c:41: * Name: pwfb_copyrectangle_*bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb/pwfb_copyrectangle.c:49:void NXGL_FUNCNAME(pwfb_copyrectangle, NXGLIB_SUFFIX)
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb/pwfb_fillrectangle.c:2: * graphics/nxglib/pwfb/pwfb_fillrectangle.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb/pwfb_fillrectangle.c:49: * Name: pwfb_fillrectangle_*bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb/pwfb_fillrectangle.c:56:void NXGL_FUNCNAME(pwfb_fillrectangle, NXGLIB_SUFFIX)
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb/pwfb_moverectangle.c:2: * graphics/nxglib/pwfb/pwfb_moverectangle.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb/pwfb_moverectangle.c:41: * Name: pwfb_lowresmemcpy
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb/pwfb_moverectangle.c:45:static inline void pwfb_lowresmemcpy(FAR uint8_t *dline,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb/pwfb_moverectangle.c:95: * Name: pwfb_moverectangle_*bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb/pwfb_moverectangle.c:105:void NXGL_FUNCNAME(pwfb_moverectangle, NXGLIB_SUFFIX)
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb/pwfb_moverectangle.c:185:          pwfb_lowresmemcpy(dline, sline, width, leadmask, tailmask);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb/pwfb_moverectangle.c:224:          pwfb_lowresmemcpy(dline, sline, width, leadmask, tailmask);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb/pwfb_getrectangle.c:2: * graphics/nxglib/pwfb/pwfb_getrectangle.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb/pwfb_getrectangle.c:41: * Name: pwfb_lowresmemcpy
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb/pwfb_getrectangle.c:45:static inline void pwfb_lowresmemcpy(FAR uint8_t *dline,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb/pwfb_getrectangle.c:95: * Name: pwfb_getrectangle_*bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb/pwfb_getrectangle.c:103:void NXGL_FUNCNAME(pwfb_getrectangle, NXGLIB_SUFFIX)
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb/pwfb_getrectangle.c:169:      pwfb_lowresmemcpy(dline, sline, width, leadmask, tailmask);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb/pwfb_setpixel.c:2: * graphics/nxglib/pwfb/pwfb_setpixel.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb/pwfb_setpixel.c:49: * Name: pwfb_setpixel_*bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb/pwfb_setpixel.c:58:void NXGL_FUNCNAME(pwfb_setpixel, NXGLIB_SUFFIX)
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb/pwfb_filltrapezoid.c:2: * graphics/nxglib/pwfb/pwfb_filltrapezoid.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb/pwfb_filltrapezoid.c:52: * Name: pwfb_filltrapezoid*bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb/pwfb_filltrapezoid.c:61:void NXGL_FUNCNAME(pwfb_filltrapezoid, NXGLIB_SUFFIX)
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_setpixel_1bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_setpixel_1bpp.c:2431:void pwfb_setpixel_1bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_moverectangle_24bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_moverectangle_24bpp.c:2431:void pwfb_moverectangle_24bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_copyrectangle_4bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_copyrectangle_4bpp.c:2431:void pwfb_copyrectangle_4bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_setpixel_16bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_setpixel_16bpp.c:2431:void pwfb_setpixel_16bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_filltrapezoid_2bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_filltrapezoid_2bpp.c:2431:void pwfb_filltrapezoid_2bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_moverectangle_2bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_moverectangle_2bpp.c:2431:static inline void pwfb_lowresmemcpy( uint8_t *dline,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_moverectangle_2bpp.c:2464:void pwfb_moverectangle_2bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_moverectangle_2bpp.c:2491:          pwfb_lowresmemcpy(dline, sline, width, leadmask, tailmask);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_moverectangle_2bpp.c:2505:          pwfb_lowresmemcpy(dline, sline, width, leadmask, tailmask);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_moverectangle_8bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_moverectangle_8bpp.c:2431:void pwfb_moverectangle_8bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/CMakeLists.txt:62:      configure_file(pwfb/pwfb_${op}.c pwfb_${op}${BPP_SUFFIX}.c COPYONLY)
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/CMakeLists.txt:65:        SOURCE ${CMAKE_CURRENT_BINARY_DIR}/pwfb_${op}${BPP_SUFFIX}.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/CMakeLists.txt:68:      list(APPEND SRCS ${CMAKE_CURRENT_BINARY_DIR}/pwfb_${op}${BPP_SUFFIX}.c)
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_getrectangle_32bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_getrectangle_32bpp.c:2431:void pwfb_getrectangle_32bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Make.defs:55:CSRCS += pwfb_setpixel_1bpp.c pwfb_setpixel_2bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Make.defs:56:CSRCS += pwfb_setpixel_4bpp.c pwfb_setpixel_8bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Make.defs:57:CSRCS += pwfb_setpixel_16bpp.c pwfb_setpixel_24bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Make.defs:58:CSRCS += pwfb_setpixel_32bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Make.defs:60:CSRCS += pwfb_fillrectangle_1bpp.c pwfb_fillrectangle_2bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Make.defs:61:CSRCS += pwfb_fillrectangle_4bpp.c pwfb_fillrectangle_8bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Make.defs:62:CSRCS += pwfb_fillrectangle_16bpp.c pwfb_fillrectangle_24bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Make.defs:63:CSRCS += pwfb_fillrectangle_32bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Make.defs:65:CSRCS += pwfb_getrectangle_1bpp.c pwfb_getrectangle_2bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Make.defs:66:CSRCS += pwfb_getrectangle_4bpp.c pwfb_getrectangle_8bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Make.defs:67:CSRCS += pwfb_getrectangle_16bpp.c pwfb_getrectangle_24bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Make.defs:68:CSRCS += pwfb_getrectangle_32bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Make.defs:70:CSRCS += pwfb_filltrapezoid_1bpp.c pwfb_filltrapezoid_2bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Make.defs:71:CSRCS += pwfb_filltrapezoid_4bpp.c pwfb_filltrapezoid_8bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Make.defs:72:CSRCS += pwfb_filltrapezoid_16bpp.c pwfb_filltrapezoid_24bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Make.defs:73:CSRCS += pwfb_filltrapezoid_32bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Make.defs:75:CSRCS += pwfb_moverectangle_1bpp.c pwfb_moverectangle_2bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Make.defs:76:CSRCS += pwfb_moverectangle_4bpp.c pwfb_moverectangle_8bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Make.defs:77:CSRCS += pwfb_moverectangle_16bpp.c pwfb_moverectangle_24bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Make.defs:78:CSRCS += pwfb_moverectangle_32bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Make.defs:80:CSRCS += pwfb_copyrectangle_1bpp.c pwfb_copyrectangle_2bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Make.defs:81:CSRCS += pwfb_copyrectangle_4bpp.c pwfb_copyrectangle_8bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Make.defs:82:CSRCS += pwfb_copyrectangle_16bpp.c pwfb_copyrectangle_24bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Make.defs:83:CSRCS += pwfb_copyrectangle_32bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_moverectangle_1bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_moverectangle_1bpp.c:2431:static inline void pwfb_lowresmemcpy( uint8_t *dline,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_moverectangle_1bpp.c:2464:void pwfb_moverectangle_1bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_moverectangle_1bpp.c:2491:          pwfb_lowresmemcpy(dline, sline, width, leadmask, tailmask);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_moverectangle_1bpp.c:2505:          pwfb_lowresmemcpy(dline, sline, width, leadmask, tailmask);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_fillrectangle_4bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_fillrectangle_4bpp.c:2431:void pwfb_fillrectangle_4bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_filltrapezoid_1bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_filltrapezoid_1bpp.c:2431:void pwfb_filltrapezoid_1bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_setpixel_32bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_setpixel_32bpp.c:2431:void pwfb_setpixel_32bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_fillrectangle_32bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_fillrectangle_32bpp.c:2431:void pwfb_fillrectangle_32bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:2:# graphics/nxglib/Makefile.pwfb
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:29:SETP_CSRC      := pwfb_setpixel_1bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:30:RFILL_CSRC     := pwfb_fillrectangle_1bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:31:RGET_CSRC      := pwfb_getrectangle_1bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:32:TFILL_CSRC     := pwfb_filltrapezoid_1bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:33:RMOVE_CSRC     := pwfb_moverectangle_1bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:34:RCOPY_CSRC     := pwfb_copyrectangle_1bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:38:SETP_CSRC      := pwfb_setpixel_2bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:39:RFILL_CSRC     := pwfb_fillrectangle_2bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:40:RGET_CSRC      := pwfb_getrectangle_2bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:41:TFILL_CSRC     := pwfb_filltrapezoid_2bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:42:RMOVE_CSRC     := pwfb_moverectangle_2bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:43:RCOPY_CSRC     := pwfb_copyrectangle_2bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:47:SETP_CSRC      := pwfb_setpixel_4bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:48:RFILL_CSRC     := pwfb_fillrectangle_4bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:49:RGET_CSRC      := pwfb_getrectangle_4bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:50:TFILL_CSRC     := pwfb_filltrapezoid_4bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:51:RMOVE_CSRC     := pwfb_moverectangle_4bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:52:RCOPY_CSRC     := pwfb_copyrectangle_4bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:56:SETP_CSRC      := pwfb_setpixel_8bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:57:RFILL_CSRC     := pwfb_fillrectangle_8bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:58:RGET_CSRC      := pwfb_getrectangle_8bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:59:TFILL_CSRC     := pwfb_filltrapezoid_8bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:60:RMOVE_CSRC     := pwfb_moverectangle_8bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:61:RCOPY_CSRC     := pwfb_copyrectangle_8bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:65:SETP_CSRC      := pwfb_setpixel_16bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:66:RFILL_CSRC     := pwfb_fillrectangle_16bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:67:RGET_CSRC      := pwfb_getrectangle_16bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:68:TFILL_CSRC     := pwfb_filltrapezoid_16bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:69:RMOVE_CSRC     := pwfb_moverectangle_16bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:70:RCOPY_CSRC     := pwfb_copyrectangle_16bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:74:SETP_CSRC      := pwfb_setpixel_24bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:75:RFILL_CSRC     := pwfb_fillrectangle_24bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:76:RGET_CSRC      := pwfb_getrectangle_24bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:77:TFILL_CSRC     := pwfb_filltrapezoid_24bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:78:RMOVE_CSRC     := pwfb_moverectangle_24bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:79:RCOPY_CSRC     := pwfb_copyrectangle_24bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:83:SETP_CSRC      := pwfb_setpixel_32bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:84:RFILL_CSRC     := pwfb_fillrectangle_32bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:85:RGET_CSRC      := pwfb_getrectangle_32bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:86:TFILL_CSRC     := pwfb_filltrapezoid_32bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:87:RMOVE_CSRC     := pwfb_moverectangle_32bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:88:RCOPY_CSRC     := pwfb_copyrectangle_32bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:103:BLITDIR               = pwfb
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:108:$(SETP_CSRC) : $(BLITDIR)/pwfb_setpixel.c nxglib_bitblit.h
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:110:      $(call PREPROCESS, $(BLITDIR)/pwfb_setpixel.c, $(SETP_TMP))
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:115:$(RFILL_CSRC) : $(BLITDIR)/pwfb_fillrectangle.c nxglib_bitblit.h
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:117:      $(call PREPROCESS, $(BLITDIR)/pwfb_fillrectangle.c, $(RFILL_TMP))
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:122:$(RGET_CSRC) : $(BLITDIR)/pwfb_getrectangle.c nxglib_bitblit.h
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:124:      $(call PREPROCESS, $(BLITDIR)/pwfb_getrectangle.c, $(RGET_TMP))
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:129:$(TFILL_CSRC) : $(BLITDIR)/pwfb_filltrapezoid.c nxglib_bitblit.h
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:131:      $(call PREPROCESS, $(BLITDIR)/pwfb_filltrapezoid.c, $(TFILL_TMP))
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:136:$(RMOVE_CSRC) : $(BLITDIR)/pwfb_moverectangle.c nxglib_bitblit.h
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:138:      $(call PREPROCESS, $(BLITDIR)/pwfb_moverectangle.c, $(RMOVE_TMP))
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:143:$(RCOPY_CSRC) : $(BLITDIR)/pwfb_copyrectangle.c nxglib_bitblit.h
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:145:      $(call PREPROCESS, $(BLITDIR)/pwfb_copyrectangle.c, $(RCOPY_TMP))
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:151:      $(call DELFILE, pwfb_setpixel_*bpp.c)
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:152:      $(call DELFILE, pwfb_fillrectangle_*bpp.c)
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:153:      $(call DELFILE, pwfb_getrectangle_*bpp.c)
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:154:      $(call DELFILE, pwfb_filltrapezoid_*bpp.c)
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:155:      $(call DELFILE, pwfb_moverectangle_*bpp.c)
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/Makefile.pwfb:156:      $(call DELFILE, pwfb_copyrectangle_*bpp.c)
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_setpixel_2bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_setpixel_2bpp.c:2431:void pwfb_setpixel_2bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_moverectangle_4bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_moverectangle_4bpp.c:2431:static inline void pwfb_lowresmemcpy( uint8_t *dline,
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_moverectangle_4bpp.c:2464:void pwfb_moverectangle_4bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_moverectangle_4bpp.c:2491:          pwfb_lowresmemcpy(dline, sline, width, leadmask, tailmask);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_moverectangle_4bpp.c:2505:          pwfb_lowresmemcpy(dline, sline, width, leadmask, tailmask);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_filltrapezoid_16bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_filltrapezoid_16bpp.c:2431:void pwfb_filltrapezoid_16bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_copyrectangle_1bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_copyrectangle_1bpp.c:2431:void pwfb_copyrectangle_1bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_copyrectangle_32bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_copyrectangle_32bpp.c:2431:void pwfb_copyrectangle_32bpp
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_fillrectangle_1bpp.c:2371:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/nxglib/pwfb_fillrectangle_1bpp.c:2431:void pwfb_fillrectangle_1bpp
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_moverectangle_1bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_moverectangle_4bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_setpixel_8bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_fillrectangle_24bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_fillrectangle_1bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_copyrectangle_16bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_getrectangle_4bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_copyrectangle_8bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_moverectangle_8bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_filltrapezoid_24bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_filltrapezoid_1bpp.o: binary file matches
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Makefile:48:   $(Q) $(MAKE) -C nxglib -f Makefile.pwfb NXGLIB_BITSPERPIXEL=1 EXTRAFLAGS="$(EXTRAFLAGS)"
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Makefile:54:   $(Q) $(MAKE) -C nxglib -f Makefile.pwfb NXGLIB_BITSPERPIXEL=2 EXTRAFLAGS="$(EXTRAFLAGS)"
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Makefile:60:   $(Q) $(MAKE) -C nxglib -f Makefile.pwfb NXGLIB_BITSPERPIXEL=4 EXTRAFLAGS="$(EXTRAFLAGS)"
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Makefile:66:   $(Q) $(MAKE) -C nxglib -f Makefile.pwfb NXGLIB_BITSPERPIXEL=8 EXTRAFLAGS="$(EXTRAFLAGS)"
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Makefile:75:   $(Q) $(MAKE) -C nxglib -f Makefile.pwfb NXGLIB_BITSPERPIXEL=16 EXTRAFLAGS="$(EXTRAFLAGS)"
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Makefile:84:   $(Q) $(MAKE) -C nxglib -f Makefile.pwfb NXGLIB_BITSPERPIXEL=24 EXTRAFLAGS="$(EXTRAFLAGS)"
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Makefile:93:   $(Q) $(MAKE) -C nxglib -f Makefile.pwfb NXGLIB_BITSPERPIXEL=32 EXTRAFLAGS="$(EXTRAFLAGS)"
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Makefile:124:  $(Q) $(MAKE) -C nxglib -f Makefile.pwfb distclean EXTRAFLAGS="$(EXTRAFLAGS)"
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_fillrectangle_4bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_filltrapezoid_4bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_fillrectangle_32bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_filltrapezoid_2bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/nxbe_configure.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_getrectangle_1bpp.o: binary file matches
+
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:43:pwfb_setpixel_1bpp.o: nxglib/pwfb_setpixel_1bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:44:pwfb_setpixel_2bpp.o: nxglib/pwfb_setpixel_2bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:45:pwfb_setpixel_4bpp.o: nxglib/pwfb_setpixel_4bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:46:pwfb_setpixel_8bpp.o: nxglib/pwfb_setpixel_8bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:47:pwfb_setpixel_16bpp.o: nxglib/pwfb_setpixel_16bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:48:pwfb_setpixel_24bpp.o: nxglib/pwfb_setpixel_24bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:49:pwfb_setpixel_32bpp.o: nxglib/pwfb_setpixel_32bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:50:pwfb_fillrectangle_1bpp.o: nxglib/pwfb_fillrectangle_1bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:51:pwfb_fillrectangle_2bpp.o: nxglib/pwfb_fillrectangle_2bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:52:pwfb_fillrectangle_4bpp.o: nxglib/pwfb_fillrectangle_4bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:53:pwfb_fillrectangle_8bpp.o: nxglib/pwfb_fillrectangle_8bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:54:pwfb_fillrectangle_16bpp.o: nxglib/pwfb_fillrectangle_16bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:55:pwfb_fillrectangle_24bpp.o: nxglib/pwfb_fillrectangle_24bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:56:pwfb_fillrectangle_32bpp.o: nxglib/pwfb_fillrectangle_32bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:57:pwfb_getrectangle_1bpp.o: nxglib/pwfb_getrectangle_1bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:58:pwfb_getrectangle_2bpp.o: nxglib/pwfb_getrectangle_2bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:59:pwfb_getrectangle_4bpp.o: nxglib/pwfb_getrectangle_4bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:60:pwfb_getrectangle_8bpp.o: nxglib/pwfb_getrectangle_8bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:61:pwfb_getrectangle_16bpp.o: nxglib/pwfb_getrectangle_16bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:62:pwfb_getrectangle_24bpp.o: nxglib/pwfb_getrectangle_24bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:63:pwfb_getrectangle_32bpp.o: nxglib/pwfb_getrectangle_32bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:64:pwfb_filltrapezoid_1bpp.o: nxglib/pwfb_filltrapezoid_1bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:65:pwfb_filltrapezoid_2bpp.o: nxglib/pwfb_filltrapezoid_2bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:66:pwfb_filltrapezoid_4bpp.o: nxglib/pwfb_filltrapezoid_4bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:67:pwfb_filltrapezoid_8bpp.o: nxglib/pwfb_filltrapezoid_8bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:68:pwfb_filltrapezoid_16bpp.o: nxglib/pwfb_filltrapezoid_16bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:69:pwfb_filltrapezoid_24bpp.o: nxglib/pwfb_filltrapezoid_24bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:70:pwfb_filltrapezoid_32bpp.o: nxglib/pwfb_filltrapezoid_32bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:71:pwfb_moverectangle_1bpp.o: nxglib/pwfb_moverectangle_1bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:72:pwfb_moverectangle_2bpp.o: nxglib/pwfb_moverectangle_2bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:73:pwfb_moverectangle_4bpp.o: nxglib/pwfb_moverectangle_4bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:74:pwfb_moverectangle_8bpp.o: nxglib/pwfb_moverectangle_8bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:75:pwfb_moverectangle_16bpp.o: nxglib/pwfb_moverectangle_16bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:76:pwfb_moverectangle_24bpp.o: nxglib/pwfb_moverectangle_24bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:77:pwfb_moverectangle_32bpp.o: nxglib/pwfb_moverectangle_32bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:78:pwfb_copyrectangle_1bpp.o: nxglib/pwfb_copyrectangle_1bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:79:pwfb_copyrectangle_2bpp.o: nxglib/pwfb_copyrectangle_2bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:80:pwfb_copyrectangle_4bpp.o: nxglib/pwfb_copyrectangle_4bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:81:pwfb_copyrectangle_8bpp.o: nxglib/pwfb_copyrectangle_8bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:82:pwfb_copyrectangle_16bpp.o: nxglib/pwfb_copyrectangle_16bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:83:pwfb_copyrectangle_24bpp.o: nxglib/pwfb_copyrectangle_24bpp.c
+/home/bg9211014/lpc1788_workspace/nuttx/graphics/Make.dep:84:pwfb_copyrectangle_32bpp.o: nxglib/pwfb_copyrectangle_32bpp.c
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_copyrectangle_2bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_moverectangle_16bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_moverectangle_32bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_fillrectangle_8bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_copyrectangle_24bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_copyrectangle_4bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_copyrectangle_32bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_setpixel_1bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_getrectangle_32bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/libgraphics.a: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_setpixel_24bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_getrectangle_8bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_getrectangle_24bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_filltrapezoid_8bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_getrectangle_16bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_filltrapezoid_32bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_getrectangle_2bpp.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/graphics/pwfb_fillrectangle_2bpp.o: binary file matches
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_block.c:2: * libs/libnx/nxtk/nxtk_block.c
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_block.c:38: * Name: nxtk_block
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_block.c:44: *   The 'blocked' callback is the response from nx_block (or nxtk_block).
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_block.c:66:int nxtk_block(NXTKWINDOW hfwnd, FAR void *arg)
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/nxtk_block.c:68:  return nx_block((NXWINDOW)hfwnd, arg);
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/CMakeLists.txt:27:      nxtk_block.c
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxtk/Make.defs:27:CSRCS += nxtk_setsubwindows.c nxtk_events.c nxtk_block.c nxtk_synch.c
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxmu/nxmu_sendwindow.c:74:  if (!NXBE_ISBLOCKED(wnd))
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxmu/CMakeLists.txt:34:      nx_block.c
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxmu/nx_block.c:2: * libs/libnx/nxmu/nx_block.c
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxmu/nx_block.c:41: * Name: nx_block
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxmu/nx_block.c:47: *   The 'blocked' callback is the response from nx_block (or nxtk_block).
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxmu/nx_block.c:69:int nx_block(NXWINDOW hwnd, FAR void *arg)
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxmu/nx_block.c:85:  if (!NXBE_ISBLOCKED(wnd))
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxmu/Make.defs:30:CSRCS += nx_eventhandler.c nx_eventnotify.c nx_block.c
+grep: /home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/bin/nx_block.o: binary file matches
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/bin/Make.dep:2164:bin/nx_block.o: nxmu/nx_block.c \
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/bin/Make.dep:4232:bin/nxtk_block.o: nxtk/nxtk_block.c \
+grep: /home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/bin/nxtk_block.o: binary file matches
+grep: /home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/libnx.a: binary file matches
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxfonts/nxfonts_bitmaps_mono5x8.c:2365:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxfonts/nxfonts_bitmaps_sans23x27.c:2365:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxfonts/nxfonts_convert_16bpp.c:2361:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxfonts/nxfonts_convert_1bpp.c:2361:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxfonts/nxfonts_convert_24bpp.c:2361:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxfonts/nxfonts_convert_4bpp.c:2361:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxfonts/nxfonts_convert_8bpp.c:2361:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxfonts/nxfonts_convert_32bpp.c:2361:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/nuttx/libs/libnx/nxfonts/nxfonts_convert_2bpp.c:2361:int nx_block(NXWINDOW hwnd, void *arg);
+/home/bg9211014/lpc1788_workspace/apps/graphics/nxwm/src/cfullscreenwindow.cxx:144:  nx_block(control->getWindowHandle(), (FAR void *)app);
+/home/bg9211014/lpc1788_workspace/apps/graphics/nxwm/src/cwindowmessenger.cxx:155: * @param arg - User provided argument (see nx_block or nxtk_block)
+/home/bg9211014/lpc1788_workspace/apps/graphics/nxwm/src/capplicationwindow.cxx:422:  nxtk_block(control->getWindowHandle(), (FAR void *)app);
+=== 6. nxsem_init / nxsem_post / nxsem_wait (header + core) ===
+=== 7. CStartWindow & CTouchscreen diffs ===
+
+diff --git a/graphics/nxwidgets/src/cnxwidget.cxx b/graphics/nxwidgets/src/cnxwidget.cxx
+index e6b93863c..d46e7c672 100644
+--- a/graphics/nxwidgets/src/cnxwidget.cxx
++++ b/graphics/nxwidgets/src/cnxwidget.cxx
+@@ -62,6 +62,7 @@
+
+ #include <cstdint>
+ #include <cstdbool>
++#include <stdio.h>
+
+ #include "graphics/nxwidgets/cnxwidget.hxx"
+ #include "graphics/nxwidgets/cgraphicsport.hxx"
+@@ -471,6 +472,13 @@ void CNxWidget::redraw(void)
+ {
+   if (isDrawingEnabled())
+     {
++      bool traceClick = m_flags.clicked;
++      if (traceClick)
++        {
++          printf("NXDBG redraw begin widget=%p rect=(%d,%d %dx%d)\n", this,
++                 getX(), getY(), getWidth(), getHeight());
++        }
++
+       // Get the graphics port needed to draw on this window
+
+       CGraphicsPort *port = m_widgetControl->getGraphicsPort();
+@@ -478,7 +486,15 @@ void CNxWidget::redraw(void)
+       // Draw the Widget
+
+       drawBorder(port);
++      if (traceClick)
++        {
++          printf("NXDBG redraw border done widget=%p\n", this);
++        }
+       drawContents(port);
++      if (traceClick)
++        {
++          printf("NXDBG redraw contents done widget=%p\n", this);
++        }
+
+       // Remember that the widget is no longer erased
+
+@@ -487,6 +503,10 @@ void CNxWidget::redraw(void)
+       // Draw the children of the widget
+
+       drawChildren();
++      if (traceClick)
++        {
++          printf("NXDBG redraw end widget=%p\n", this);
++        }
+     }
+ }
+
+@@ -616,11 +636,18 @@ bool CNxWidget::hide(void)
+
+ bool CNxWidget::click(nxgl_coord_t x, nxgl_coord_t y)
+ {
++  printf("NXDBG click enter widget=%p at=(%d,%d) enabled=%d hidden=%d\n",
++         this, x, y, isEnabled(), isHidden());
++
+   if (!isEnabled() || !checkCollision(x, y))
+     {
++      printf("NXDBG click reject widget=%p\n", this);
+       return false;
+     }
+
++  printf("NXDBG click hit widget=%p rect=(%d,%d %dx%d)\n", this,
++         getX(), getY(), getWidth(), getHeight());
++
+   // Check for a double-click
+
+   if (isDoubleClick(x, y))
+@@ -632,8 +659,12 @@ bool CNxWidget::click(nxgl_coord_t x, nxgl_coord_t y)
+
+   for (int i = m_children.size() - 1; i > -1; i--)
+     {
++      printf("NXDBG child click parent=%p index=%d child=%p\n", this, i,
++             m_children[i]);
+       if (m_children[i]->click(x, y))
+         {
++          printf("NXDBG child handled parent=%p child=%p\n", this,
++                 m_children[i]);
+           return true;
+         }
+     }
+@@ -650,16 +681,21 @@ bool CNxWidget::click(nxgl_coord_t x, nxgl_coord_t y)
+
+   // Take focus away from child widgets
+
++  printf("NXDBG click clear focus widget=%p\n", this);
+   setFocusedWidget(NULL);
+
+   // Tell controlling widget that the clicked widget has changed
+
++  printf("NXDBG click set clicked widget=%p\n", this);
+   m_widgetControl->setClickedWidget(this);
+
+   // Run any code in the inherited class
+
++  printf("NXDBG click onClick begin widget=%p\n", this);
+   onClick(x, y);
++  printf("NXDBG click onClick end widget=%p\n", this);
+   m_widgetEventHandlers->raiseClickEvent(x, y);
++  printf("NXDBG click complete widget=%p\n", this);
+   return true;
+ }
+
+diff --git a/graphics/nxwm/src/cstartwindow.cxx b/graphics/nxwm/src/cstartwindow.cxx
+index 8ee409e27..281e913a3 100644
+--- a/graphics/nxwm/src/cstartwindow.cxx
++++ b/graphics/nxwm/src/cstartwindow.cxx
+@@ -28,6 +28,7 @@
+
+ #include <cstdlib>
+ #include <cerrno>
++#include <stdio.h>
+
+ #include <fcntl.h>
+ #include <sched.h>
+@@ -43,6 +44,8 @@
+  * Pre-Processor Definitions
+  ********************************************************************************************/
+
++#define STARTWINDOW_MIN_SPACING 12
++
+ /********************************************************************************************
+  * Global Data
+  ********************************************************************************************/
+@@ -237,8 +240,21 @@ void CStartWindow::redraw(void)
+   // Begin adding icons in the upper left corner
+
+   struct nxgl_point_s iconPos;
+-  iconPos.x = CONFIG_NXWM_STARTWINDOW_HSPACING;
+-  iconPos.y = CONFIG_NXWM_STARTWINDOW_VSPACING;
++  nxgl_coord_t horizontalSpacing = CONFIG_NXWM_STARTWINDOW_HSPACING;
++  nxgl_coord_t verticalSpacing = CONFIG_NXWM_STARTWINDOW_VSPACING;
++
++  if (horizontalSpacing < STARTWINDOW_MIN_SPACING)
++    {
++      horizontalSpacing = STARTWINDOW_MIN_SPACING;
++    }
++
++  if (verticalSpacing < STARTWINDOW_MIN_SPACING)
++    {
++      verticalSpacing = STARTWINDOW_MIN_SPACING;
++    }
++
++  iconPos.x = horizontalSpacing;
++  iconPos.y = verticalSpacing;
+
+   // Add each icon in the list of applications
+
+@@ -286,19 +302,19 @@ void CStartWindow::redraw(void)
+
+       // Advance the next icon position to the left
+
+-      iconPos.x +=  m_iconSize.w + CONFIG_NXWM_TASKBAR_HSPACING;
++      iconPos.x +=  m_iconSize.w + horizontalSpacing;
+
+       // If there is insufficient space on on this row for the next
+       // max-sized icon, then advance to the next row
+
+       if (iconPos.x + m_iconSize.w >= windowSize.w)
+         {
+-          iconPos.x  = CONFIG_NXWM_STARTWINDOW_HSPACING;
+-          iconPos.y += m_iconSize.h + CONFIG_NXWM_TASKBAR_VSPACING;
++          iconPos.x  = horizontalSpacing;
++          iconPos.y += m_iconSize.h + verticalSpacing;
+
+           // Don't try drawing past the bottom of the window
+
+-          if (iconPos.y >= windowSize.w)
++          if (iconPos.y + m_iconSize.h > windowSize.h)
+             {
+               break;
+             }
+@@ -420,7 +436,7 @@ void CStartWindow::getIconBounds(void)
+
+       // Keep the maximum height and width
+
+-      if (rect.getWidth() > maxSize.h)
++      if (rect.getWidth() > maxSize.w)
+         {
+           maxSize.w = rect.getWidth() ;
+         }
+@@ -472,6 +488,8 @@ void CStartWindow::removeAllApplications(void)
+
+ void CStartWindow::handleActionEvent(const NXWidgets::CWidgetEventArgs &e)
+ {
++  printf("StartWindow: action event slots=%d\n", m_slots.size());
++
+   // Was an ICON clicked?
+
+   for (int i = 0; i < m_slots.size(); i++)
+@@ -481,14 +499,21 @@ void CStartWindow::handleActionEvent(const NXWidgets::CWidgetEventArgs &e)
+       NXWidgets::CImage *image = m_slots.at(i).image;
+       if (image->isClicked())
+         {
++          printf("StartWindow: icon %d clicked\n", i);
++
+           // Create a new copy of the application
+
+           IApplication *app = m_slots.at(i).app->create();
++          printf("StartWindow: icon %d create=%s app=%p\n", i,
++                 app ? "ok" : "failed", (void *)app);
+           if (app)
+             {
+               // Start the new copy of the application
+
+-              if (m_taskbar->startApplication(app, false))
++              bool started = m_taskbar->startApplication(app, false);
++              printf("StartWindow: icon %d start=%s app=%p\n", i,
++                     started ? "ok" : "failed", (void *)app);
++              if (started)
+                 {
+                   // Then break out of the loop
+
+diff --git a/graphics/nxwm/src/ctouchscreen.cxx b/graphics/nxwm/src/ctouchscreen.cxx
+index b7807c710..01cf7a0df 100644
+--- a/graphics/nxwm/src/ctouchscreen.cxx
++++ b/graphics/nxwm/src/ctouchscreen.cxx
+@@ -28,6 +28,7 @@
+
+ #include <cinttypes>
+ #include <cerrno>
++#include <stdio.h>
+
+ #include <sys/prctl.h>
+ #include <fcntl.h>
+@@ -78,6 +79,9 @@ CTouchscreen::CTouchscreen(NXWidgets::CNxServer *server, struct nxgl_size_s *win
+   // Use the default touch data buffer
+
+   m_touch       = &m_sample;
++  m_lastX       = 0;
++  m_lastY       = 0;
++  m_haveLastPosition = false;
+
+   // Initialize the m_waitSem semaphore so that any waits for data will block
+
+@@ -180,6 +184,25 @@ void CTouchscreen::setCalibrationData(const struct SCalibrationData &caldata)
+
+   m_calibData = caldata;
+
++#ifdef CONFIG_NXWM_CALIBRATION_ANISOTROPIC
++  printf("Touch calibration: size=%dx%d left=(%d,%d) right=(%d,%d) top=(%d,%d) bottom=(%d,%d) targets=(%d,%d,%d,%d) coeff-scale=1000\n",
++         m_windowSize.w, m_windowSize.h,
++         (int)(caldata.left.slope * 1000.0f),
++         (int)(caldata.left.offset * 1000.0f),
++         (int)(caldata.right.slope * 1000.0f),
++         (int)(caldata.right.offset * 1000.0f),
++         (int)(caldata.top.slope * 1000.0f),
++         (int)(caldata.top.offset * 1000.0f),
++         (int)(caldata.bottom.slope * 1000.0f),
++         (int)(caldata.bottom.offset * 1000.0f),
++         caldata.leftX, caldata.rightX, caldata.topY, caldata.bottomY);
++#else
++  printf("Touch calibration: size=%dx%d x=(%d,%d) y=(%d,%d) fixed-point\n",
++         m_windowSize.w, m_windowSize.h,
++         (int)caldata.xSlope, (int)caldata.xOffset,
++         (int)caldata.ySlope, (int)caldata.yOffset);
++#endif
++
+   // Note that we have calibration data.  Data will now be scaled and forwarded
+   // to NX (unless we are still in capture mode)
+
+@@ -188,7 +211,27 @@ void CTouchscreen::setCalibrationData(const struct SCalibrationData &caldata)
+   // Wake up the listener thread so that it will use our buffer
+   // to receive data
+
+-  pthread_kill(m_thread, CONFIG_NXWM_TOUCHSCREEN_SIGNO);
++  wakeListener();
++}
++
++void CTouchscreen::setEnabled(bool enable)
++{
++  m_enabled = enable;
++  printf("Touch forwarding: enabled=%d calibrated=%d capture=%d\n",
++         enable, m_calibrated, m_capture);
++  wakeListener();
++}
++
++void CTouchscreen::wakeListener(void)
++{
++  if (m_state == LISTENER_RUNNING)
++    {
++      int ret = pthread_kill(m_thread, CONFIG_NXWM_TOUCHSCREEN_SIGNO);
++      if (ret != 0)
++        {
++          gerr("ERROR: Failed to wake touchscreen listener: %d\n", ret);
++        }
++    }
+ }
+
+ /**
+@@ -356,7 +399,7 @@ FAR void *CTouchscreen::listener(FAR void *arg)
+
+ void CTouchscreen::handleMouseInput(struct touch_sample_s *sample)
+ {
+-  _info("Touch id: %d flags: %02x x: %d y: %d h: %d w: %d pressure: %d\n",
++  _info("Touch id: %d flags: %02x x: %d y: %d h: %d w: %d Rtouch: %d ohms\n",
+        sample->point[0].id, sample->point[0].flags, sample->point[0].x,
+        sample->point[0].y,  sample->point[0].h,     sample->point[0].w,
+        sample->point[0].pressure);
+@@ -383,6 +426,7 @@ void CTouchscreen::handleMouseInput(struct touch_sample_s *sample)
+
+       m_touch   = &m_sample;
+       m_capture = false;
++      m_haveLastPosition = false;
+       sem_post(&m_waitSem);
+       return;
+     }
+@@ -430,12 +474,7 @@ void CTouchscreen::handleMouseInput(struct touch_sample_s *sample)
+   nxgl_coord_t x;
+   nxgl_coord_t y;
+
+-  if ((sample->point[0].flags & TOUCH_POS_VALID) == 0)
+-    {
+-       x = 0;
+-       y = 0;
+-    }
+-  else
++  if ((sample->point[0].flags & TOUCH_POS_VALID) != 0)
+     {
+ #ifdef CONFIG_NXWM_CALIBRATION_ANISOTROPIC
+       // We have valid coordinates.  Get the raw touch
+@@ -493,8 +532,31 @@ void CTouchscreen::handleMouseInput(struct touch_sample_s *sample)
+       float scaledX = rawX * xLine.slope + xLine.offset;
+       float scaledY = rawY * yLine.slope + yLine.offset;
+
+-      x = (nxgl_coord_t)scaledX;
+-      y = (nxgl_coord_t)scaledY;
++      if (scaledX < 0.0f)
++        {
++          x = 0;
++        }
++      else if (scaledX >= (float)m_windowSize.w)
++        {
++          x = m_windowSize.w - 1;
++        }
++      else
++        {
++          x = (nxgl_coord_t)scaledX;
++        }
++
++      if (scaledY < 0.0f)
++        {
++          y = 0;
++        }
++      else if (scaledY >= (float)m_windowSize.h)
++        {
++          y = m_windowSize.h - 1;
++        }
++      else
++        {
++          y = (nxgl_coord_t)scaledY;
++        }
+
+       _info("raw: (%6.2f, %6.2f) scaled: (%6.2f, %6.2f) (%d, %d)\n",
+            rawX, rawY, scaledX, scaledY, x, y);
+@@ -547,10 +609,47 @@ void CTouchscreen::handleMouseInput(struct touch_sample_s *sample)
+       _info("raw: (%" PRId32 ", %" PRId32 ") scaled: (%d, %d)\n",
+             rawX, rawY, x, y);
+ #endif
++
++      m_lastX = x;
++      m_lastY = y;
++      m_haveLastPosition = true;
++    }
++  else if ((sample->point[0].flags & TOUCH_UP) != 0 &&
++           m_haveLastPosition)
++    {
++      // Some controllers do not include coordinates in the release sample.
++      // Release at the last valid position so widgets can complete the click.
++
++      x = m_lastX;
++      y = m_lastY;
++    }
++  else
++    {
++      return;
+     }
+
+   // Get the server handle and "inject the mouse data
+
++  if (buttons == NX_MOUSE_LEFTBUTTON ||
++      (sample->point[0].flags & TOUCH_UP) != 0)
++    {
++      printf("Touch map: flags=%02x raw=(%d,%d) pressure=%d pvalid=%d screen=(%d,%d) buttons=%u\n",
++             sample->point[0].flags, sample->point[0].x,
++             sample->point[0].y, (int)sample->point[0].pressure,
++             (sample->point[0].flags & TOUCH_PRESSURE_VALID) != 0,
++             x, y, (unsigned int)buttons);
++    }
++
+   NXHANDLE handle = m_server->getServer();
+-  nx_mousein(handle, x, y, buttons);
++  int ret = nx_mousein(handle, x, y, buttons);
++  if (buttons == NX_MOUSE_LEFTBUTTON ||
++      (sample->point[0].flags & TOUCH_UP) != 0)
++    {
++      printf("Touch NX: nx_mousein returned %d\n", ret);
++    }
++
++  if (buttons == NX_MOUSE_NOBUTTONS)
++    {
++      m_haveLastPosition = false;
++    }
+ }
+=== 8. CStartWindow launch/action code ===
+489:void CStartWindow::handleActionEvent(const NXWidgets::CWidgetEventArgs &e)
+490-{
+491-  printf("StartWindow: action event slots=%d\n", m_slots.size());
+492-
+493-  // Was an ICON clicked?
+494-
+495-  for (int i = 0; i < m_slots.size(); i++)
+496-    {
+497-      // Is this the clicked icon?
+498-
+499-      NXWidgets::CImage *image = m_slots.at(i).image;
+500-      if (image->isClicked())
+501-        {
+502-          printf("StartWindow: icon %d clicked\n", i);
+503-
+504-          // Create a new copy of the application
+505-
+506-          IApplication *app = m_slots.at(i).app->create();
+507-          printf("StartWindow: icon %d create=%s app=%p\n", i,
+508-                 app ? "ok" : "failed", (void *)app);
+509-          if (app)
+510-            {
+511-              // Start the new copy of the application
+512-
+513:              bool started = m_taskbar->startApplication(app, false);
+514-              printf("StartWindow: icon %d start=%s app=%p\n", i,
+515-                     started ? "ok" : "failed", (void *)app);
+516-              if (started)
+517-                {
+518-                  // Then break out of the loop
+519-
+520-                  break;
+521-                }
+522-              else
+523-                {
+524-                  // If we cannot start the app.  Destroy the instance we
+525-                  // created and see what happens next.  Could be interesting.
+526-
+527-                  app->stop();
+528-                  app->destroy();
+529-                }
+530-            }
+531-        }
+532-    }
+533-}
+=== 9. ea_gui defconfig vs active .config NX/SCHED diffs ===
+
+12:# CONFIG_NXFONTS_DISABLE_16BPP is not set
+13:# CONFIG_NX_DISABLE_16BPP is not set
+89:CONFIG_MM_REGIONS=3
+114:CONFIG_NX=y
+115:CONFIG_NXFONT_MONO5X8=y
+116:CONFIG_NXFONT_SANS23X27=y
+117:CONFIG_NXGLYPHS_BACKGROUNDCOLOR=0x0
+118:CONFIG_NXTERM=y
+119:CONFIG_NXTERM_NXKBDIN=y
+120:CONFIG_NXWIDGETS=y
+121:CONFIG_NXWIDGETS_BPP=16
+122:CONFIG_NXWIDGETS_SIZEOFCHAR=1
+123:CONFIG_NXWM=y
+124:CONFIG_NXWM_CALIBRATION_MARGIN=25
+125:CONFIG_NXWM_TOUCHSCREEN_LISTENERSTACK=4096
+126:CONFIG_NX_BLOCKING=y
+127:CONFIG_NX_KBD=y
+128:CONFIG_NX_RAMBACKED=y
+129:CONFIG_NX_XYINPUT_TOUCHSCREEN=y
+141:CONFIG_SCHED_HPWORK=y
+142:CONFIG_SCHED_HPWORKPRIORITY=192
+143:CONFIG_SCHED_LPWORK=y
+144:CONFIG_SCHED_LPNTHREADS=1
+145:CONFIG_SCHED_LPWORKPRIORITY=110
+146:CONFIG_SCHED_LPWORKSTACKSIZE=4096

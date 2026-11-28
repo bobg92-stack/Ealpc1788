@@ -1,0 +1,1617 @@
+┌──(bg9211014🎃kali)-[~]
+└─$ bash << 'EOF'
+WS="/home/bg9211014/lpc1788_workspace"
+
+echo "=== 1. nx_bitmap.c & nxmu_sendwindow.c ==="
+sed -n '1,180p' "$WS/nuttx/libs/libnx/nxmu/nx_bitmap.c"
+echo "--- nxmu_sendwindow.c ---"
+sed -n '1,120p' "$WS/nuttx/libs/libnx/nxmu/nxmu_sendwindow.c"
+
+echo "=== 2. nxtk_bitmapwindow.c ==="
+sed -n '1,130p' "$WS/nuttx/libs/libnx/nxtk/nxtk_bitmapwindow.c"
+
+echo "=== 3. nxmu_server.c (430-610) ==="
+sed -n '430,610p' "$WS/nuttx/graphics/nxmu/nxmu_server.c"
+
+echo "=== 4. nx_eventhandler.c (85-180) & mq_send.c ==="
+sed -n '85,180p' "$WS/nuttx/libs/libnx/nxmu/nx_eventhandler.c"
+echo "--- nxmq_send ---"
+grep -rn -A 55 "int nxmq_send(" "$WS/nuttx/sched/mqueue/"
+
+echo "=== 5. cwindowmessenger.hxx & cwindowmessenger.cxx ==="
+cat "$WS/apps/include/graphics/nxwm/cwindowmessenger.hxx"
+echo "--- cwindowmessenger.cxx ---"
+cat "$WS/apps/graphics/nxwm/src/cwindowmessenger.cxx"
+
+echo "=== 6. cimage.cxx (260-380) ==="
+sed -n '260,380p' "$WS/apps/graphics/nxwidgets/src/cimage.cxx"
+
+echo "=== 7. current apps diffs (cwidgetcontrol / nxwm_main / capplicationwindow) ==="
+git --no-pager -C "$WS/apps" status -s
+git --no-pager -C "$WS/apps" diff -- \
+  include/graphics/nxwidgets/cwidgetcontrol.hxx \
+  graphics/nxwidgets/src/cwidgetcontrol.cxx \
+  graphics/nxwm/src/nxwm_main.cxx \
+  graphics/nxwm/src/capplicationwindow.cxx
+
+echo "=== 8. active .config NX / SCHED / PTHREAD / MM ==="
+grep -nE "^(CONFIG_NX|CONFIG_SCHED_|CONFIG_PTHREAD|CONFIG_DISABLE_PTHREAD|CONFIG_MM_|CONFIG_DEBUG_)" "$WS/nuttx/.config"
+EOF
+=== 1. nx_bitmap.c & nxmu_sendwindow.c ===
+/****************************************************************************
+ * libs/libnx/nxmu/nx_bitmap.c
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ ****************************************************************************/
+
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
+#include <nuttx/config.h>
+
+#include <errno.h>
+#include <time.h>
+#include <nuttx/debug.h>
+
+#include <nuttx/semaphore.h>
+#include <nuttx/nx/nx.h>
+#include <nuttx/nx/nxbe.h>
+#include <nuttx/nx/nxmu.h>
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: nx_bitmap
+ *
+ * Description:
+ *   Copy a rectangular region of a larger image into the rectangle in the
+ *   specified window.
+ *
+ * Input Parameters:
+ *   hwnd   - The window that will receive the bitmap image
+ *   dest   - Describes the rectangular region on the display that will
+ *            receive the bit map.
+ *   src    - The start of the source image.
+ *   origin - The origin of the upper, left-most corner of the full bitmap.
+ *            Both dest and origin are in window coordinates, however, origin
+ *            may lie outside of the display.
+ *   stride - The width of the full source image in pixels.
+ *
+ * Returned Value:
+ *   OK on success; ERROR on failure with errno set appropriately
+ *
+ ****************************************************************************/
+
+int nx_bitmap(NXWINDOW hwnd, FAR const struct nxgl_rect_s *dest,
+              FAR const void *src[CONFIG_NX_NPLANES],
+              FAR const struct nxgl_point_s *origin, unsigned int stride)
+{
+  FAR struct nxbe_window_s *wnd = (FAR struct nxbe_window_s *)hwnd;
+  struct nxsvrmsg_bitmap_s outmsg;
+  int i;
+  int ret;
+  sem_t sem_done;
+
+#ifdef CONFIG_DEBUG_FEATURES
+  if (!wnd || !dest || !src || !origin)
+    {
+      set_errno(EINVAL);
+      return ERROR;
+    }
+#endif
+
+  /* Format the bitmap command */
+
+  outmsg.msgid      = NX_SVRMSG_BITMAP;
+  outmsg.wnd        = wnd;
+  outmsg.stride     = stride;
+
+  for (i = 0; i < CONFIG_NX_NPLANES; i++)
+    {
+      outmsg.src[i] = src[i];
+    }
+
+  outmsg.origin.x   = origin->x;
+  outmsg.origin.y   = origin->y;
+  nxgl_rectcopy(&outmsg.dest, dest);
+
+  /* Create a semaphore for tracking command completion */
+
+  outmsg.sem_done = &sem_done;
+
+  nxsem_init(&sem_done, 0, 0);
+
+  /* Forward the fill command to the server */
+
+  ret = nxmu_sendwindow(wnd, &outmsg, sizeof(struct nxsvrmsg_bitmap_s));
+
+  /* Wait that the command is completed, so that caller can release the
+   * buffer.  Use a timed wait so that a missing response from the NX
+   * server cannot block the caller (and the workqueue thread) forever.
+   */
+
+  if (ret == OK)
+    {
+      struct timespec abstime;
+      clock_gettime(CLOCK_REALTIME, &abstime);
+      abstime.tv_sec  += 1;  /* 1 second timeout */
+
+      ret = nxsem_timedwait(&sem_done, &abstime);
+      if (ret == -ETIMEDOUT)
+        {
+          gerr("ERROR: nx_bitmap timed out waiting for server\n");
+        }
+    }
+
+  /* Destroy the semaphore and return. */
+
+  nxsem_destroy(&sem_done);
+
+  return ret;
+}
+--- nxmu_sendwindow.c ---
+/****************************************************************************
+ * libs/libnx/nxmu/nxmu_sendwindow.c
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ ****************************************************************************/
+
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
+#include <nuttx/config.h>
+
+#include <mqueue.h>
+#include <errno.h>
+#include <nuttx/debug.h>
+
+#include <nuttx/nx/nxbe.h>
+#include <nuttx/nx/nxmu.h>
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: nxmu_sendwindow
+ *
+ * Description:
+ *  Send a message to the server destined for a specific window at
+ *  NX_SVRMSG_PRIO priority
+ *
+ * Input Parameters:
+ *   wnd    - A pointer to the back-end window structure
+ *   msg    - A pointer to the message to send
+ *   msglen - The length of the message in bytes.
+ *
+ * Returned Value:
+ *   OK on success; ERROR on failure with errno set appropriately
+ *
+ ****************************************************************************/
+
+int nxmu_sendwindow(FAR struct nxbe_window_s *wnd, FAR const void *msg,
+                    size_t msglen)
+{
+  int ret = OK;
+
+  /* Sanity checking */
+
+#ifdef CONFIG_DEBUG_FEATURES
+  if (!wnd || !wnd->conn)
+    {
+      set_errno(EINVAL);
+      return ERROR;
+    }
+#endif
+
+  /* Ignore messages destined to a blocked window (no errors reported) */
+
+  if (!NXBE_ISBLOCKED(wnd))
+    {
+      /* Send the message to the server */
+
+      ret = nxmu_sendserver(wnd->conn, msg, msglen);
+    }
+
+  return ret;
+}
+=== 2. nxtk_bitmapwindow.c ===
+/****************************************************************************
+ * libs/libnx/nxtk/nxtk_bitmapwindow.c
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ ****************************************************************************/
+
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
+#include <nuttx/config.h>
+
+#include <sys/types.h>
+#include <errno.h>
+#include <nuttx/debug.h>
+
+#include <nuttx/nx/nxtk.h>
+#include <nuttx/nx/nx.h>
+
+#include "nxtk.h"
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: nxtk_bitmapwindow
+ *
+ * Description:
+ *   Copy a rectangular region of a larger image into the rectangle in the
+ *   specified client sub-window.
+ *
+ * Input Parameters:
+ *   hfwnd    The client sub0window that will receive the bitmap image
+ *   dest   - Describes the rectangular region on in the client sub-window
+ *            will receive the bit map.
+ *   src    - The start of the source image.
+ *   origin - The origin of the upper, left-most corner of the full bitmap.
+ *            Both dest and origin are in sub-window coordinates, however,
+ *            the origin may lie outside of the sub-window display.
+ *   stride - The width of the full source image in pixels.
+ *
+ * Returned Value:
+ *   OK on success; ERROR on failure with errno set appropriately
+ *
+ ****************************************************************************/
+
+int nxtk_bitmapwindow(NXTKWINDOW hfwnd, FAR const struct nxgl_rect_s *dest,
+                      FAR const void **src,
+                      FAR const struct nxgl_point_s *origin,
+                      unsigned int stride)
+{
+  FAR struct nxtk_framedwindow_s *fwnd =
+                                 (FAR struct nxtk_framedwindow_s *)hfwnd;
+  struct nxgl_point_s wndorigin;
+  struct nxgl_rect_s clipdest;
+
+#ifdef CONFIG_DEBUG_FEATURES
+  if (!hfwnd || !dest || !src || !origin)
+    {
+      set_errno(EINVAL);
+      return ERROR;
+    }
+#endif
+
+  /* Clip the rectangle so that it lies within the sub-window bounds
+   * then move the rectangle to that it is relative to the containing
+   * window.
+   */
+
+  nxtk_subwindowclip(fwnd, &clipdest, dest, &fwnd->fwrect);
+
+  /* Just return if completely outside screen */
+
+  if (nxgl_nullrect(&clipdest))
+    {
+      return OK;
+    }
+
+  /* Now, move the bitmap origin so that it is relative to the containing
+   * window, not the sub-window.
+   *
+   * Temporarily, position the origin in absolute screen coordinates
+   */
+
+  nxgl_vectoradd(&wndorigin, origin, &fwnd->fwrect.pt1);
+
+  /* Then move the origin so that is relative to the containing window, not
+   * the client subwindow
+   */
+
+  nxgl_vectsubtract(&wndorigin, &wndorigin, &fwnd->wnd.bounds.pt1);
+
+  /* Then copy the bitmap */
+
+  nx_bitmap((NXWINDOW)hfwnd, &clipdest, src, &wndorigin, stride);
+  return OK;
+}
+=== 3. nxmu_server.c (430-610) ===
+
+          case NX_SVRMSG_GETPOSITION: /* Get the window size/position */
+            {
+              FAR struct nxsvrmsg_getposition_s *getposmsg =
+                (FAR struct nxsvrmsg_getposition_s *)buffer;
+              nxmu_reportposition(getposmsg->wnd);
+            }
+            break;
+
+          case NX_SVRMSG_RAISE: /* Move the window to the top of the display */
+            {
+              FAR struct nxsvrmsg_raise_s *raisemsg =
+                (FAR struct nxsvrmsg_raise_s *)buffer;
+              nxbe_raise(raisemsg->wnd);
+            }
+            break;
+
+          case NX_SVRMSG_LOWER: /* Lower the window to the bottom of the display */
+            {
+              FAR struct nxsvrmsg_lower_s *lowermsg =
+                (FAR struct nxsvrmsg_lower_s *)buffer;
+              nxbe_lower(lowermsg->wnd);
+            }
+            break;
+
+          case NX_SVRMSG_MODAL: /* Select/De-select window modal state */
+            {
+              FAR struct nxsvrmsg_modal_s *modalmsg =
+                (FAR struct nxsvrmsg_modal_s *)buffer;
+              nxbe_modal(modalmsg->wnd, modalmsg->modal);
+            }
+            break;
+
+          case NX_SVRMSG_SETVISIBILITY: /* Show or hide a window */
+            {
+              FAR struct nxsvrmsg_setvisibility_s *vismsg =
+               (FAR struct nxsvrmsg_setvisibility_s *)buffer;
+              nxbe_setvisibility(vismsg->wnd, vismsg->hide);
+            }
+            break;
+
+          case NX_SVRMSG_SETPIXEL: /* Set a single pixel in the window with a color */
+            {
+              FAR struct nxsvrmsg_setpixel_s *setmsg =
+                (FAR struct nxsvrmsg_setpixel_s *)buffer;
+              nxbe_setpixel(setmsg->wnd, &setmsg->pos, setmsg->color);
+            }
+            break;
+
+          case NX_SVRMSG_FILL: /* Fill a rectangular region in the window with a color */
+            {
+              FAR struct nxsvrmsg_fill_s *fillmsg =
+                (FAR struct nxsvrmsg_fill_s *)buffer;
+              nxbe_fill(fillmsg->wnd, &fillmsg->rect, fillmsg->color);
+            }
+            break;
+
+          case NX_SVRMSG_GETRECTANGLE: /* Get a rectangular region from the window */
+            {
+              FAR struct nxsvrmsg_getrectangle_s *getmsg =
+                (FAR struct nxsvrmsg_getrectangle_s *)buffer;
+              nxbe_getrectangle(getmsg->wnd, &getmsg->rect, getmsg->plane,
+                               getmsg->dest, getmsg->deststride);
+
+              if (getmsg->sem_done)
+                {
+                  nxsem_post(getmsg->sem_done);
+                }
+            }
+            break;
+
+          case NX_SVRMSG_FILLTRAP: /* Fill a trapezoidal region in the window with a color */
+            {
+              FAR struct nxsvrmsg_filltrapezoid_s *trapmsg =
+                (FAR struct nxsvrmsg_filltrapezoid_s *)buffer;
+              nxbe_filltrapezoid(trapmsg->wnd, &trapmsg->clip,
+                                 &trapmsg->trap, trapmsg->color);
+            }
+            break;
+
+          case NX_SVRMSG_MOVE: /* Move a rectangular region within the window */
+            {
+              FAR struct nxsvrmsg_move_s *movemsg =
+                (FAR struct nxsvrmsg_move_s *)buffer;
+              nxbe_move(movemsg->wnd, &movemsg->rect, &movemsg->offset);
+            }
+            break;
+
+          case NX_SVRMSG_BITMAP: /* Copy a rectangular bitmap into the window */
+            {
+              FAR struct nxsvrmsg_bitmap_s *bmpmsg =
+                (FAR struct nxsvrmsg_bitmap_s *)buffer;
+              nxbe_bitmap(bmpmsg->wnd, &bmpmsg->dest, bmpmsg->src,
+                          &bmpmsg->origin, bmpmsg->stride);
+
+              if (bmpmsg->sem_done)
+                {
+                  nxsem_post(bmpmsg->sem_done);
+                }
+            }
+            break;
+
+          case NX_SVRMSG_SETBGCOLOR: /* Set the color of the background */
+            {
+              FAR struct nxsvrmsg_setbgcolor_s *bgcolormsg =
+                (FAR struct nxsvrmsg_setbgcolor_s *)buffer;
+
+              /* Has the background color changed? */
+
+              if (!nxgl_colorcmp(nxmu.be.bgcolor, bgcolormsg->color))
+                {
+                  /* Yes.. fill the background */
+
+                  nxgl_colorcopy(nxmu.be.bgcolor, bgcolormsg->color);
+                  nxbe_fill(&nxmu.be.bkgd, &nxmu.be.bkgd.bounds,
+                            bgcolormsg->color);
+                }
+            }
+            break;
+
+#ifdef CONFIG_NX_XYINPUT
+          case NX_SVRMSG_MOUSEIN: /* New mouse report from mouse client */
+            {
+              FAR struct nxsvrmsg_mousein_s *mousemsg =
+                (FAR struct nxsvrmsg_mousein_s *)buffer;
+              nxmu_mousein(&nxmu, &mousemsg->pt, mousemsg->buttons);
+            }
+            break;
+#endif
+#ifdef CONFIG_NX_KBD
+          case NX_SVRMSG_KBDIN: /* New keyboard report from keyboard client */
+            {
+              FAR struct nxsvrmsg_kbdin_s *kbdmsg =
+                (FAR struct nxsvrmsg_kbdin_s *)buffer;
+              nxmu_kbdin(&nxmu, kbdmsg->nch, kbdmsg->ch);
+            }
+            break;
+#endif
+
+          case NX_SVRMSG_REDRAWREQ: /* Request re-drawing of rectangular region */
+            {
+              FAR struct nxsvrmsg_redrawreq_s *redrawmsg =
+                (FAR struct nxsvrmsg_redrawreq_s *)buffer;
+              nxmu_redraw(redrawmsg->wnd, &redrawmsg->rect);
+            }
+            break;
+
+          /* Messages sent to the background window *************************/
+
+          case NX_CLIMSG_REDRAW: /* Re-draw the background window */
+            {
+              FAR struct nxclimsg_redraw_s *redraw =
+                (FAR struct nxclimsg_redraw_s *)buffer;
+              DEBUGASSERT(redraw->wnd == &nxmu.be.bkgd);
+              ginfo("Re-draw background rect={(%d,%d),(%d,%d)}\n",
+                    redraw->rect.pt1.x, redraw->rect.pt1.y,
+                    redraw->rect.pt2.x, redraw->rect.pt2.y);
+              nxbe_fill(&nxmu.be.bkgd, &redraw->rect, nxmu.be.bgcolor);
+            }
+            break;
+
+          case NX_CLIMSG_MOUSEIN:      /* Ignored */
+          case NX_CLIMSG_KBDIN:
+            break;
+
+          case NX_CLIMSG_CONNECTED:    /* Shouldn't happen */
+          case NX_CLIMSG_DISCONNECTED:
+          default:
+            gerr("ERROR: Unrecognized command: %" PRId32 "\n", msg->msgid);
+            break;
+        }
+    }
+
+  nxmu_shutdown(&nxmu);
+  return OK;
+
+errout:
+  nxmu_shutdown(&nxmu);
+  return ret;
+}
+=== 4. nx_eventhandler.c (85-180) & mq_send.c ===
+ *   The client code must call this function periodically to process
+ *   incoming messages from the server.  If CONFIG_NX_BLOCKING is defined,
+ *   then this function not return until a server message is received.
+ *
+ *   When CONFIG_NX_BLOCKING is not defined, the client must exercise
+ *   caution in the looping to assure that it does not eat up all of
+ *   the CPU bandwidth calling nx_eventhandler repeatedly.  nx_eventnotify
+ *   may be called to get a signal event whenever a new incoming server
+ *   event is available.
+ *
+ * Input Parameters:
+ *   handle - the handle returned by nx_connect
+ *
+ * Returned Value:
+ *     OK: No errors occurred.  If CONFIG_NX_BLOCKING is defined, then
+ *         one or more server message was processed.
+ *  ERROR: An error occurred and errno has been set appropriately.  Of
+ *         particular interest, it will return errno == EHOSTDOWN when the
+ *         server is disconnected.  After that event, the handle can no
+ *         longer be used.
+ *
+ ****************************************************************************/
+
+int nx_eventhandler(NXHANDLE handle)
+{
+  FAR struct nxmu_conn_s *conn = (FAR struct nxmu_conn_s *)handle;
+  struct nxsvrmsg_s *msg;
+  struct nxbe_window_s *wnd;
+  char buffer[NX_MXCLIMSGLEN];
+  int nbytes;
+
+  /* Get the next message from our incoming message queue */
+
+  do
+    {
+      nbytes = _MQ_RECEIVE(conn->crdmq, buffer, NX_MXCLIMSGLEN, 0);
+      if (nbytes < 0)
+        {
+          int errcode = _NX_GETERRNO(nbytes);
+
+          /* EINTR is not an error.  The wait was interrupted by a signal and
+           * we just need to try reading again.
+           */
+
+          if (errcode != EINTR)
+            {
+              if (errcode == EAGAIN)
+                {
+                  /* EAGAIN is not an error.  It occurs because the MQ is
+                   * opened with O_NONBLOCK and there is no message
+                   * available now.
+                   */
+
+                  return OK;
+                }
+              else
+                {
+                  gerr("ERROR: _MQ_RECEIVE failed: %d\n", errcode);
+                  _NX_SETERRNO(nbytes);
+                  return ERROR;
+                }
+            }
+        }
+    }
+  while (nbytes < 0);
+
+  if (nbytes < sizeof(struct nxclimsg_s))
+    {
+      _NX_SETERRNO(EBADMSG);
+      return ERROR;
+    }
+
+  /* Dispatch the message appropriately */
+
+  msg = (struct nxsvrmsg_s *)buffer;
+  ginfo("Received msgid=%" PRId32 "\n", msg->msgid);
+  switch (msg->msgid)
+    {
+    case NX_CLIMSG_CONNECTED:
+      nx_connected(conn);
+      break;
+
+    case NX_CLIMSG_DISCONNECTED:
+      nx_disconnected(conn);
+      set_errno(EHOSTDOWN);
+      return ERROR;
+
+    case NX_CLIMSG_REDRAW:
+      {
+        FAR struct nxclimsg_redraw_s *redraw =
+            (FAR struct nxclimsg_redraw_s *)buffer;
+        wnd = redraw->wnd;
+        DEBUGASSERT(wnd);
+        if (wnd->cb->redraw)
+          {
+            wnd->cb->redraw((NXWINDOW)wnd, &redraw->rect, redraw->more,
+--- nxmq_send ---
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c:684:int nxmq_send(mqd_t mqdes, FAR const char *msg, size_t msglen,
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-685-              unsigned int prio)
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-686-{
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-687-  FAR struct file *filep;
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-688-  int ret;
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-689-
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-690-  ret = file_get(mqdes, &filep);
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-691-  if (ret < 0)
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-692-    {
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-693-      return ret;
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-694-    }
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-695-
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-696-  ret = file_mq_timedsend_internal(filep, msg, msglen, prio, NULL, -1);
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-697-  file_put(filep);
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-698-  return ret;
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-699-}
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-700-
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-701-/****************************************************************************
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-702- * Name: mq_send
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-703- *
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-704- * Description:
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-705- *   This function adds the specified message (msg) to the message queue
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-706- *   (mqdes).  The "msglen" parameter specifies the length of the message
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-707- *   in bytes pointed to by "msg."  This length must not exceed the maximum
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-708- *   message length from the mq_getattr().
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-709- *
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-710- *   If the message queue is not full, mq_send() place the message in the
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-711- *   message queue at the position indicated by the "prio" argument.
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-712- *   Messages with higher priority will be inserted before lower priority
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-713- *   messages.  The value of "prio" must not exceed MQ_PRIO_MAX.
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-714- *
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-715- *   If the specified message queue is full and O_NONBLOCK is not set in the
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-716- *   message queue, then mq_send() will block until space becomes available
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-717- *   to the queue the message.
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-718- *
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-719- *   If the message queue is full and O_NONBLOCK is set, the message is not
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-720- *   queued and ERROR is returned.
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-721- *
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-722- * Input Parameters:
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-723- *   mqdes  - Message queue descriptor
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-724- *   msg    - Message to send
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-725- *   msglen - The length of the message in bytes
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-726- *   prio   - The priority of the message
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-727- *
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-728- * Returned Value:
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-729- *   On success, mq_send() returns 0 (OK); on error, -1 (ERROR)
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-730- *   is returned, with errno set to indicate the error:
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-731- *
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-732- *   EAGAIN   The queue was full and the O_NONBLOCK flag was set for the
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-733- *            message queue description referred to by mqdes.
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-734- *   EINVAL   Either msg or mqdes is NULL or the value of prio is invalid.
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-735- *   EBADF    Message queue opened not opened for writing.
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-736- *   EMSGSIZE 'msglen' was greater than the maxmsgsize attribute of the
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-737- *            message queue.
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-738- *   EINTR    The call was interrupted by a signal handler.
+/home/bg9211014/lpc1788_workspace/nuttx/sched/mqueue/mq_send.c-739- *
+=== 5. cwindowmessenger.hxx & cwindowmessenger.cxx ===
+/****************************************************************************
+ * apps/include/graphics/nxwm/cwindowmessenger.hxx
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ ****************************************************************************/
+
+#ifndef __APPS_INCLUDE_GRAPHICS_NXWM_CWINDOWMESSENGER_HXX
+#define __APPS_INCLUDE_GRAPHICS_NXWM_CWINDOWMESSENGER_HXX
+
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
+#include <nuttx/config.h>
+
+#include <sys/types.h>
+
+#include <nuttx/wqueue.h>
+#include <nuttx/nx/nxtk.h>
+#include <nuttx/nx/nxterm.h>
+
+#include "graphics/nxwidgets/cwindoweventhandler.hxx"
+#include "graphics/nxwidgets/cwidgetstyle.hxx"
+#include "graphics/nxwidgets/cwidgetcontrol.hxx"
+
+/****************************************************************************
+ * Pre-Processor Definitions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Implementation Classes
+ ****************************************************************************/
+
+#if defined(__cplusplus)
+
+namespace NxWM
+{
+  /**
+   * Forward references.
+   */
+
+  class IApplication;
+
+  /**
+   * The class CWindowMessenger integrates the widget control with some special
+   * handling of mouse and keyboard inputs needs by NxWM.  It use used
+   * in place of CWidgetControl whenever an NxWM window is created.
+   *
+   * CWindowMessenger cohabitates with CWidgetControl only because it needs the
+   * CWidgetControl as an argument in its messaging.
+   */
+
+  class CWindowMessenger : public NXWidgets::CWindowEventHandler,
+                           public NXWidgets::CWidgetControl
+  {
+  private:
+    /** Structure that stores data for the work queue callback. */
+
+    struct work_state_t
+      {
+        work_s work;
+        CWindowMessenger *windowMessenger;
+        void *instance;
+
+        work_state_t() : work() {}
+      };
+
+    /** Work queue callback functions */
+
+    static void inputWorkCallback(FAR void *arg);
+    static void destroyWorkCallback(FAR void *arg);
+
+#ifdef CONFIG_NX_XYINPUT
+    /**
+     * Handle an NX window mouse input event.
+     */
+
+    void handleMouseEvent(FAR const struct nxgl_point_s *pos, uint8_t buttons);
+#endif
+
+#ifdef CONFIG_NX_KBD
+    /**
+     * Handle a NX window keyboard input event.
+     */
+
+    void handleKeyboardEvent(void);
+#endif
+
+    /**
+     * Handle a NX window blocked event
+     *
+     * @param arg - User provided argument (see nx_block or nxtk_block)
+     */
+
+    void handleBlockedEvent(FAR void *arg);
+
+  public:
+
+    /**
+     * CWindowMessenger Constructor
+     *
+     * @param style The default style that all widgets on this display
+     *   should use.  If this is not specified, the widget will use the
+     *   values stored in the defaultCWidgetStyle object.
+     */
+
+     CWindowMessenger(FAR const NXWidgets::CWidgetStyle *style = NULL);
+
+    /**
+     * CWindowMessenger Destructor.
+     */
+
+    ~CWindowMessenger(void);
+  };
+}
+#endif // __cplusplus
+
+#endif // __APPS_INCLUDE_GRAPHICS_NXWM_CWINDOWMESSENGER_HXX
+--- cwindowmessenger.cxx ---
+/********************************************************************************************
+ * apps/graphics/nxwm/src/cwindowmessenger.cxx
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ ********************************************************************************************/
+
+/********************************************************************************************
+ * Included Files
+ ********************************************************************************************/
+
+#include <nuttx/config.h>
+
+#include <cerrno>
+
+#include <nuttx/debug.h>
+#include <fcntl.h>
+
+#include "graphics/nxwm/nxwmconfig.hxx"
+#include "graphics/nxwm/cstartwindow.hxx"
+#include "graphics/nxwm/cwindowmessenger.hxx"
+
+/********************************************************************************************
+ * Pre-Processor Definitions
+ ********************************************************************************************/
+
+/********************************************************************************************
+ * CWindowMessenger Method Implementations
+ ********************************************************************************************/
+
+using namespace NxWM;
+
+/**
+ * CWindowMessenger Constructor
+ *
+ * @param style The default style that all widgets on this display
+ *   should use.  If this is not specified, the widget will use the
+ *   values stored in the defaultCWidgetStyle object.
+ */
+
+CWindowMessenger::CWindowMessenger(FAR const NXWidgets::CWidgetStyle *style)
+: NXWidgets::CWidgetControl(style)
+{
+  // Add ourself to the list of window event handlers
+
+  addWindowEventHandler(this);
+}
+
+/**
+ * CWindowMessenger Destructor.
+ */
+
+CWindowMessenger::~CWindowMessenger(void)
+{
+  // Remove ourself from the list of the window event handlers
+
+  removeWindowEventHandler(this);
+}
+
+#ifdef CONFIG_NX_XYINPUT
+/**
+ * Handle an NX window mouse input event.
+ */
+
+void CWindowMessenger::handleMouseEvent(FAR const struct nxgl_point_s *pos,
+                                        uint8_t buttons)
+{
+  // The logic path here is tortuous but flexible:
+  //
+  //  1. A listener thread receives mouse or touchscreen input and injects
+  //     that into NX via nx_mousein
+  //  2. In the multi-user mode, this will send a message to the NX server
+  //  3. The NX server will determine which window gets the mouse input
+  //     and send a window event message to the NX listener thread.
+  //  4. The NX listener thread receives a windows event.  The NX listener thread
+  //     is part of CTaskBar and was created when NX server connection was
+  //     established.  This event may be a positional change notification, a
+  //     redraw request, or mouse or keyboard input.  In this case, mouse input.
+  //  5. The NX listener thread handles the message by calling nx_eventhandler().
+  //     nx_eventhandler() dispatches the message by calling a method in the
+  //     NXWidgets::CCallback instance associated with the window.
+  //     NXWidgets::CCallback is a part of the CWidgetControl.
+  //  6. NXWidgets::CCallback calls into NXWidgets::CWidgetControl to process
+  //     the event.
+  //  7. NXWidgets::CWidgetControl records the new state data and raises a
+  //     window event.
+  //  8. NXWidgets::CWindowEventHandlerList will give the event to this method
+  //     NxWM::CWindowMessenger.
+  //  9. This NxWM::CWindowMessenger method will schedule an entry on the work
+  //     queue.
+  // 10. The work queue callback will finally call pollEvents() to execute whatever
+  //     actions the input event should trigger.
+
+  work_state_t *state = new work_state_t;
+  state->windowMessenger = this;
+  int ret = work_queue(USRWORK, &state->work, &inputWorkCallback, state, 0);
+  if (ret < 0)
+    {
+      gerr("ERROR: work_queue failed: %d\n", ret);
+      delete state;
+    }
+}
+#endif
+
+#ifdef CONFIG_NX_KBD
+/**
+ * Handle a NX window keyboard input event.
+ */
+
+void CWindowMessenger::handleKeyboardEvent(void)
+{
+  work_state_t *state = new work_state_t;
+  state->windowMessenger = this;
+
+  int ret = work_queue(USRWORK, &state->work, &inputWorkCallback, state, 0);
+  if (ret < 0)
+    {
+      gerr("ERROR: work_queue failed: %d\n", ret);
+    }
+}
+#endif
+
+/**
+ * Handle a NX window blocked event.  This handler is called when we
+ * receive the BLOCKED message meaning that there are no further pending
+ * actions on the window.  It is now safe to delete the window.
+ *
+ * This is handled by sending a message to the start window thread (vs just
+ * calling the destructors) because in the case where an application
+ * destroys itself (because of pressing the stop button), then we need to
+ * unwind and get out of the application logic before destroying all of its
+ * objects.
+ *
+ * @param arg - User provided argument (see nx_block or nxtk_block)
+ */
+
+void CWindowMessenger::handleBlockedEvent(FAR void *arg)
+{
+  // Send a message to destroy the window instance.
+
+  work_state_t *state = new work_state_t;
+  state->windowMessenger = this;
+  state->instance = arg;
+
+  int ret = work_queue(USRWORK, &state->work, &destroyWorkCallback, state, 0);
+  if (ret < 0)
+    {
+      gerr("ERROR: work_queue failed: %d\n", ret);
+    }
+}
+
+/** Work queue callback functions */
+
+void CWindowMessenger::inputWorkCallback(FAR void *arg)
+{
+  work_state_t *state = (work_state_t*)arg;
+  state->windowMessenger->pollEvents();
+  delete state;
+}
+
+void CWindowMessenger::destroyWorkCallback(FAR void *arg)
+{
+  work_state_t *state = (work_state_t*)arg;
+
+  // First make sure any pending input events have been handled.
+
+  state->windowMessenger->pollEvents();
+
+  // Then release the memory.
+
+  ginfo("Deleting app=%p\n", state->instance);
+  IApplication *app = (IApplication *)state->instance;
+  delete app;
+  delete state;
+}
+=== 6. cimage.cxx (260-380) ===
+              return;
+            }
+
+          // Pre-process special pixel values... Then we can use the faster
+          // opaque drawBitmap() function.
+
+          ptr = &buffer[m_origin.x];
+          for (int i = 0; i < nLeftPixels; i++, ptr++)
+            {
+              // Replace any transparent pixels with the background color.
+
+              if (*ptr == CONFIG_NXWIDGETS_TRANSPARENT_COLOR)
+                {
+                  *ptr = backColor;
+                }
+
+              // Convert pixels (other than the background color) to grey
+              // scale if the image is disabled.  We can't use
+              // CGraphicsPort::drawBitmapGreyColor because it does not
+              // (yet) understand transparent pixels and has no idea what it
+              // should do with background colors.
+
+              else if (*ptr != backColor && !isEnabled())
+                {
+                  // Get the next RGB pixel and break out the individual
+                  // components
+
+                  nxwidget_pixel_t rgb = *ptr;
+                  nxwidget_pixel_t r   = RGB2RED(rgb);
+                  nxwidget_pixel_t g   = RGB2GREEN(rgb);
+                  nxwidget_pixel_t b   = RGB2BLUE(rgb);
+
+                  // A truly accurate greyscale conversion would be complex.
+                  // Let's just average.
+
+                  nxwidget_pixel_t avg = (r + g + b) / 3;
+                  *ptr = MKRGB(avg, avg, avg);
+                }
+            }
+
+          // And put these on the display
+
+          port->drawBitmap(rect.getX(), destRow, rect.getWidth(), 1,
+                           &bitmap, 0, 0);
+        }
+    }
+
+  // Are we going to draw any rows at the bottom of the display?
+
+  if (nTopRows < rect.getHeight())
+    {
+      // Pad the entire row
+
+      ptr  = buffer;
+      for (int column = 0; column < rect.getWidth(); column++)
+        {
+          *ptr++ = backColor;
+        }
+
+      // Now draw the rows from the offset position
+
+      for (; destRow < rect.getHeight(); destRow++)
+        {
+          // Put the padded row on the display (never greyscale)
+
+          port->drawBitmap(rect.getX(), destRow, rect.getWidth(), 1,
+                           &bitmap, 0, 0);
+        }
+    }
+
+   delete[] buffer;
+}
+
+/**
+ * Draw the area of this widget that falls within the clipping region.
+ * Called by the redraw() function to draw all visible regions.
+ *
+ * @param port The CGraphicsPort to draw to.
+ * @see redraw()
+ */
+
+void CImage::drawContents(CGraphicsPort *port)
+{
+  drawContents(port, isClicked());
+}
+
+/**
+ * Draw the border of this widget.  Called by the indirectly via
+ * drawBoard(port) and also by classes that inherit from CImage.
+ *
+ * @param port The CGraphicsPort to draw to.
+ * @see redraw()
+ */
+
+void CImage::drawBorder(CGraphicsPort *port, bool selected)
+{
+  // Stop drawing if the widget indicates it should not have an outline
+
+  if (isBorderless())
+    {
+      return;
+    }
+
+  // Work out which colors to use
+
+  nxgl_coord_t color1;
+  nxgl_coord_t color2;
+
+  if (selected)
+    {
+      // Bevelled into the screen
+
+      color1 = getShadowEdgeColor();
+      color2 = getShineEdgeColor();
+    }
+  else
+    {
+      // Bevelled out of the screen
+
+      color1 = getShineEdgeColor();
+      color2 = getShadowEdgeColor();
+=== 7. current apps diffs (cwidgetcontrol / nxwm_main / capplicationwindow) ===
+ M graphics/nxwidgets/src/cimage.cxx
+ M graphics/nxwidgets/src/cwidgetcontrol.cxx
+ M graphics/nxwm/src/capplicationwindow.cxx
+ M graphics/nxwm/src/ccalibration.cxx
+ M graphics/nxwm/src/cstartwindow.cxx
+ M graphics/nxwm/src/ctouchscreen.cxx
+ M graphics/nxwm/src/cwindowmessenger.cxx
+ M graphics/nxwm/src/nxwm_main.cxx
+ M include/graphics/nxwidgets/cwidgetcontrol.hxx
+ M include/graphics/nxwm/ctouchscreen.hxx
+diff --git a/graphics/nxwidgets/src/cwidgetcontrol.cxx b/graphics/nxwidgets/src/cwidgetcontrol.cxx
+index 3107d7729..8284f395c 100644
+--- a/graphics/nxwidgets/src/cwidgetcontrol.cxx
++++ b/graphics/nxwidgets/src/cwidgetcontrol.cxx
+@@ -443,9 +443,10 @@ void CWidgetControl::newMouseEvent(FAR const struct nxgl_point_s *pos, uint8_t b
+   m_xyinput.x = pos->x;
+   m_xyinput.y = pos->y;
+
+-  // Update button press states
+-
+-  clearMouseEvents();
++  // Update button press states.  Keep edge flags pending until pollEvents()
++  // consumes them.  NXWM polls from a work queue after this callback returns,
++  // so clearing the flags here can lose a press when the next sample arrives
++  // first.
+
+   if ((buttons & NX_MOUSE_LEFTBUTTON) != 0)
+     {
+@@ -461,6 +462,8 @@ void CWidgetControl::newMouseEvent(FAR const struct nxgl_point_s *pos, uint8_t b
+           // New left button press
+
+           m_xyinput.leftPressed = 1;
++          m_xyinput.pressX      = pos->x;
++          m_xyinput.pressY      = pos->y;
+
+           clock_gettime(CLOCK_REALTIME, &m_xyinput.leftPressTime);
+
+@@ -483,6 +486,8 @@ void CWidgetControl::newMouseEvent(FAR const struct nxgl_point_s *pos, uint8_t b
+           // New left button release
+
+           m_xyinput.leftReleased  = 1;
++          m_xyinput.releaseX      = pos->x;
++          m_xyinput.releaseY      = pos->y;
+           clock_gettime(CLOCK_REALTIME, &m_xyinput.leftReleaseTime);
+         }
+
+@@ -785,42 +790,35 @@ bool CWidgetControl::pollMouseEvents(CNxWidget *widget)
+ #ifdef CONFIG_NX_XYINPUT
+   bool mouseEvent = false;  // Assume that no interesting mouse event occurred
+
+-  // Left click event for all widgets
++  // Handle pending input edges in order. A press and release may both be
++  // pending if the asynchronous event worker did not run between samples.
+
+   if (m_xyinput.leftPressed)
+     {
+-       // Handle a new left button press event
++      // Use the position where the press occurred, not the latest position
++      // which may already be the release position.
+
+-       if (handleLeftClick(m_xyinput.x, m_xyinput.y, widget))
++      if (handleLeftClick(m_xyinput.pressX, m_xyinput.pressY, widget))
+          {
+            mouseEvent = true;
+          }
+     }
+
+-  // Drag event for the clicked widget
++  // Handle movement while the button is held.
+
+-  if (!mouseEvent && m_xyinput.leftDrag)
++  if (m_xyinput.leftDrag && m_xyinput.leftHeld && m_clickedWidget != NULL)
+     {
+-      // The left button is still being held down
+-
+-      if (m_clickedWidget != NULL)
+-        {
+-          // Handle a mouse drag event
+-
+-          m_clickedWidget->drag(m_xyinput.x, m_xyinput.y,
+-                                m_xyinput.x - m_xyinput.lastX,
+-                                m_xyinput.y - m_xyinput.lastY);
+-          mouseEvent = true;
+-        }
++      m_clickedWidget->drag(m_xyinput.x, m_xyinput.y,
++                            m_xyinput.x - m_xyinput.lastX,
++                            m_xyinput.y - m_xyinput.lastY);
++      mouseEvent = true;
+     }
+
+-  // Check for release event on the clicked widget
++  // Finally release the clicked widget at the actual release position.
+
+-  if (!mouseEvent && m_clickedWidget != NULL)
++  if (m_xyinput.leftReleased && m_clickedWidget != NULL)
+     {
+-      // Mouse left button release event
+-
+-      m_clickedWidget->release(m_xyinput.x, m_xyinput.y);
++      m_clickedWidget->release(m_xyinput.releaseX, m_xyinput.releaseY);
+       mouseEvent = true;
+     }
+
+diff --git a/graphics/nxwm/src/capplicationwindow.cxx b/graphics/nxwm/src/capplicationwindow.cxx
+index 659db97ad..023907a20 100644
+--- a/graphics/nxwm/src/capplicationwindow.cxx
++++ b/graphics/nxwm/src/capplicationwindow.cxx
+@@ -183,7 +183,11 @@ bool CApplicationWindow::open(void)
+   struct nxgl_point_s iconPos;
+   struct nxgl_size_s  iconSize;
+
+-  iconPos.x = windowSize.w;
++  const nxgl_coord_t buttonWidth      = 40;
++  const nxgl_coord_t buttonGap        = 4;
++  const nxgl_coord_t buttonRightInset = 12;
++
++  iconPos.x = windowSize.w - buttonRightInset;
+
+   // Create the STOP icon only if this is a non-persistent application
+
+@@ -197,33 +201,12 @@ bool CApplicationWindow::open(void)
+           return false;
+         }
+
+-      // Create the STOP application icon at the right of the toolbar
+-      // Get the height and width of the stop bitmap
+-
+-      iconSize.w = m_stopBitmap->getWidth();
+-      iconSize.h = m_stopBitmap->getHeight();
+-
+-      // The default CImage has borders enabled with thickness of the border
+-      // width.  Add twice the thickness of the border to the width and height.
+-      // (We could let CImage do this for us by calling
+-      // CImage::getPreferredDimensions())
+-
+-      iconSize.w += 2 * 1;
+-      iconSize.h += 2 * 1;
+-
+-      // Pick an X/Y position such that the image will position at the right of
+-      // the toolbar and centered vertically.
++      // Give the stop control a larger hit area and inset it from the edge.
+
++      iconSize.w = buttonWidth;
++      iconSize.h = windowSize.h;
+       iconPos.x -= iconSize.w;
+-
+-      if (iconSize.h >= windowSize.h)
+-        {
+-          iconPos.y = 0;
+-        }
+-      else
+-        {
+-          iconPos.y = (windowSize.h - iconSize.h) >> 1;
+-        }
++      iconPos.y = 0;
+
+       // Now we have enough information to create the image
+
+@@ -237,7 +220,11 @@ bool CApplicationWindow::open(void)
+       // Configure 'this' to receive mouse click inputs from the image
+
+       m_stopImage->setBorderless(true);
++      m_stopImage->alignHorizontalCenter();
++      m_stopImage->alignVerticalCenter();
+       m_stopImage->addWidgetEventHandler(this);
++
++      iconPos.x -= buttonGap;
+     }
+
+ #ifndef CONFIG_NXWM_DISABLE_MINIMIZE
+@@ -249,32 +236,12 @@ bool CApplicationWindow::open(void)
+       return false;
+     }
+
+-  // Get the height and width of the stop bitmap
+-
+-  iconSize.w = m_minimizeBitmap->getWidth();
+-  iconSize.h = m_minimizeBitmap->getHeight();
+-
+-  // The default CImage has borders enabled with thickness of the border
+-  // width.  Add twice the thickness of the border to the width and height.
+-  // (We could let CImage do this for us by calling
+-  // CImage::getPreferredDimensions())
+-
+-  iconSize.w += 2 * 1;
+-  iconSize.h += 2 * 1;
+-
+-  // Pick an X/Y position such that the image will position at the right of
+-  // the toolbar and centered vertically.
++  // Give the minimize control a larger hit area.
+
++  iconSize.w = buttonWidth;
++  iconSize.h = windowSize.h;
+   iconPos.x -= iconSize.w;
+-
+-  if (iconSize.h >= windowSize.h)
+-    {
+-      iconPos.y = 0;
+-    }
+-  else
+-    {
+-      iconPos.y = (windowSize.h - iconSize.h) >> 1;
+-    }
++  iconPos.y = 0;
+
+   // Now we have enough information to create the image
+
+@@ -288,6 +255,8 @@ bool CApplicationWindow::open(void)
+   // Configure 'this' to receive mouse click inputs from the image
+
+   m_minimizeImage->setBorderless(true);
++  m_minimizeImage->alignHorizontalCenter();
++  m_minimizeImage->alignVerticalCenter();
+   m_minimizeImage->addWidgetEventHandler(this);
+ #endif
+
+diff --git a/graphics/nxwm/src/nxwm_main.cxx b/graphics/nxwm/src/nxwm_main.cxx
+index 6b6a3ca1d..bd3f6b371 100644
+--- a/graphics/nxwm/src/nxwm_main.cxx
++++ b/graphics/nxwm/src/nxwm_main.cxx
+@@ -68,6 +68,7 @@ struct SNxWmTest
+   NxWM::CStartWindow *startwindow;         // The start window
+ #ifdef CONFIG_NXWM_TOUCHSCREEN
+   NxWM::CTouchscreen *touchscreen;         // The touchscreen
++  NxWM::IApplication *calibrationApp;      // Startup calibration application
+   struct NxWM::SCalibrationData calibData; // Calibration data
+   bool                calibrated;          // True: Touchscreen has been calibrated
+ #endif
+@@ -78,6 +79,7 @@ struct SNxWmTest
+ /////////////////////////////////////////////////////////////////////////////
+
+ static struct SNxWmTest g_nxwmtest;
++static volatile bool g_nxwmStarted;
+
+ /////////////////////////////////////////////////////////////////////////////
+ // Public Function Prototypes
+@@ -119,6 +121,8 @@ static void testCleanUpAndExit(int exitCode)
+       delete g_nxwmtest.startwindow;
+     }
+
++  g_nxwmStarted = false;
++
+   // And exit
+
+   exit(exitCode);
+@@ -220,10 +224,11 @@ static bool createStartWindow(void)
+       return false;
+     }
+
+-  // Add the CStartWindow application to the task bar (minimized)
++  // Keep the start window available as the fallback once startup
++  // calibration completes.
+
+   printf("createStartWindow: Start the start window application\n");
+-  if (!g_nxwmtest.taskbar->startApplication(g_nxwmtest.startwindow, true))
++  if (!g_nxwmtest.taskbar->startApplication(g_nxwmtest.startwindow, false))
+     {
+       printf("createStartWindow: ERROR: Failed to start the start window application\n");
+       return false;
+@@ -384,6 +389,8 @@ static bool createCalibration(void)
+           delete calibration;
+           return false;
+         }
++
++      g_nxwmtest.calibrationApp = calibration;
+     }
+
+   return true;
+@@ -485,6 +492,14 @@ static bool createMediaPlayer(void)
+
+ int main(int argc, char *argv[])
+ {
++  if (g_nxwmStarted)
++    {
++      printf("nxwm_main: Already running; ignoring duplicate launch\n");
++      return EXIT_SUCCESS;
++    }
++
++  g_nxwmStarted = true;
++
+ #ifdef CONFIG_NXWM_NXTERM
+   // Initialize the NSH library
+
+@@ -492,6 +507,7 @@ int main(int argc, char *argv[])
+   if (!NxWM::nshlibInitialize())
+     {
+       printf("nxwm_main: ERROR: Failed to initialize the NSH library\n");
++      g_nxwmStarted = false;
+       return EXIT_FAILURE;
+     }
+ #endif
+@@ -599,6 +615,15 @@ int main(int argc, char *argv[])
+           sleep(2);
+         }
+
++      // Stop the calibration application from this thread.  Its worker can
++      // then be joined safely before the start window is restored.
++
++      if (g_nxwmtest.calibrationApp)
++        {
++          g_nxwmtest.taskbar->stopApplication(g_nxwmtest.calibrationApp);
++          g_nxwmtest.calibrationApp = (NxWM::IApplication *)0;
++        }
++
+       // This is how we would then recover the calibration data.  After the
+       // calibration application creates the calibration data, it hands it to
+       // the touchscreen driver.  After the touchscreen driver gets it, it will
+@@ -628,6 +653,9 @@ int main(int argc, char *argv[])
+         }
+     }
+ #endif
+-
+-  return EXIT_SUCCESS;
++  printf("nxwm_main: Window manager active\n");
++  for (;;)
++    {
++      sleep(1);
++    }
+ }
+diff --git a/include/graphics/nxwidgets/cwidgetcontrol.hxx b/include/graphics/nxwidgets/cwidgetcontrol.hxx
+index 504aab616..39cbc0ebd 100644
+--- a/include/graphics/nxwidgets/cwidgetcontrol.hxx
++++ b/include/graphics/nxwidgets/cwidgetcontrol.hxx
+@@ -136,6 +136,10 @@ namespace NXWidgets
+                                                   the mouse/touch */
+       nxgl_coord_t    y;                     /**< Current Y coordinate of
+                                                   the mouse/touch */
++      nxgl_coord_t    pressX;                /**< Position of pending press */
++      nxgl_coord_t    pressY;                /**< Position of pending press */
++      nxgl_coord_t    releaseX;              /**< Position of pending release */
++      nxgl_coord_t    releaseY;              /**< Position of pending release */
+       nxgl_coord_t    lastX;                 /**< X coordinate of the mouse
+                                                   at the previous poll */
+       nxgl_coord_t    lastY;                 /**< Y coordinate of the mouse
+=== 8. active .config NX / SCHED / PTHREAD / MM ===
+73:CONFIG_DEBUG_ALERT=y
+74:CONFIG_SCHED_DUMP_TASKS=y
+75:CONFIG_SCHED_DUMP_STACK=y
+76:CONFIG_DEBUG_FEATURES=y
+81:CONFIG_DEBUG_ERROR=y
+82:CONFIG_DEBUG_WARN=y
+84:CONFIG_DEBUG_ASSERTIONS=y
+86:CONFIG_DEBUG_ASSERTIONS_FILENAME=y
+137:CONFIG_DEBUG_FULLOPT=y
+140:CONFIG_DEBUG_OPT_UNUSED_SECTIONS=y
+142:CONFIG_DEBUG_LINK_MAP=y
+714:CONFIG_SCHED_INLINE_ADDPRIORITIZED=y
+721:CONFIG_SCHED_WAITPID=y
+732:CONFIG_PTHREAD_MUTEX_TYPES=y
+735:CONFIG_PTHREAD_MUTEX_BOTH=y
+737:CONFIG_PTHREAD_MUTEX_DEFAULT_UNSAFE=y
+738:CONFIG_PTHREAD_MUTEX_DEFAULT_PRIO_NONE=y
+746:CONFIG_SCHED_CPULOAD_NONE=y
+749:CONFIG_SCHED_CPULOAD_TICKSPERSEC=100
+750:CONFIG_SCHED_PROFILE_TICKSPERSEC=1000
+769:CONFIG_SCHED_STACK_RECORD=0
+814:CONFIG_SCHED_WORKQUEUE=y
+816:CONFIG_SCHED_HPWORK=y
+817:CONFIG_SCHED_HPNTHREADS=1
+818:CONFIG_SCHED_HPWORKPRIORITY=192
+819:CONFIG_SCHED_HPWORKSTACKSIZE=2048
+820:CONFIG_SCHED_HPWORKSTACKSECTION=""
+821:CONFIG_SCHED_LPWORK=y
+822:CONFIG_SCHED_LPNTHREADS=1
+823:CONFIG_SCHED_LPWORKPRIORITY=110
+824:CONFIG_SCHED_LPWORKSTACKSIZE=4096
+825:CONFIG_SCHED_LPWORKSTACKSECTION=""
+832:CONFIG_PTHREAD_STACK_MIN=256
+833:CONFIG_PTHREAD_STACK_DEFAULT=2048
+834:CONFIG_PTHREAD_GUARDSIZE_DEFAULT=0
+1804:CONFIG_NX=y
+1805:CONFIG_NX_NDISPLAYS=1
+1806:CONFIG_NX_NPLANES=1
+1808:CONFIG_NX_NOCURSOR=y
+1810:CONFIG_NX_BGCOLOR=0x0
+1818:CONFIG_NX_DISABLE_1BPP=y
+1819:CONFIG_NX_DISABLE_2BPP=y
+1820:CONFIG_NX_DISABLE_4BPP=y
+1821:CONFIG_NX_DISABLE_8BPP=y
+1823:CONFIG_NX_DISABLE_24BPP=y
+1824:CONFIG_NX_DISABLE_32BPP=y
+1825:CONFIG_NX_PACKEDMSFIRST=y
+1830:CONFIG_NX_XYINPUT=y
+1833:CONFIG_NX_XYINPUT_TOUCHSCREEN=y
+1834:CONFIG_NX_KBD=y
+1839:CONFIG_NXTK_BORDERWIDTH=4
+1840:CONFIG_NXTK_DEFAULT_BORDERCOLORS=y
+1842:CONFIG_NXTERM=y
+1847:CONFIG_NXTERM_BPP=16
+1848:CONFIG_NXTERM_CURSORCHAR=137
+1849:CONFIG_NXTERM_MXCHARS=128
+1850:CONFIG_NXTERM_CACHESIZE=16
+1851:CONFIG_NXTERM_LINESEPARATION=0
+1857:CONFIG_NXTERM_NXKBDIN=y
+1858:CONFIG_NXTERM_KBDBUFSIZE=16
+1859:CONFIG_NXTERM_NPOLLWAITERS=4
+1865:CONFIG_NX_MXSERVERMSGS=32
+1866:CONFIG_NX_MXCLIENTMSGS=16
+1868:CONFIG_NXSTART_SERVERPRIO=125
+1869:CONFIG_NXSTART_SERVERSTACK=2048
+1870:CONFIG_NXFONTS=y
+1875:CONFIG_NXFONTS_CHARBITS=7
+1876:CONFIG_NXFONT_MONO5X8=y
+1879:CONFIG_NXFONT_SANS23X27=y
+1923:CONFIG_NXFONTS_DISABLE_1BPP=y
+1924:CONFIG_NXFONTS_DISABLE_2BPP=y
+1925:CONFIG_NXFONTS_DISABLE_4BPP=y
+1926:CONFIG_NXFONTS_DISABLE_8BPP=y
+1928:CONFIG_NXFONTS_DISABLE_24BPP=y
+1929:CONFIG_NXFONTS_DISABLE_32BPP=y
+1930:CONFIG_NXFONTS_PACKEDMSFIRST=y
+1931:CONFIG_NXGLIB=y
+1936:CONFIG_MM_DEFAULT_MANAGER=y
+1939:CONFIG_MM_INLINE_ADDFREECHUNK=y
+1942:CONFIG_MM_DEFAULT_ALIGNMENT=8
+1943:CONFIG_MM_NODE_GUARDSIZE=0
+1945:CONFIG_MM_REGIONS=3
+1946:CONFIG_MM_MAP_COUNT_MAX=1024
+1948:CONFIG_MM_BACKTRACE=-1
+1949:CONFIG_MM_FREE_DELAYCOUNT_MAX=0
+1950:CONFIG_MM_HEAP_BIGGEST_COUNT=30
+1951:CONFIG_MM_HEAP_MEMPOOL_THRESHOLD=-1
+1961:CONFIG_MM_IOB=y
+2582:CONFIG_NXGLYPHS_BACKGROUNDCOLOR=0x0
+2587:CONFIG_NXWIDGETS=y
+2593:CONFIG_NXWIDGET_SERVERINIT=y
+2594:CONFIG_NXWIDGETS_CLIENTPRIO=100
+2595:CONFIG_NXWIDGETS_LISTENERPRIO=100
+2596:CONFIG_NXWIDGETS_LISTENERSTACK=2048
+2602:CONFIG_NXWIDGETS_BPP=16
+2604:CONFIG_NXWIDGETS_SIZEOFCHAR=1
+2610:CONFIG_NXWIDGETS_TNXARRAY_INITIALSIZE=16
+2611:CONFIG_NXWIDGETS_TNXARRAY_SIZEINCREMENT=8
+2615:CONFIG_NXWIDGETS_TRANSPARENT_COLOR=0x0
+2620:CONFIG_NXWIDGETS_FIRST_REPEAT_TIME=500
+2621:CONFIG_NXWIDGETS_CONTINUE_REPEAT_TIME=200
+2622:CONFIG_NXWIDGETS_DOUBLECLICK_TIME=350
+2623:CONFIG_NXWIDGETS_KBDBUFFER_SIZE=16
+2624:CONFIG_NXWIDGETS_CURSORCONTROL_SIZE=4
+2629:CONFIG_NXWM=y
+2648:CONFIG_NXWM_BACKGROUND_IMAGE="NXWidgets::g_nuttxBitmap160x160"
+2657:CONFIG_NXWM_TASKBAR_VSPACING=2
+2658:CONFIG_NXWM_TASKBAR_HSPACING=2
+2659:CONFIG_NXWM_TASKBAR_TOP=y
+2686:CONFIG_NXWM_STARTWINDOW_VSPACING=4
+2687:CONFIG_NXWM_STARTWINDOW_HSPACING=4
+2689:CONFIG_NXWM_STARTWINDOW_MQNAME="nxwm"
+2690:CONFIG_NXWM_STARTWINDOW_MXMSGS=32
+2691:CONFIG_NXWM_STARTWINDOW_MXMPRIO=42
+2692:CONFIG_NXWM_STARTWINDOW_PRIO=100
+2693:CONFIG_NXWM_STARTWINDOW_STACKSIZE=2048
+2698:CONFIG_NXWM_NXTERM=y
+2699:CONFIG_NXWM_NXTERM_PRIO=100
+2700:CONFIG_NXWM_NXTERM_STACKSIZE=2048
+2708:CONFIG_NXWM_TOUCHSCREEN=y
+2713:CONFIG_NXWM_TOUCHSCREEN_DEVNO=0
+2714:CONFIG_NXWM_TOUCHSCREEN_DEVPATH="/dev/input0"
+2715:CONFIG_NXWM_TOUCHSCREEN_SIGNO=32
+2716:CONFIG_NXWM_TOUCHSCREEN_LISTENERPRIO=120
+2717:CONFIG_NXWM_TOUCHSCREEN_LISTENERSTACK=4096
+2727:CONFIG_NXWM_CALIBRATION_MARGIN=25
+2730:CONFIG_NXWM_CALIBRATION_ANISOTROPIC=y
+2732:CONFIG_NXWM_CALIBRATION_SIGNO=32
+2733:CONFIG_NXWM_CALIBRATION_LISTENERPRIO=100
+2734:CONFIG_NXWM_CALIBRATION_LISTENERSTACK=2048

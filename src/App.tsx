@@ -76,7 +76,7 @@ export default function App() {
       status: 'enabled',
       deviceNode: '/dev/mmcsd0 -> /mnt/sdcard',
       pins: 'P1.2(CLK), P1.3(CMD), P1.6(DAT0), P2.11(DAT1), P2.12(DAT2), P2.13(DAT3), P1.5(PWR)',
-      details: '4-bit GPDMA high-speed SD/MMC card driver with P1.5 MCIPWR power rail switch.'
+      details: '4-bit interrupt-driven FIFO high-speed SD/MMC card driver with P1.5 MCIPWR power rail switch (avoids GPDMA timeout 110).'
     },
     {
       name: '10/100 Ethernet EMAC',
@@ -100,7 +100,7 @@ export default function App() {
       status: 'enabled',
       deviceNode: '/dev/input0',
       pins: 'SSP0: P0.15(SCK), P0.17(MISO), P0.18(MOSI), P0.20(CS), P2.15(PENIRQ)',
-      details: 'SPI Mode 1 @ 100 kHz with 630-ohm X-plate calibration and Z1 pressure filtering.'
+      details: 'SPI Mode 0 @ 100 kHz with 630-ohm X-plate calibration and anisotropic coordinate mapping.'
     },
     {
       name: 'I2C0 Master Bus',
@@ -404,11 +404,23 @@ export default function App() {
 --- 192.168.1.1 ping statistics ---
 3 packets transmitted, 3 received, 0% packet loss, time 2002ms` 
       });
+    } else if (lower.startsWith('dd')) {
+      newHistory.push({ 
+        type: 'output', 
+        text: `1+0 records in
+1+0 records out
+512 bytes transferred in 0.002000 secs (256000 bytes/sec)` 
+      });
+    } else if (lower.startsWith('mkfatfs')) {
+      newHistory.push({ 
+        type: 'output', 
+        text: `mkfatfs: Format completed successfully. /dev/mmcsd0 formatted as FAT32.` 
+      });
     } else if (lower === 'mount') {
       newHistory.push({ 
         type: 'output', 
         text: `  /proc type procfs
-  /mnt/sdcard type vfat (read/write, long file names enabled, 32GB)
+  /mnt/sdcard type vfat (read/write, long file names enabled, 240MB)
   /dev type devfs` 
       });
     } else if (lower === 'dmesg') {
@@ -598,6 +610,19 @@ int *__errno(void)
         bringup_file.write_text(bsrc + "\n" + hook, encoding="utf-8")
         print("✓ lpc17_40_bringup.c: added robust __errno hook for toolchain libm")
 
+# Patch 7: drivers/input/ads7843e.c (Preserve hardware pen-down state & prevent touch drops)
+ads_file = pathlib.Path("drivers/input/ads7843e.c")
+if ads_file.exists():
+    asrc = ads_file.read_text(encoding="utf-8", errors="ignore")
+    bad_suppress = """      if (!pressure_valid)
+        {
+          pendown = false;
+        }"""
+    if bad_suppress in asrc:
+        asrc = asrc.replace(bad_suppress, "      /* Keep hardware pen-down state intact */")
+        ads_file.write_text(asrc, encoding="utf-8")
+        print("✓ ads7843e.c: removed pen-down suppression that was dropping UI taps")
+
 print("All C patches validated successfully.")
 PY
 
@@ -653,7 +678,8 @@ settings = {
     "CONFIG_LPC17_40_GPDMA": True,
     "CONFIG_MMCSD": True,
     "CONFIG_MMCSD_SDIO": True,
-    "CONFIG_SDIO_DMA": True,
+    "CONFIG_SDIO_DMA": False,
+    "CONFIG_LPC17_40_SDCARD_DMA": False,
     "CONFIG_SDIO_BLOCKSETUP": True,
     "CONFIG_I2C": True,
     "CONFIG_I2C_DRIVER": True,
@@ -662,7 +688,7 @@ settings = {
     "CONFIG_SPI": True,
     "CONFIG_INPUT": True,
     "CONFIG_INPUT_ADS7843E": True,
-    "CONFIG_ADS7843E_SPIMODE": 1,
+    "CONFIG_ADS7843E_SPIMODE": 0,
     "CONFIG_ADS7843E_FREQUENCY": 100000,
     "CONFIG_OPEN1788_DJOYSTICK": True,
     "CONFIG_LPC17_40_LCD": True,
@@ -719,7 +745,8 @@ settings = {
     "CONFIG_SYSTEM_SETLOGMASK": True,
     "CONFIG_NXWM": True,
     "CONFIG_NXTERM": True,
-    "CONFIG_NXWM_CALIBRATION_MARGIN": 50,
+    "CONFIG_NXWM_CALIBRATION_MARGIN": 25,
+    "CONFIG_NXWM_CALIBRATION_ANISOTROPIC": True,
     "CONFIG_NSH_CONSOLE": True,
     "CONFIG_NSH_ARCHINIT": True,
     "CONFIG_NSH_TELNET": True,

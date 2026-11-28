@@ -1,0 +1,1042 @@
+─(bg9211014🎃kali)-[~]
+└─$ bash << 'EOF'
+WS="/home/bg9211014/lpc1788_workspace"
+
+echo "=== 1. SDIO / SYMTAB / BINFMT / UART2 / DEBUG .config ==="
+grep -nE "^(# )?CONFIG_(MMCSD|LPC17_40_SDCARD|SDIO|LPC17_40_GPDMA|SYMTAB|EXECFUNCS|LIBC_EXECFUNCS|BINFMT|LPC17_40_UART2|LPC17_40_DAC|EXAMPLES_|DEBUG_MMCSD|SYSLOG|RAMLOG)" "$WS/nuttx/.config"
+
+echo "=== 2. SD pinmux, clock dividers & bringup SD init ==="
+grep -nE "SDCARD_.*CLKDIV|BOARD_SD|GPIO_SD_" "$WS/nuttx/boards/arm/lpc17xx_40xx/open1788/include/board.h"
+sed -n '245,335p' "$WS/nuttx/boards/arm/lpc17xx_40xx/open1788/src/lpc17_40_bringup.c"
+
+echo "=== 3. ccalibration.cxx diff & calibration/finishCalibration ==="
+git --no-pager -C "$WS/apps" diff -- graphics/nxwm/src/ccalibration.cxx
+grep -n -A 60 -E "CCalibration::calibration\(|CCalibration::finishCalibration\(" "$WS/apps/graphics/nxwm/src/ccalibration.cxx"
+
+echo "=== 4. cnxterm.cxx (lines 180-end) ==="
+sed -n '180,$p' "$WS/apps/graphics/nxwm/src/cnxterm.cxx"
+
+echo "=== 5. nxglyphs & nxwm build files ==="
+grep -n "SRlePaletteBitmap" "$WS/apps/include/graphics/nxglyphs.hxx"
+cat "$WS/apps/graphics/nxwm/src/Make.defs" "$WS/apps/graphics/nxwm/src/Makefile"
+EOF
+=== 1. SDIO / SYMTAB / BINFMT / UART2 / DEBUG .config ===
+380:CONFIG_LPC17_40_SDCARD=y
+383:CONFIG_LPC17_40_UART2=y
+407:CONFIG_LPC17_40_DAC=y
+408:CONFIG_LPC17_40_GPDMA=y
+464:# CONFIG_LPC17_40_SDCARD_DMA is not set
+465:# CONFIG_LPC17_40_SDCARD_WIDTH_D1_ONLY is not set
+647:# CONFIG_MMCSD_HAVE_CARDDETECT is not set
+1111:CONFIG_MMCSD=y
+1112:CONFIG_MMCSD_IOCSUPPORT=y
+1113:CONFIG_MMCSD_NSLOTS=1
+1114:# CONFIG_MMCSD_PROCFS is not set
+1115:# CONFIG_MMCSD_READONLY is not set
+1116:CONFIG_MMCSD_MULTIBLOCK_LIMIT=0
+1117:CONFIG_MMCSD_MMCSUPPORT=y
+1118:# CONFIG_MMCSD_HAVE_WRITEPROTECT is not set
+1119:# CONFIG_MMCSD_SPI is not set
+1120:# CONFIG_SDIO_DMA is not set
+1121:CONFIG_MMCSD_SDIO=y
+1122:# CONFIG_SDIO_MUXBUS is not set
+1123:# CONFIG_SDIO_WIDTH_D1_ONLY is not set
+1124:# CONFIG_SDIO_BLOCKSETUP is not set
+1125:CONFIG_MMCSD_BLOCK_WDATADELAY=260
+1126:# CONFIG_MMCSD_CHECK_READY_STATUS_WITHOUT_SLEEP is not set
+1395:CONFIG_SYSLOG=y
+1397:# CONFIG_SYSLOG_NONE is not set
+1398:# CONFIG_SYSLOG_CHARDEV is not set
+1399:CONFIG_SYSLOG_DEFAULT_MASK=0xff
+1400:CONFIG_SYSLOG_OPENLOG=y
+1405:CONFIG_SYSLOG_CRLF=y
+1406:CONFIG_SYSLOG_MAX_CHANNELS=2
+1407:CONFIG_SYSLOG_DROPMASK=y
+1408:CONFIG_RAMLOG=y
+1409:CONFIG_RAMLOG_NONBLOCKING=y
+1410:CONFIG_RAMLOG_POLLTHRESHOLD=1
+1411:# CONFIG_SYSLOG_BUFFER is not set
+1412:# CONFIG_SYSLOG_INTBUFFER is not set
+1417:# CONFIG_SYSLOG_RFC5424 is not set
+1422:# CONFIG_SYSLOG_TIMESTAMP_FORMAT_MICROSECOND is not set
+1423:# CONFIG_SYSLOG_PRIORITY is not set
+1424:# CONFIG_SYSLOG_PREFIX is not set
+1425:# CONFIG_SYSLOG_COLOR_OUTPUT is not set
+1426:# CONFIG_SYSLOG_TIMESTAMP is not set
+1427:# CONFIG_SYSLOG_PROCESS_NAME is not set
+1428:# CONFIG_SYSLOG_PROCESSID is not set
+1433:CONFIG_SYSLOG_DEVPATH="/dev/ramlog"
+1434:# CONFIG_SYSLOG_CHAR is not set
+1435:CONFIG_RAMLOG_SYSLOG=y
+1436:CONFIG_SYSLOG_RPMSG_BUFFER_SECTION=""
+1437:# CONFIG_SYSLOG_STREAM is not set
+1438:# CONFIG_SYSLOG_CONSOLE is not set
+1439:CONFIG_SYSLOG_DEFAULT=y
+1440:CONFIG_SYSLOG_CONSOLE_LEVEL=4
+1441:CONFIG_RAMLOG_BUFFER_SECTION=""
+1442:CONFIG_RAMLOG_BUFSIZE=4096
+1443:# CONFIG_SYSLOG_RPMSG_SERVER_CHARDEV is not set
+1444:# CONFIG_SYSLOG_FILE is not set
+1446:# CONFIG_SYSLOG_IOCTL is not set
+1447:# CONFIG_SYSLOG_REGISTER is not set
+1464:# CONFIG_SYSLOG_RTT is not set
+1995:# CONFIG_BINFMT_DISABLE is not set
+1996:CONFIG_BINFMT_LOADABLE=y
+1999:# CONFIG_BINFMT_SCRIPT is not set
+2000:# CONFIG_BINFMT_BUILTIN_STRICT_PATH is not set
+2004:# CONFIG_BINFMT_CONSTRUCTORS is not set
+2005:CONFIG_BINFMT_ELF_RELOCATABLE=y
+2006:# CONFIG_BINFMT_CHECKEXEC is not set
+2007:# CONFIG_BINFMT_STORE_FILENAME is not set
+2167:CONFIG_LIBC_EXECFUNCS=y
+2168:# CONFIG_EXECFUNCS_HAVE_SYMTAB is not set
+2286:CONFIG_SYMTAB_ORDEREDBYNAME=y
+2287:# CONFIG_SYMTAB_ORDEREDBYVALUE is not set
+2288:# CONFIG_SYMTAB_DECORATED is not set
+2424:# CONFIG_EXAMPLES_ABNTCODI is not set
+2425:# CONFIG_EXAMPLES_ADC is not set
+2426:# CONFIG_EXAMPLES_BRIDGE is not set
+2427:# CONFIG_EXAMPLES_CALIB_UDELAY is not set
+2428:# CONFIG_EXAMPLES_CAMERA is not set
+2429:# CONFIG_EXAMPLES_CAN is not set
+2430:# CONFIG_EXAMPLES_CCTYPE is not set
+2431:# CONFIG_EXAMPLES_CHARGER is not set
+2432:# CONFIG_EXAMPLES_CHAT is not set
+2433:# CONFIG_EXAMPLES_CONFIGDATA is not set
+2434:# CONFIG_EXAMPLES_CORDIC is not set
+2435:# CONFIG_EXAMPLES_CPUHOG is not set
+2436:# CONFIG_EXAMPLES_DAC is not set
+2437:# CONFIG_EXAMPLES_DHCPD is not set
+2438:# CONFIG_EXAMPLES_DISCOVER is not set
+2439:# CONFIG_EXAMPLES_DJOYSTICK is not set
+2444:# CONFIG_EXAMPLES_ELF is not set
+2449:# CONFIG_EXAMPLES_ESP32_HIMEM is not set
+2450:# CONFIG_EXAMPLES_FBCON is not set
+2451:# CONFIG_EXAMPLES_FB is not set
+2452:# CONFIG_EXAMPLES_FMSYNTH is not set
+2453:# CONFIG_EXAMPLES_FTPC is not set
+2454:# CONFIG_EXAMPLES_FTPD is not set
+2455:# CONFIG_EXAMPLES_FXOS8700CQ is not set
+2456:# CONFIG_EXAMPLES_HELLO_D is not set
+2457:# CONFIG_EXAMPLES_HELLO is not set
+2458:# CONFIG_EXAMPLES_HELLO_NIM is not set
+2459:# CONFIG_EXAMPLES_HELLO_SWIFT is not set
+2460:# CONFIG_EXAMPLES_HELLO_WASM is not set
+2461:# CONFIG_EXAMPLES_HELLOXX is not set
+2462:# CONFIG_EXAMPLES_HELLO_ZIG is not set
+2463:# CONFIG_EXAMPLES_HX711 is not set
+2464:# CONFIG_EXAMPLES_IGMP is not set
+2465:# CONFIG_EXAMPLES_KEYBOARD is not set
+2466:# CONFIG_EXAMPLES_LIBTEST is not set
+2467:# CONFIG_EXAMPLES_LUA_MODULE is not set
+2468:# CONFIG_EXAMPLES_MAX31855 is not set
+2473:# CONFIG_EXAMPLES_MCUBOOT_SLOT_CONFIRM is not set
+2474:# CONFIG_EXAMPLES_MCUBOOT_SWAP_TEST is not set
+2475:# CONFIG_EXAMPLES_MCUBOOT_UPDATE_AGENT is not set
+2476:# CONFIG_EXAMPLES_MEDIA is not set
+2477:# CONFIG_EXAMPLES_MLX90614 is not set
+2478:# CONFIG_EXAMPLES_MMLPARSER is not set
+2479:# CONFIG_EXAMPLES_MODBUS is not set
+2480:# CONFIG_EXAMPLES_MODBUSMASTER is not set
+2485:# CONFIG_EXAMPLES_MOUNT is not set
+2486:# CONFIG_EXAMPLES_NETTEST is not set
+2487:# CONFIG_EXAMPLES_NIMBLE_BLECENT is not set
+2488:# CONFIG_EXAMPLES_NIMBLE_BLEPRPH is not set
+2489:# CONFIG_EXAMPLES_NIMBLE is not set
+2490:# CONFIG_EXAMPLES_NNG_TEST is not set
+2491:# CONFIG_EXAMPLES_NULL is not set
+2492:# CONFIG_EXAMPLES_NXDEMO is not set
+2493:# CONFIG_EXAMPLES_NXHELLO is not set
+2494:# CONFIG_EXAMPLES_NXIMAGE is not set
+2495:# CONFIG_EXAMPLES_NX is not set
+2496:# CONFIG_EXAMPLES_NXLINES is not set
+2497:# CONFIG_EXAMPLES_NXTERM is not set
+2498:# CONFIG_EXAMPLES_NXTEXT is not set
+2499:# CONFIG_EXAMPLES_OBD2 is not set
+2500:# CONFIG_EXAMPLES_OPTEE is not set
+2501:# CONFIG_EXAMPLES_PDCURSES is not set
+2502:# CONFIG_EXAMPLES_PFFAULT is not set
+2503:# CONFIG_EXAMPLES_PIPE is not set
+2504:# CONFIG_EXAMPLES_POLL is not set
+2505:# CONFIG_EXAMPLES_POPEN is not set
+2506:# CONFIG_EXAMPLES_POSIX_STDIO is not set
+2507:# CONFIG_EXAMPLES_PPPD is not set
+2508:# CONFIG_EXAMPLES_PWFB is not set
+2509:# CONFIG_EXAMPLES_PWLINES is not set
+2510:# CONFIG_EXAMPLES_RGBLED is not set
+2515:# CONFIG_EXAMPLES_HELLO_RUST is not set
+2516:# CONFIG_EXAMPLES_HELLO_RUST_CARGO is not set
+2517:# CONFIG_EXAMPLES_RUST_SLINT is not set
+2518:# CONFIG_EXAMPLES_SANDBOX is not set
+2519:# CONFIG_EXAMPLES_SENDMAIL is not set
+2520:# CONFIG_EXAMPLES_SENSOR_FUSION is not set
+2521:# CONFIG_EXAMPLES_SERIALBLASTER is not set
+2522:# CONFIG_EXAMPLES_SERIALRX is not set
+2523:# CONFIG_EXAMPLES_SERLOOP is not set
+2524:# CONFIG_EXAMPLES_SETTINGS is not set
+2529:# CONFIG_EXAMPLES_SPISLV is not set
+2530:# CONFIG_EXAMPLES_STAT is not set
+2531:# CONFIG_EXAMPLES_STEPPER is not set
+2532:# CONFIG_EXAMPLES_SYSTEM is not set
+2533:# CONFIG_EXAMPLES_TCPBLASTER is not set
+2534:# CONFIG_EXAMPLES_TCPECHO is not set
+2535:# CONFIG_EXAMPLES_TCP_IPC_CLIENT is not set
+2536:# CONFIG_EXAMPLES_TCP_IPC_SERVER is not set
+2537:# CONFIG_EXAMPLES_TELNETD is not set
+2538:# CONFIG_EXAMPLES_TERMIOS is not set
+2539:# CONFIG_EXAMPLES_THTTPD is not set
+2540:# CONFIG_EXAMPLES_TIFF is not set
+2541:# CONFIG_EXAMPLES_TOUCHSCREEN is not set
+2542:# CONFIG_EXAMPLES_UDPBLASTER is not set
+2543:# CONFIG_EXAMPLES_UDP is not set
+2544:# CONFIG_EXAMPLES_UID is not set
+2545:# CONFIG_EXAMPLES_USBSERIAL is not set
+2546:# CONFIG_EXAMPLES_VSOCK is not set
+2547:# CONFIG_EXAMPLES_WAMR_MODULE is not set
+2548:# CONFIG_EXAMPLES_WATCHDOG is not set
+2549:# CONFIG_EXAMPLES_WEBSERVER is not set
+2550:# CONFIG_EXAMPLES_WGET is not set
+2551:# CONFIG_EXAMPLES_WIEGAND is not set
+2552:# CONFIG_EXAMPLES_XMLRPC is not set
+=== 2. SD pinmux, clock dividers & bringup SD init ===
+156: * SDCARD_CLOCK=PCLK/(2*(SDCARD_CLKDIV+1))
+159:#  define SDCARD_CLKDIV_INIT       74   /* 400Khz  */
+160:#  define SDCARD_INIT_CLKDIV       (SDCARD_CLKDIV_INIT)
+162:#  define SDCARD_NORMAL_CLKDIV     1    /* DMA ON:  SDCARD_CLOCK=15MHz */
+163:#define SDCARD_SLOW_CLKDIV         14   /* DMA OFF: SDCARD_CLOCK=2MHz */
+166:#    define SDCARD_MMCXFR_CLKDIV   (SDCARD_NORMAL_CLKDIV)
+168:#    define SDCARD_MMCXFR_CLKDIV   (SDCARD_SLOW_CLKDIV)
+172:#    define SDCARD_SDXFR_CLKDIV    (SDCARD_NORMAL_CLKDIV)
+174:#    define SDCARD_SDXFR_CLKDIV    (SDCARD_SLOW_CLKDIV)
+343:#define GPIO_SD_DAT0               GPIO_SD_DAT0_2
+344:#define GPIO_SD_DAT1               GPIO_SD_DAT1_1
+345:#define GPIO_SD_DAT2               GPIO_SD_DAT2_1
+346:#define GPIO_SD_DAT3               GPIO_SD_DAT3_1
+347:#define GPIO_SD_CLK                GPIO_SD_CLK_2
+348:#define GPIO_SD_CMD                GPIO_SD_CMD_2
+349:#define GPIO_SD_PWR                GPIO_SD_PWR_2
+ *   Initialize SPI-based microSD.
+ *
+ ****************************************************************************/
+
+#ifdef NSH_HAVE_MMCSD
+static int nsh_sdinitialize(void)
+{
+  int ret;
+
+#ifdef NSH_HAVE_MMCSD_CD
+  /* Configure the SD card detect GPIO */
+
+  lpc17_40_configgpio(GPIO_SD_CD);
+
+#ifdef NSH_HAVE_MMCSD_CDINT
+  /* Attach an interrupt handler to get notifications when a card is
+   * inserted or deleted.
+   */
+
+  irq_attach(LPC17_40_IRQ_P0p13, nsh_cdinterrupt, NULL);
+  up_enable_irq(LPC17_40_IRQ_P0p13);
+
+#endif
+#endif
+
+  /* Configure the SD card power enable pin (MCIPWR on P1.5) */
+
+  lpc17_40_configgpio(GPIO_SD_PWR);
+
+  /* First, get an instance of the SDIO interface */
+
+  g_sdiodev = sdio_initialize(CONFIG_NSH_MMCSDSLOTNO);
+  if (!g_sdiodev)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to initialize SDIO slot %d\n",
+             CONFIG_NSH_MMCSDSLOTNO);
+      return -ENODEV;
+    }
+
+  /* Now bind the SDIO interface to the MMC/SD driver */
+
+  ret = mmcsd_slotinitialize(CONFIG_NSH_MMCSDMINOR, g_sdiodev);
+  if (ret != OK)
+    {
+      syslog(LOG_ERR,
+             "ERROR: Failed to bind SDIO to the MMC/SD driver: %d\n",
+             ret);
+      return ret;
+    }
+
+  /* Check if there is a card in the slot and inform the SDCARD driver.  If
+   * we do not support the card  detect, then let's assume that there is
+   * one.
+   */
+
+#ifdef NSH_HAVE_MMCSD_CD
+  g_sd_inserted = !lpc17_40_gpioread(GPIO_SD_CD);
+  sdio_mediachange(g_sdiodev, g_sd_inserted);
+#else
+  sdio_mediachange(g_sdiodev, true);
+#endif
+  return OK;
+}
+#else
+#  define nsh_sdinitialize() (OK)
+#endif
+
+/****************************************************************************
+ * Name: nsh_usbhostinitialize
+ *
+ * Description:
+ *   Initialize SPI-based microSD.
+ *
+ ****************************************************************************/
+
+#ifdef NSH_HAVE_USBHOST
+static int nsh_usbhostinitialize(void)
+{
+  int ret;
+
+  /* First, register all of the class drivers needed to support the drivers
+   * that we care about:
+   */
+
+  syslog(LOG_INFO, "Register class drivers\n");
+
+#ifdef CONFIG_USBHOST_MSC
+  /* Register the USB host Mass Storage Class */
+
+  ret = usbhost_msc_initialize();
+  if (ret != OK)
+=== 3. ccalibration.cxx diff & calibration/finishCalibration ===
+diff --git a/graphics/nxwm/src/ccalibration.cxx b/graphics/nxwm/src/ccalibration.cxx
+index 262a9d567..438df5ccf 100644
+--- a/graphics/nxwm/src/ccalibration.cxx
++++ b/graphics/nxwm/src/ccalibration.cxx
+@@ -26,6 +26,7 @@
+
+ #include <cinttypes>
+ #include <cerrno>
++#include <stdio.h>
+
+ #include <sched.h>
+ #include <limits.h>
+@@ -219,11 +220,14 @@ void CCalibration::stop(void)
+           ginfo("Stopping calibration: m_calthread=%d\n", (int)m_calthread);
+           pthread_kill(m_thread, CONFIG_NXWM_CALIBRATION_SIGNO);
+
+-          // Wait for the calibration thread to exit
+-
+-          FAR pthread_addr_t value;
+-          pthread_join(m_thread, &value);
+         }
++
++      // Completion can be reported just before this thread returns.  Join it
++      // even when its state is already terminated.
++
++      FAR pthread_addr_t value;
++      pthread_join(m_thread, &value);
++      m_thread = 0;
+     }
+ }
+
+@@ -340,6 +344,15 @@ void CCalibration::touchscreenInput(struct touch_sample_s &sample)
+       if ((sample.point[0].flags & TOUCH_DOWN) != 0 ||
+           (m_touched && sample.point[0].id == m_touchId))
+         {
++          if ((sample.point[0].flags & TOUCH_DOWN) != 0)
++            {
++              printf("Calibration touch down: phase=%d target=(%d,%d) raw=(%d,%d) pressure=%d pvalid=%d\n",
++                     m_calphase, m_screenInfo.pos.x, m_screenInfo.pos.y,
++                     sample.point[0].x, sample.point[0].y,
++                     (int)sample.point[0].pressure,
++                     (sample.point[0].flags & TOUCH_PRESSURE_VALID) != 0);
++            }
++
+           // Yes.. save the touch position and wait for the TOUCH_UP report
+
+           m_touchPos.x = sample.point[0].x;
+@@ -381,6 +394,12 @@ void CCalibration::touchscreenInput(struct touch_sample_s &sample)
+
+           if (sample.point[0].id == m_touchId)
+             {
++              printf("Calibration touch up: phase=%d target=(%d,%d) raw=(%d,%d) up=(%d,%d) flags=%02x\n",
++                     m_calphase, m_screenInfo.pos.x, m_screenInfo.pos.y,
++                     m_touchPos.x, m_touchPos.y,
++                     sample.point[0].x, sample.point[0].y,
++                     sample.point[0].flags);
++
+               // Yes.. invoke the state machine.
+
+               iinfo("State: %d Screen x: %d y: %d  Touch x: %d y: %d\n",
+@@ -581,7 +600,9 @@ FAR void *CCalibration::calibration(FAR void *arg)
+       gerr("ERROR: failed to create widgets\n");
+       return (FAR void *)0;
+     }
++#endif
+
++#ifdef CONFIG_NXWM_CALIBRATION_AVERAGE
+   // No samples have yet been collected
+
+   This->m_nsamples = 0;
+@@ -1113,11 +1134,8 @@ void CCalibration::finishCalibration(void)
+         }
+     }
+
+-  // Remove the touchscreen application from the taskbar
+-
+-  m_taskbar->stopApplication(this);
+-
+-  // And set the terminated stated
++  // The NXWM startup thread removes this application after observing the
++  // completed calibration and joins this worker safely.
+
+   m_calthread = CALTHREAD_TERMINATED;
+ }
+@@ -1145,6 +1163,17 @@ bool CCalibration::createCalibrationData(struct SCalibrationData &data)
+       return false;
+     }
+
++  printf("Calibration raw points: UL=(%d,%d) UR=(%d,%d) LL=(%d,%d) LR=(%d,%d) target-size=%dx%d\n",
++         m_calibData[CALIB_UPPER_LEFT_INDEX].x,
++         m_calibData[CALIB_UPPER_LEFT_INDEX].y,
++         m_calibData[CALIB_UPPER_RIGHT_INDEX].x,
++         m_calibData[CALIB_UPPER_RIGHT_INDEX].y,
++         m_calibData[CALIB_LOWER_LEFT_INDEX].x,
++         m_calibData[CALIB_LOWER_LEFT_INDEX].y,
++         m_calibData[CALIB_LOWER_RIGHT_INDEX].x,
++         m_calibData[CALIB_LOWER_RIGHT_INDEX].y,
++         windowSize.w, windowSize.h);
++
+ #ifdef CONFIG_NXWM_CALIBRATION_ANISOTROPIC
+   // X lines:
+   //
+590:FAR void *CCalibration::calibration(FAR void *arg)
+591-{
+592-  CCalibration *This = (CCalibration *)arg;
+593-  bool stalled = true;
+594-
+595-#ifdef CONFIG_NXWM_CALIBRATION_MESSAGES
+596-  // Create widgets that will be used in the calibration display
+597-
+598-  if (!This->createWidgets())
+599-    {
+600-      gerr("ERROR: failed to create widgets\n");
+601-      return (FAR void *)0;
+602-    }
+603-#endif
+604-
+605-#ifdef CONFIG_NXWM_CALIBRATION_AVERAGE
+606-  // No samples have yet been collected
+607-
+608-  This->m_nsamples = 0;
+609-#endif
+610-
+611-  // The calibration thread is now running
+612-
+613-  This->m_calthread = CALTHREAD_RUNNING;
+614-  This->m_calphase  = CALPHASE_NOT_STARTED;
+615-  ginfo("Started: m_calthread=%d\n", (int)This->m_calthread);
+616-
+617-  // Loop until calibration completes or we have been requested to terminate
+618-
+619-  while (This->m_calthread != CALTHREAD_STOPREQUESTED &&
+620-         This->m_calphase != CALPHASE_COMPLETE)
+621-    {
+622-      // Check for state changes due to display order changes
+623-
+624-      if (This->m_calthread == CALTHREAD_HIDE)
+625-        {
+626-          // This state is set by hide() when our display is no longer visible
+627-
+628-          This->m_calthread = CALTHREAD_RUNNING;
+629-          This->m_calphase  = CALPHASE_NOT_STARTED;
+630-          stalled           = true;
+631-        }
+632-      else if (This->m_calthread == CALTHREAD_SHOW)
+633-        {
+634-          // This state is set by redraw() when our display has become visible
+635-
+636-          This->m_calthread = CALTHREAD_RUNNING;
+637-          This->m_calphase  = CALPHASE_NOT_STARTED;
+638-          stalled           = false;
+639-          This->stateMachine();
+640-        }
+641-
+642-      // The calibration thread will stall if has been asked to hide the
+643-      // display.  While stalled, we will just sleep for a bit and test
+644-      // the state again.  If we are re-awakened by a redraw(), then we
+645-      // will be given a signal which will wake us up immediately.
+646-      //
+647-      // Note that stalled is also initially true so we have to receive
+648-      // redraw() before we attempt to draw anything
+649-
+650-      if (stalled)
+--
+1105:void CCalibration::finishCalibration(void)
+1106-{
+1107-  // Did we finish calibration successfully?
+1108-
+1109-  if (m_calphase == CALPHASE_COMPLETE)
+1110-    {
+1111-      // Yes... Get the final Calibration data
+1112-
+1113-      struct SCalibrationData caldata;
+1114-      if (createCalibrationData(caldata))
+1115-        {
+1116-#ifdef CONFIG_NXWM_TOUCHSCREEN_CONFIGDATA
+1117-          // Save the new calibration data.  The saved calibration
+1118-          // data may be used to avoided recalibrating in the future.
+1119-
+1120-          int ret = platform_setconfig(CONFIGDATA_TSCALIBRATION, 0,
+1121-                                       (FAR const uint8_t *)&caldata,
+1122-                                       sizeof(struct SCalibrationData));
+1123-          if (ret != 0)
+1124-            {
+1125-              gerr("ERROR: Failed to save calibration data\n");
+1126-            }
+1127-#endif
+1128-          // And provide the calibration data to the touchscreen, enabling
+1129-          // touchscreen processing
+1130-
+1131-          m_touchscreen->setEnabled(false);
+1132-          m_touchscreen->setCalibrationData(caldata);
+1133-          m_touchscreen->setEnabled(true);
+1134-        }
+1135-    }
+1136-
+1137-  // The NXWM startup thread removes this application after observing the
+1138-  // completed calibration and joins this worker safely.
+1139-
+1140-  m_calthread = CALTHREAD_TERMINATED;
+1141-}
+1142-
+1143-/**
+1144- * Given the raw touch data collected by the calibration thread, create the
+1145- * massaged calibration data needed by CTouchscreen.
+1146- *
+1147- * @param data. A reference to the location to save the calibration data
+1148- * @return True if the calibration data was successfully created.
+1149- */
+1150-
+1151-bool CCalibration::createCalibrationData(struct SCalibrationData &data)
+1152-{
+1153-  // Recover the window instance contained in the full screen window
+1154-
+1155-  NXWidgets::INxWindow *window = m_window->getWindow();
+1156-
+1157-  // Get the size of the fullscreen window
+1158-
+1159-  struct nxgl_size_s windowSize;
+1160-  if (!window->getSize(&windowSize))
+1161-    {
+1162-      gerr("ERROR: NXWidgets::INxWindow::getSize failed\n");
+1163-      return false;
+1164-    }
+1165-
+=== 4. cnxterm.cxx (lines 180-end) ===
+ */
+
+NXWidgets::CNxString CNxTerm::getName(void)
+{
+  return NXWidgets::CNxString("NuttShell");
+}
+
+/**
+ * Start the application (perhaps in the minimized state).
+ *
+ * @return True if the application was successfully started.
+ */
+
+bool CNxTerm::run(void)
+{
+  // Some sanity checking
+
+  if (m_pid >= 0 || m_nxterm != 0)
+    {
+      gerr("ERROR: All ready running or connected\n");
+      return false;
+    }
+
+  // Get exclusive access to the global data structure
+
+  if (sem_wait(&g_nxtermvars.exclSem) != 0)
+    {
+      // This might fail if a signal is received while we are waiting.
+
+      gerr("ERROR: Failed to get semaphore\n");
+      return false;
+    }
+
+  // Recover the NXTK window instance contained in the application window
+
+  NXWidgets::INxWindow *window = m_window->getWindow();
+
+  // Get the widget control associated with the NXTK window
+
+  NXWidgets::CWidgetControl *control =  window->getWidgetControl();
+
+  // Get the window handle from the widget control
+
+  g_nxtermvars.hwnd = control->getWindowHandle();
+
+  // Describe the NxTerm
+
+  g_nxtermvars.wndo.wcolor[0] = CONFIG_NXWM_NXTERM_WCOLOR;
+  g_nxtermvars.wndo.fcolor[0] = CONFIG_NXWM_NXTERM_FONTCOLOR;
+  g_nxtermvars.wndo.fontid    = CONFIG_NXWM_NXTERM_FONTID;
+
+  // Remember the device minor number (before it is incremented)
+
+  m_minor                     = g_nxtermvars.minor;
+
+  // Get the size of the window
+
+  window->getSize(&g_nxtermvars.wndo.wsize);
+
+  // Start the NxTerm task
+
+  g_nxtermvars.console = (FAR void *)this;
+  g_nxtermvars.result  = false;
+  g_nxtermvars.nxterm   = 0;
+
+  sched_lock();
+  m_pid = task_create("NxTerm", CONFIG_NXWM_NXTERM_PRIO,
+                      CONFIG_NXWM_NXTERM_STACKSIZE, nxterm,
+                      (FAR char * const *)0);
+
+  // Did we successfully start the NxTerm task?
+
+  bool result = true;
+  if (m_pid < 0)
+    {
+      gerr("ERROR: Failed to create the NxTerm task\n");
+      result = false;
+    }
+  else
+    {
+      // Wait for up to two seconds for the task to initialize
+
+      struct timespec abstime;
+      clock_gettime(CLOCK_REALTIME, &abstime);
+      abstime.tv_sec += 2;
+
+      int ret = sem_timedwait(&g_nxtermvars.waitSem, &abstime);
+      sched_unlock();
+
+      if (ret == OK && g_nxtermvars.result)
+        {
+          // Re-direct NX keyboard input to the new NxTerm driver
+
+          DEBUGASSERT(g_nxtermvars.nxterm != 0);
+#ifdef CONFIG_NXTERM_NXKBDIN
+          window->redirectNxTerm(g_nxtermvars.nxterm);
+#endif
+          // Save the handle to use in the stop method
+
+          m_nxterm = g_nxtermvars.nxterm;
+        }
+      else
+        {
+          // sem_timedwait failed OR the NxTerm task reported a
+          // failure.  Stop the application
+
+          gerr("ERROR: Failed start the NxTerm task\n");
+          stop();
+          result = false;
+        }
+    }
+
+  sem_post(&g_nxtermvars.exclSem);
+  return result;
+}
+
+/**
+ * Stop the application.
+ */
+
+void CNxTerm::stop(void)
+{
+  // Delete the NxTerm task if it is still running (this could strand
+  // resources). If we get here due to CTaskbar::stopApplication() processing
+  // initialed by CNxTerm::exitHandler, then do *not* delete the task (it
+  // is already being deleted).
+
+  if (m_pid >= 0)
+    {
+      // Calling task_delete() will also invoke the on_exit() handler.  We se
+      // m_pid = -1 before calling task_delete() to let the on_exit() handler,
+      // CNxTerm::exitHandler(), know that it should not do anything
+
+      pid_t pid = m_pid;
+      m_pid = -1;
+
+      // Then delete the NSH task, possibly stranding resources
+
+      task_delete(pid);
+    }
+
+  // Destroy the NX console device
+
+  if (m_nxterm)
+    {
+      // Re-store NX keyboard input routing
+
+#ifdef CONFIG_NXTERM_NXKBDIN
+      NXWidgets::INxWindow *window = m_window->getWindow();
+      window->redirectNxTerm((NXTERM)0);
+#endif
+
+      // Unlink the NxTerm driver
+      // Construct the driver name using this minor number
+
+      char devname[32];
+      snprintf(devname, sizeof(devname), "/dev/nxterm%d", m_minor);
+
+      unlink(devname);
+      m_nxterm = 0;
+    }
+}
+
+/**
+ * Destroy the application and free all of its resources.  This method
+ * will initiate blocking of messages from the NX server.  The server
+ * will flush the window message queue and reply with the blocked
+ * message.  When the block message is received by CWindowMessenger,
+ * it will send the destroy message to the start window task which
+ * will, finally, safely delete the application.
+ */
+
+void CNxTerm::destroy(void)
+{
+  // Block any further window messages
+
+  m_window->block(this);
+
+  // Make sure that the application is stopped
+
+  stop();
+}
+
+/**
+ * The application window is hidden (either it is minimized or it is
+ * maximized, but not at the top of the hierarchy
+ */
+
+void CNxTerm::hide(void)
+{
+  // Disable drawing and events
+}
+
+/**
+ * Redraw the entire window.  The application has been maximized or
+ * otherwise moved to the top of the hierarchy.  This method is call from
+ * CTaskbar when the application window must be displayed
+ */
+
+void CNxTerm::redraw(void)
+{
+  // Recover the NXTK window instance contained in the application window
+
+  NXWidgets::INxWindow *window = m_window->getWindow();
+
+  // Get the size of the window
+
+  struct nxgl_size_s windowSize;
+  window->getSize(&windowSize);
+
+  // Redraw the entire NxTerm window
+
+  struct boardioc_nxterm_ioctl_s iocargs;
+  struct nxtermioc_redraw_s redraw;
+
+  redraw.handle     = m_nxterm;
+  redraw.rect.pt1.x = 0;
+  redraw.rect.pt1.y = 0;
+  redraw.rect.pt2.x = windowSize.w - 1;
+  redraw.rect.pt2.y = windowSize.h - 1;
+  redraw.more       = false;
+
+  iocargs.cmd       = NXTERMIOC_NXTERM_REDRAW;
+  iocargs.arg       = (uintptr_t)&redraw;
+
+  boardctl(BOARDIOC_NXTERM_IOCTL, (uintptr_t)&iocargs);
+}
+
+/**
+ * Report of this is a "normal" window or a full screen window.  The
+ * primary purpose of this method is so that window manager will know
+ * whether or not it show draw the task bar.
+ *
+ * @return True if this is a full screen window.
+ */
+
+bool CNxTerm::isFullScreen(void) const
+{
+  return m_window->isFullScreen();
+}
+
+/**
+ * This is the NxTerm task.  This function first redirects output to the
+ * console window then calls to start the NSH logic.
+ */
+
+int CNxTerm::nxterm(int argc, char *argv[])
+{
+  // To stop compiler complaining about "jump to label crosses initialization
+  // of 'int fd'
+
+  int fd = -1;
+  int ret = OK;
+
+  // Set up an on_exit() event that will be called when this task exits
+
+  if (on_exit(exitHandler, g_nxtermvars.console) != 0)
+    {
+      gerr("ERROR: on_exit failed\n");
+      goto errout;
+    }
+
+  // Use the window handle to create the NX console
+
+  struct boardioc_nxterm_create_s nxcreate;
+
+  nxcreate.nxterm              = (FAR void *)0;
+  nxcreate.hwnd                = g_nxtermvars.hwnd;
+  nxcreate.wndo                = g_nxtermvars.wndo;
+  nxcreate.type                = BOARDIOC_XTERM_FRAMED;
+  nxcreate.minor               = g_nxtermvars.minor;
+
+  ret = boardctl(BOARDIOC_NXTERM, (uintptr_t)&nxcreate);
+  if (ret < 0)
+    {
+      gerr("ERROR: boardctl(BOARDIOC_NXTERM) failed: %d\n", errno);
+      goto errout;
+    }
+
+  g_nxtermvars.nxterm = nxcreate.nxterm;
+  DEBUGASSERT(g_nxtermvars.nxterm != NULL);
+
+  // Construct the driver name using this minor number
+
+  char devname[32];
+  snprintf(devname, sizeof(devname), "/dev/nxterm%d", g_nxtermvars.minor);
+
+  // Increment the minor number while it is protect by the semaphore
+
+  g_nxtermvars.minor++;
+
+  // Open the NxTerm driver
+
+#ifdef CONFIG_NXTERM_NXKBDIN
+  fd = open(devname, O_RDWR);
+#else
+  fd = open(devname, O_WRONLY);
+#endif
+  if (fd < 0)
+    {
+      gerr("ERROR: Failed open the console device\n");
+      unlink(devname);
+      goto errout;
+    }
+
+  // Now re-direct stdout and stderr so that they use the NX console driver.
+  // Notes: (1) stdin is retained (file descriptor 0, probably the the serial
+  // console).  (2) Don't bother trying to put debug instrumentation in the
+  // following because it will end up in the NxTerm window.
+
+  std::fflush(stdout);
+  std::fflush(stderr);
+
+#ifdef CONFIG_NXTERM_NXKBDIN
+  dup2(fd, 0);
+#endif
+  dup2(fd, 1);
+  dup2(fd, 2);
+
+  // And we can close our original driver file descriptor
+
+  if (fd > 2)
+    {
+      ::close(fd);
+    }
+
+  // Inform the parent thread that we successfully initialized
+
+  g_nxtermvars.result = true;
+  sem_post(&g_nxtermvars.waitSem);
+
+  // Run the NSH console
+
+#ifdef CONFIG_NSH_CONSOLE
+  nsh_consolemain(argc, argv);
+#endif
+
+  // We get here if the NSH console should exits.  nsh_consolemain() ALWAYS
+  // exits by calling nsh_exit() (which is a pointer to nsh_consoleexit())
+  // which, in turn, calls exit()
+
+  return EXIT_SUCCESS;
+
+errout:
+  g_nxtermvars.nxterm = 0;
+  g_nxtermvars.result = false;
+  sem_post(&g_nxtermvars.waitSem);
+  return EXIT_FAILURE;
+}
+
+/**
+ * This is the NxTerm task exit handler.  It registered with on_exit()
+ * and called automatically when the nxterm task exits.
+ */
+
+void CNxTerm::exitHandler(int code, FAR void *arg)
+{
+  CNxTerm *This = (CNxTerm *)arg;
+
+  // If we got here because of the task_delete() call in CNxTerm::stop(),
+  // then m_pid will be set to -1 to let us know that we do not need to do
+  // anything
+
+  if (This->m_pid >= 0)
+    {
+      // Set m_pid to -1 to prevent calling detlete_task() in CNxTerm::stop().
+      // CNxTerm::stop() is called by the processing initiated by the following
+      // call to CTaskbar::stopApplication()
+
+      This->m_pid = -1;
+
+      // Remove the NxTerm application from the taskbar
+
+      This->m_taskbar->stopApplication(This);
+    }
+}
+
+/**
+ * Called when the window minimize button is pressed.
+ */
+
+void CNxTerm::minimize(void)
+{
+  m_taskbar->minimizeApplication(static_cast<IApplication*>(this));
+}
+
+/**
+ * Called when the window close button is pressed.
+ */
+
+void CNxTerm::close(void)
+{
+  m_taskbar->stopApplication(static_cast<IApplication*>(this));
+}
+
+/**
+ * CNxTermFactory Constructor
+ *
+ * @param taskbar.  The taskbar instance used to terminate the console
+ */
+
+CNxTermFactory::CNxTermFactory(CTaskbar *taskbar)
+{
+  m_taskbar = taskbar;
+}
+
+/**
+ * Create a new instance of an CNxTerm (as IApplication).
+ */
+
+IApplication *CNxTermFactory::create(void)
+{
+  // Call CTaskBar::openFullScreenWindow to create a full screen window for
+  // the NxTerm application
+
+  CApplicationWindow *window = m_taskbar->openApplicationWindow();
+  if (!window)
+    {
+      gerr("ERROR: Failed to create CApplicationWindow\n");
+      return (IApplication *)0;
+    }
+
+  // Open the window (it is hot in here)
+
+  if (!window->open())
+    {
+      gerr("ERROR: Failed to open CApplicationWindow\n");
+      delete window;
+      return (IApplication *)0;
+    }
+
+  // Instantiate the application, providing the window to the application's
+  // constructor
+
+  CNxTerm *nxterm = new CNxTerm(m_taskbar, window);
+  if (!nxterm)
+    {
+      gerr("ERROR: Failed to instantiate CNxTerm\n");
+      delete window;
+      return (IApplication *)0;
+    }
+
+  return static_cast<IApplication*>(nxterm);
+}
+
+/**
+ * Get the icon associated with the application
+ *
+ * @return An instance if IBitmap that may be used to rend the
+ *   application's icon.  This is an new IBitmap instance that must
+ *   be deleted by the caller when it is no long needed.
+ */
+
+NXWidgets::IBitmap *CNxTermFactory::getIcon(void)
+{
+  NXWidgets::CRlePaletteBitmap *bitmap =
+    new NXWidgets::CRlePaletteBitmap(&CONFIG_NXWM_NXTERM_ICON);
+
+  return bitmap;
+}
+
+/**
+ * One time NSH initialization. This function must be called exactly
+ * once during the boot-up sequence to initialize the NSH library.
+ *
+ * @return True on successful initialization
+ */
+
+bool NxWM::nshlibInitialize(void)
+{
+  // Initialize the global data structure
+
+  sem_init(&g_nxtermvars.exclSem, 0, 1);
+  sem_init(&g_nxtermvars.waitSem, 0, 0);
+
+  // Initialize the NSH library
+
+  nsh_initialize();
+  return true;
+}
+=== 5. nxglyphs & nxwm build files ===
+62:  extern const struct SRlePaletteBitmap g_nuttxBitmap160x160;
+63:  extern const struct SRlePaletteBitmap g_nuttxBitmap320x320;
+94:  extern const struct SRlePaletteBitmap g_calculatorBitmap;
+95:  extern const struct SRlePaletteBitmap g_calibrationBitmap;
+96:  extern const struct SRlePaletteBitmap g_cmdBitmap;
+97:  extern const struct SRlePaletteBitmap g_menuBitmap;
+98:  extern const struct SRlePaletteBitmap g_menu2Bitmap;
+99:  extern const struct SRlePaletteBitmap g_resizeBitmap;
+100:  extern const struct SRlePaletteBitmap g_resize2Bitmap;
+101:  extern const struct SRlePaletteBitmap g_nxiconBitmap;
+102:  extern const struct SRlePaletteBitmap g_lcdClockBitmap;
+106:  extern const struct SRlePaletteBitmap g_mediaplayerBitmap;
+107:  extern const struct SRlePaletteBitmap g_mplayerFwdBitmap;
+108:  extern const struct SRlePaletteBitmap g_mplayerPlayBitmap;
+109:  extern const struct SRlePaletteBitmap g_mplayerPauseBitmap;
+110:  extern const struct SRlePaletteBitmap g_mplayerRewBitmap;
+111:  extern const struct SRlePaletteBitmap g_mplayerVolBitmap;
+112:  extern const struct SRlePaletteBitmap g_minimizeBitmap;
+113:  extern const struct SRlePaletteBitmap g_minimize2Bitmap;
+114:  extern const struct SRlePaletteBitmap g_playBitmap;
+115:  extern const struct SRlePaletteBitmap g_stopBitmap;
+116:  extern const struct SRlePaletteBitmap g_stop2Bitmap;
+cat: /home/bg9211014/lpc1788_workspace/apps/graphics/nxwm/src/Make.defs: No such file or directory
+cat: /home/bg9211014/lpc1788_workspace/apps/graphics/nxwm/src/Makefile: No such file or directory
+
+┌──(bg9211014🎃kali)-[~]
